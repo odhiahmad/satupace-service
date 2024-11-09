@@ -1,10 +1,9 @@
-package main
+package routes
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/config"
 	"github.com/odhiahmad/kasirku-service/controller"
-	"github.com/odhiahmad/kasirku-service/middleware"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/odhiahmad/kasirku-service/service"
 	"gorm.io/gorm"
@@ -22,29 +21,8 @@ var (
 	userController controller.UserController = controller.NewUserController(userService, jwtService)
 )
 
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func main() {
-
-	defer config.CloseDatabaseConnection(db)
+func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	r.Static("/image", "./fileupload")
-
-	r.Use(CORSMiddleware())
 
 	authRoutes := r.Group("api/auth")
 	{
@@ -56,6 +34,5 @@ func main() {
 		userRoutes.POST("/create", userController.CreateUser)
 		userRoutes.PUT("/update", userController.UpdateUser)
 	}
-
-	r.Run()
+	return r
 }
