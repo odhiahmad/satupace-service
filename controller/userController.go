@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/odhiahmad/kasirku-service/dto"
+	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
@@ -27,7 +27,7 @@ func NewUserController(userService service.UserService, jwtService service.JWTSe
 }
 
 func (c *userController) CreateUser(ctx *gin.Context) {
-	var userCreateDTO dto.UserCreateDTO
+	var userCreateDTO request.UserCreateDTO
 	errDTO := ctx.ShouldBind(&userCreateDTO)
 	if errDTO != nil {
 		response := helper.BuildErrorResponse("Failed to process request", errDTO.Error(), helper.EmptyObj{})
@@ -46,7 +46,7 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 }
 
 func (c *userController) UpdateUser(ctx *gin.Context) {
-	var userUpdateDTO dto.UserUpdateDTO
+	var userUpdateDTO request.UserUpdateDTO
 	errDTO := ctx.ShouldBind(&userUpdateDTO)
 	if errDTO != nil {
 		response := helper.BuildErrorResponse("Failed to process request", errDTO.Error(), helper.EmptyObj{})
