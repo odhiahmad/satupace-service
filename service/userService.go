@@ -4,14 +4,14 @@ import (
 	"log"
 
 	"github.com/mashingan/smapping"
-	"github.com/odhiahmad/kasirku-service/dto"
+	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type UserService interface {
-	CreateUser(user dto.UserCreateDTO) entity.User
-	UpdateUser(user dto.UserUpdateDTO) entity.User
+	CreateUser(user request.UserCreateDTO) entity.User
+	UpdateUser(user request.UserUpdateDTO) entity.User
 	IsDuplicateUsername(user string) bool
 }
 
@@ -25,7 +25,7 @@ func NewUserService(userRepo repository.UserRepository) UserService {
 	}
 }
 
-func (service *userService) CreateUser(user dto.UserCreateDTO) entity.User {
+func (service *userService) CreateUser(user request.UserCreateDTO) entity.User {
 	userToCreate := entity.User{}
 	err := smapping.FillStruct(&userToCreate, smapping.MapFields(&user))
 	if err != nil {
@@ -36,7 +36,7 @@ func (service *userService) CreateUser(user dto.UserCreateDTO) entity.User {
 	return res
 }
 
-func (service *userService) UpdateUser(user dto.UserUpdateDTO) entity.User {
+func (service *userService) UpdateUser(user request.UserUpdateDTO) entity.User {
 	userToUpdate := entity.User{}
 	err := smapping.FillStruct(&userToUpdate, smapping.MapFields(&user))
 	if err != nil {
