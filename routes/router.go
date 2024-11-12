@@ -16,15 +16,18 @@ var (
 	db                   *gorm.DB                        = config.SetupDatabaseConnection()
 	userRepository       repository.UserRepository       = repository.NewUserRepository(db)
 	perusahaanRepository repository.PerusahaanRepository = repository.NewPerusahaanRepository(db)
+	roleRepository       repository.RoleRepository       = repository.NewRoleRepository(db)
 
 	jwtService        service.JWTService        = service.NewJwtService()
 	authService       service.AuthService       = service.NewAuthService(userRepository)
 	userService       service.UserService       = service.NewUserService(userRepository)
 	perusahaanService service.PerusahaanService = service.NewPerusahaanService(perusahaanRepository, validate)
+	roleService       service.RoleService       = service.NewRoleService(roleRepository, validate)
 
 	authController       controller.AuthController       = controller.NewAuthController(authService, jwtService)
 	userController       controller.UserController       = controller.NewUserController(userService, jwtService)
 	perusahaanController controller.PerusahaanController = controller.NewPerusahaanController(perusahaanService, jwtService)
+	roleController       controller.RoleController       = controller.NewRoleController(roleService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -48,6 +51,15 @@ func SetupRouter() *gin.Engine {
 		perusahaanRoutes.GET("/", perusahaanController.FindPerusahaanAll)
 		perusahaanRoutes.GET("/:perusahaanId", perusahaanController.FindPerusahaanById)
 		perusahaanRoutes.DELETE("/:perusahaanId", perusahaanController.DeletePerusahaan)
+	}
+
+	roleRoutes := r.Group("api/role")
+	{
+		roleRoutes.POST("/", roleController.CreateRole)
+		roleRoutes.PATCH("/:roleId", roleController.UpdateRole)
+		roleRoutes.GET("/", roleController.FindRoleAll)
+		roleRoutes.GET("/:roleId", roleController.FindRoleById)
+		roleRoutes.DELETE("/:roleId", roleController.DeleteRole)
 	}
 	return r
 }

@@ -33,7 +33,7 @@ func SetupDatabaseConnection() *gorm.DB {
 	db.AutoMigrate(
 		&entity.User{},
 		&entity.Perusahaan{},
-		&entity.PerusahaanUser{},
+		&entity.Role{},
 		&entity.Pelanggan{},
 		&entity.Menu{},
 		&entity.MenuUkuran{},
