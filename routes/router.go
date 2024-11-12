@@ -17,17 +17,20 @@ var (
 	userRepository       repository.UserRepository       = repository.NewUserRepository(db)
 	perusahaanRepository repository.PerusahaanRepository = repository.NewPerusahaanRepository(db)
 	roleRepository       repository.RoleRepository       = repository.NewRoleRepository(db)
+	menuRepository       repository.MenuRepository       = repository.NewMenuRepository(db)
 
 	jwtService        service.JWTService        = service.NewJwtService()
 	authService       service.AuthService       = service.NewAuthService(userRepository)
 	userService       service.UserService       = service.NewUserService(userRepository)
 	perusahaanService service.PerusahaanService = service.NewPerusahaanService(perusahaanRepository, validate)
 	roleService       service.RoleService       = service.NewRoleService(roleRepository, validate)
+	menuService       service.MenuService       = service.NewMenuService(menuRepository, validate)
 
 	authController       controller.AuthController       = controller.NewAuthController(authService, jwtService)
 	userController       controller.UserController       = controller.NewUserController(userService, jwtService)
 	perusahaanController controller.PerusahaanController = controller.NewPerusahaanController(perusahaanService, jwtService)
 	roleController       controller.RoleController       = controller.NewRoleController(roleService, jwtService)
+	menuController       controller.MenuController       = controller.NewMenuController(menuService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -61,5 +64,15 @@ func SetupRouter() *gin.Engine {
 		roleRoutes.GET("/:roleId", roleController.FindRoleById)
 		roleRoutes.DELETE("/:roleId", roleController.DeleteRole)
 	}
+
+	menuRoutes := r.Group("api/role")
+	{
+		menuRoutes.POST("/", menuController.CreateMenu)
+		menuRoutes.PATCH("/:roleId", menuController.UpdateMenu)
+		menuRoutes.GET("/", menuController.FindMenuAll)
+		menuRoutes.GET("/:roleId", menuController.FindMenuById)
+		menuRoutes.DELETE("/:roleId", menuController.DeleteMenu)
+	}
+
 	return r
 }

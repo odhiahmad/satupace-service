@@ -37,7 +37,7 @@ func (service *RoleRepository) CreateRole(role request.RoleCreate) {
 		log.Fatalf("Failed map %v:", err)
 	}
 	roleEntity := entity.Role{
-		Name: role.Name,
+		Nama: role.Nama,
 	}
 
 	service.RoleRepository.InsertRole((roleEntity))
@@ -47,7 +47,7 @@ func (service *RoleRepository) UpdateRole(role request.RoleUpdate) {
 	roleData, err := service.RoleRepository.FindById(role.Id)
 	helper.ErrorPanic(err)
 
-	roleData.Name = role.Name
+	roleData.Nama = role.Nama
 
 	service.RoleRepository.UpdateRole(roleData)
 }
@@ -58,7 +58,7 @@ func (service *RoleRepository) FindById(roleId int) response.RoleResponse {
 
 	tagResponse := response.RoleResponse{
 		Id:   roleData.Id,
-		Name: roleData.Name,
+		Nama: roleData.Nama,
 	}
 	return tagResponse
 }
@@ -71,7 +71,7 @@ func (t *RoleRepository) FindAll() []response.RoleResponse {
 	for _, value := range result {
 		tag := response.RoleResponse{
 			Id:   value.Id,
-			Name: value.Name,
+			Nama: value.Nama,
 		}
 		tags = append(tags, tag)
 	}
