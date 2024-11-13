@@ -31,7 +31,7 @@ func (service *userService) CreateUser(user request.UserCreateDTO) entity.User {
 	if err != nil {
 		log.Fatalf("Failed map %v:", err)
 	}
-	userToCreate.Prepare()
+
 	res := service.userRepository.InsertUser((userToCreate))
 	return res
 }

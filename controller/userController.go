@@ -35,7 +35,7 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(userCreateDTO.Username) {
+	if !c.userService.IsDuplicateUsername(userCreateDTO.Email) {
 		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {

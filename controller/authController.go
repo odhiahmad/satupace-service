@@ -19,10 +19,9 @@ type authController struct {
 	jwtService  service.JWTService
 }
 
-func NewAuthController(authService service.AuthService, jwtService service.JWTService) AuthController {
+func NewAuthController(authService service.AuthService) AuthController {
 	return &authController{
 		authService: authService,
-		jwtService:  jwtService,
 	}
 }
 
@@ -37,7 +36,7 @@ func (c *authController) Login(ctx *gin.Context) {
 	}
 	authResult := c.authService.VerifyCredential(loginDTO.Username, loginDTO.Password)
 	if v, ok := authResult.(entity.User); ok {
-		generatedToken := c.jwtService.GenerateToken(v.Username)
+		generatedToken := c.jwtService.GenerateToken(v.Email)
 		v.Token = generatedToken
 		response := helper.BuildResponse(true, "Berhail Login!", v)
 		ctx.JSON(http.StatusOK, response)

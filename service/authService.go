@@ -26,7 +26,7 @@ func (service *authService) VerifyCredential(username string, password string) i
 	res := service.userRepository.VerifyCredential(username, password)
 	if v, ok := res.(entity.User); ok {
 		comparedPassword := comparePassword(v.Password, []byte(password))
-		if v.Username == username && comparedPassword {
+		if v.Email == username && comparedPassword {
 			return res
 		}
 		return false

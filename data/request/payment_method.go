@@ -1,10 +1,10 @@
 package request
 
-type RoleCreate struct {
+type PaymentMethodCreate struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type RoleUpdate struct {
+type PaymentMethodUpdate struct {
 	Id   int    `validate:"required"`
 	Name string `json:"name" validate:"required"`
 }

@@ -12,25 +12,27 @@ import (
 
 var (
 	// Initialize the validator
-	validate             *validator.Validate             = validator.New()
-	db                   *gorm.DB                        = config.SetupDatabaseConnection()
-	userRepository       repository.UserRepository       = repository.NewUserRepository(db)
-	perusahaanRepository repository.PerusahaanRepository = repository.NewPerusahaanRepository(db)
-	roleRepository       repository.RoleRepository       = repository.NewRoleRepository(db)
-	menuRepository       repository.MenuRepository       = repository.NewMenuRepository(db)
+	validate                *validator.Validate                = validator.New()
+	db                      *gorm.DB                           = config.SetupDatabaseConnection()
+	userRepository          repository.UserRepository          = repository.NewUserRepository(db)
+	roleRepository          repository.RoleRepository          = repository.NewRoleRepository(db)
+	businessTypeRepository  repository.BusinessTypeRepository  = repository.NewBusinessTypeRepository(db)
+	paymentMethodRepository repository.PaymentMethodRepository = repository.NewPaymentMethodRepository(db)
 
-	jwtService        service.JWTService        = service.NewJwtService()
-	authService       service.AuthService       = service.NewAuthService(userRepository)
-	userService       service.UserService       = service.NewUserService(userRepository)
-	perusahaanService service.PerusahaanService = service.NewPerusahaanService(perusahaanRepository, validate)
-	roleService       service.RoleService       = service.NewRoleService(roleRepository, validate)
-	menuService       service.MenuService       = service.NewMenuService(menuRepository, validate)
+	jwtService           service.JWTService           = service.NewJwtService()
+	authService          service.AuthService          = service.NewAuthService(userRepository)
+	userService          service.UserService          = service.NewUserService(userRepository)
+	roleService          service.RoleService          = service.NewRoleService(roleRepository, validate)
+	businessTypeService  service.BusinessTypeService  = service.NewBusinessTypeService(businessTypeRepository, validate)
+	paymentMethodService service.PaymentMethodService = service.NewPaymentMethodService(paymentMethodRepository, validate)
+	registrationService  service.RegistrationService  = service.NewRegistrationService(userRepository, validate)
 
-	authController       controller.AuthController       = controller.NewAuthController(authService, jwtService)
-	userController       controller.UserController       = controller.NewUserController(userService, jwtService)
-	perusahaanController controller.PerusahaanController = controller.NewPerusahaanController(perusahaanService, jwtService)
-	roleController       controller.RoleController       = controller.NewRoleController(roleService, jwtService)
-	menuController       controller.MenuController       = controller.NewMenuController(menuService, jwtService)
+	authController          controller.AuthController          = controller.NewAuthController(authService)
+	userController          controller.UserController          = controller.NewUserController(userService, jwtService)
+	roleController          controller.RoleController          = controller.NewRoleController(roleService, jwtService)
+	businessTypeController  controller.BusinessTypeController  = controller.NewBusinessTypeController(businessTypeService, jwtService)
+	paymentMethodController controller.PaymentMethodController = controller.NewPaymentMethodController(paymentMethodService, jwtService)
+	registrationController  controller.RegistrationController  = controller.NewRegistrationController(registrationService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -41,19 +43,15 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("/login", authController.Login)
 	}
 
+	registrationRoutes := r.Group("api/registration")
+	{
+		registrationRoutes.POST("", registrationController.InsertRegistration)
+	}
+
 	userRoutes := r.Group("api/user")
 	{
 		userRoutes.POST("/create", userController.CreateUser)
 		userRoutes.PUT("/update", userController.UpdateUser)
-	}
-
-	perusahaanRoutes := r.Group("api/perusahaan")
-	{
-		perusahaanRoutes.POST("/", perusahaanController.CreatePerusahaan)
-		perusahaanRoutes.PATCH("/:perusahaanId", perusahaanController.UpdatePerusahaan)
-		perusahaanRoutes.GET("/", perusahaanController.FindPerusahaanAll)
-		perusahaanRoutes.GET("/:perusahaanId", perusahaanController.FindPerusahaanById)
-		perusahaanRoutes.DELETE("/:perusahaanId", perusahaanController.DeletePerusahaan)
 	}
 
 	roleRoutes := r.Group("api/role")
@@ -65,13 +63,22 @@ func SetupRouter() *gin.Engine {
 		roleRoutes.DELETE("/:roleId", roleController.DeleteRole)
 	}
 
-	menuRoutes := r.Group("api/role")
+	businessTypeRoutes := r.Group("api/business-type")
 	{
-		menuRoutes.POST("/", menuController.CreateMenu)
-		menuRoutes.PATCH("/:roleId", menuController.UpdateMenu)
-		menuRoutes.GET("/", menuController.FindMenuAll)
-		menuRoutes.GET("/:roleId", menuController.FindMenuById)
-		menuRoutes.DELETE("/:roleId", menuController.DeleteMenu)
+		businessTypeRoutes.POST("/", businessTypeController.CreateBusinessType)
+		businessTypeRoutes.PATCH("/:businessTypeId", businessTypeController.UpdateBusinessType)
+		businessTypeRoutes.GET("/", businessTypeController.FindBusinessTypeAll)
+		businessTypeRoutes.GET("/:businessTypeId", businessTypeController.FindBusinessTypeById)
+		businessTypeRoutes.DELETE("/:businessTypeId", businessTypeController.DeleteBusinessType)
+	}
+
+	paymentMethodRoutes := r.Group("api/business-type")
+	{
+		paymentMethodRoutes.POST("/", paymentMethodController.CreatePaymentMethod)
+		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.UpdatePaymentMethod)
+		paymentMethodRoutes.GET("/", paymentMethodController.FindPaymentMethodAll)
+		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindPaymentMethodById)
+		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.DeletePaymentMethod)
 	}
 
 	return r

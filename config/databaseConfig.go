@@ -30,16 +30,20 @@ func SetupDatabaseConnection() *gorm.DB {
 	if err != nil {
 		panic("Gagal membuat koneksi ke database")
 	}
+
 	db.AutoMigrate(
 		&entity.User{},
-		&entity.Perusahaan{},
+		&entity.Business{},
+		&entity.BusinessType{},
 		&entity.Role{},
-		&entity.Pelanggan{},
-		&entity.Menu{},
-		&entity.MenuUkuran{},
+		&entity.Customer{},
+		&entity.Product{},
+		&entity.ProductSize{},
 		&entity.MenuAttribute{},
-		&entity.Transaksi{},
-		&entity.TransaksiDetail{})
+		&entity.Transaction{},
+		&entity.TransactionDetail{},
+		&entity.PaymentMethod{})
+
 	return db
 }
 

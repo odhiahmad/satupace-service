@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -13,6 +14,7 @@ type UserRepository interface {
 	UpdateUser(user entity.User) entity.User
 	VerifyCredential(username string, password string) interface{}
 	IsDuplicateUsername(username string) (tx *gorm.DB)
+	InsertRegistration(business entity.Business)
 }
 
 type UserConnection struct {
@@ -66,4 +68,10 @@ func hashAndSalt(pwd []byte) string {
 		panic("Failed to hash a password")
 	}
 	return string(hash)
+}
+
+func (t *UserConnection) InsertRegistration(business entity.Business) {
+	result := t.Db.Create(&business)
+
+	helper.ErrorPanic(result.Error)
 }

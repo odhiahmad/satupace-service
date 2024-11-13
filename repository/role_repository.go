@@ -34,7 +34,7 @@ func (t *RoleConnection) InsertRole(role entity.Role) {
 func (t *RoleConnection) UpdateRole(role entity.Role) {
 	var updateRole = request.RoleUpdate{
 		Id:   role.Id,
-		Nama: role.Nama,
+		Name: role.Name,
 	}
 
 	result := t.Db.Model(&role).Updates(updateRole)

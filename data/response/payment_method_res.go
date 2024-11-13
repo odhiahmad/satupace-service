@@ -1,6 +1,6 @@
 package response
 
-type MenuResponse struct {
+type PaymentMethodResponse struct {
 	Id   int    `json:"id"`
 	Nama string `json:"nama"`
 }
