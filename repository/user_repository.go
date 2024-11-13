@@ -61,6 +61,13 @@ func (t *UserConnection) IsDuplicateUsername(username string) (tx *gorm.DB) {
 	return t.Db.Where("username = ?", username).Take(&user)
 }
 
+func (t *UserConnection) InsertRegistration(business entity.Business) {
+	business.User.Password = hashAndSalt([]byte(business.User.Password))
+	result := t.Db.Create(&business)
+
+	helper.ErrorPanic(result.Error)
+}
+
 func hashAndSalt(pwd []byte) string {
 	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 	if err != nil {
@@ -68,10 +75,4 @@ func hashAndSalt(pwd []byte) string {
 		panic("Failed to hash a password")
 	}
 	return string(hash)
-}
-
-func (t *UserConnection) InsertRegistration(business entity.Business) {
-	result := t.Db.Create(&business)
-
-	helper.ErrorPanic(result.Error)
 }

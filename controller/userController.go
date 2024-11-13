@@ -12,6 +12,7 @@ import (
 type UserController interface {
 	CreateUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
+	InsertRegistration(ctx *gin.Context)
 }
 
 type userController struct {
@@ -62,4 +63,24 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 		response := helper.BuildResponse(true, "!OK", updatedUser)
 		ctx.JSON(http.StatusCreated, response)
 	}
+}
+
+func (c *userController) InsertRegistration(ctx *gin.Context) {
+	var registrationInsert request.Registration
+	err := ctx.ShouldBind(&registrationInsert)
+	if err != nil {
+		response := helper.BuildErrorResponse("Failed to process request", err.Error(), helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	if !c.userService.IsDuplicateUsername(registrationInsert.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+		ctx.JSON(http.StatusConflict, response)
+	} else {
+		c.userService.Registration(registrationInsert)
+		response := helper.BuildResponse(true, "!OK", nil)
+		ctx.JSON(http.StatusCreated, response)
+	}
+
 }

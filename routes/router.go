@@ -18,21 +18,22 @@ var (
 	roleRepository          repository.RoleRepository          = repository.NewRoleRepository(db)
 	businessTypeRepository  repository.BusinessTypeRepository  = repository.NewBusinessTypeRepository(db)
 	paymentMethodRepository repository.PaymentMethodRepository = repository.NewPaymentMethodRepository(db)
+	productUnitRepository   repository.ProductUnitRepository   = repository.NewProductUnitRepository(db)
 
 	jwtService           service.JWTService           = service.NewJwtService()
 	authService          service.AuthService          = service.NewAuthService(userRepository)
-	userService          service.UserService          = service.NewUserService(userRepository)
+	userService          service.UserService          = service.NewUserService(userRepository, validate)
 	roleService          service.RoleService          = service.NewRoleService(roleRepository, validate)
 	businessTypeService  service.BusinessTypeService  = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService service.PaymentMethodService = service.NewPaymentMethodService(paymentMethodRepository, validate)
-	registrationService  service.RegistrationService  = service.NewRegistrationService(userRepository, validate)
+	productUnitService   service.ProductUnitService   = service.NewProductUnitService(productUnitRepository, validate)
 
 	authController          controller.AuthController          = controller.NewAuthController(authService)
 	userController          controller.UserController          = controller.NewUserController(userService, jwtService)
 	roleController          controller.RoleController          = controller.NewRoleController(roleService, jwtService)
 	businessTypeController  controller.BusinessTypeController  = controller.NewBusinessTypeController(businessTypeService, jwtService)
 	paymentMethodController controller.PaymentMethodController = controller.NewPaymentMethodController(paymentMethodService, jwtService)
-	registrationController  controller.RegistrationController  = controller.NewRegistrationController(registrationService)
+	productUnitController   controller.ProductUnitController   = controller.NewProductUnitController(productUnitService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -43,13 +44,9 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("/login", authController.Login)
 	}
 
-	registrationRoutes := r.Group("api/registration")
-	{
-		registrationRoutes.POST("", registrationController.InsertRegistration)
-	}
-
 	userRoutes := r.Group("api/user")
 	{
+		userRoutes.POST("", userController.InsertRegistration)
 		userRoutes.POST("/create", userController.CreateUser)
 		userRoutes.PUT("/update", userController.UpdateUser)
 	}
@@ -79,6 +76,15 @@ func SetupRouter() *gin.Engine {
 		paymentMethodRoutes.GET("/", paymentMethodController.FindPaymentMethodAll)
 		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindPaymentMethodById)
 		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.DeletePaymentMethod)
+	}
+
+	productUnitRoutes := r.Group("api/business-type")
+	{
+		productUnitRoutes.POST("/", productUnitController.CreateProductUnit)
+		productUnitRoutes.PATCH("/:productUnitId", productUnitController.UpdateProductUnit)
+		productUnitRoutes.GET("/", productUnitController.FindProductUnitAll)
+		productUnitRoutes.GET("/:productUnitId", productUnitController.FindProductUnitById)
+		productUnitRoutes.DELETE("/:productUnitId", productUnitController.DeleteProductUnit)
 	}
 
 	return r
