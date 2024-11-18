@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,9 +36,14 @@ func (c *authController) Login(ctx *gin.Context) {
 		return
 
 	}
-	authResult := c.authService.VerifyCredential(loginDTO.Username, loginDTO.Password)
+	authResult := c.authService.VerifyCredential(loginDTO.Email, loginDTO.Password)
+
+	if c.jwtService == nil {
+		log.Println("jwtService is nil")
+	}
+
 	if v, ok := authResult.(entity.User); ok {
-		generatedToken := c.jwtService.GenerateToken(v.Username)
+		generatedToken := c.jwtService.GenerateToken(v.Email)
 		v.Token = generatedToken
 		response := helper.BuildResponse(true, "Berhail Login!", v)
 		ctx.JSON(http.StatusOK, response)

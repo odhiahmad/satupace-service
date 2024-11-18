@@ -1,6 +1,6 @@
 package response
 
-type RoleResponse struct {
+type ProductUnitResponse struct {
 	Id   int    `json:"id"`
 	Nama string `json:"nama"`
 }

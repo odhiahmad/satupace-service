@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type JWTService interface {
@@ -15,7 +15,7 @@ type JWTService interface {
 
 type jwtCustomClaim struct {
 	UserdId string `json:"userId"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type jwtService struct {
@@ -25,7 +25,7 @@ type jwtService struct {
 
 func NewJwtService() JWTService {
 	return &jwtService{
-		issuer:    "odhiahmad",
+		issuer:    "kasirku",
 		secretKey: getSecretKey(),
 	}
 }
@@ -33,8 +33,8 @@ func NewJwtService() JWTService {
 func getSecretKey() string {
 	secretKey := os.Getenv("JWT_SECRET")
 
-	if secretKey != "" {
-		secretKey = "odhiahmad"
+	if secretKey == "" {
+		secretKey = "sdfnkjsdf28fmn*(&^%^%&bjsdfgsQ$@$sadjfsdfx"
 	}
 	return secretKey
 }
@@ -42,10 +42,10 @@ func getSecretKey() string {
 func (j *jwtService) GenerateToken(UserId string) string {
 	claims := &jwtCustomClaim{
 		UserId,
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().AddDate(1, 0, 0).Unix(),
+		jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			Issuer:    j.issuer,
-			IssuedAt:  time.Now().Unix(),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -12,6 +12,7 @@ import (
 type UserController interface {
 	CreateUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
+	InsertRegistration(ctx *gin.Context)
 }
 
 type userController struct {
@@ -35,8 +36,8 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(userCreateDTO.Username) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+	if !c.userService.IsDuplicateEmail(userCreateDTO.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {
 		createdUser := c.userService.CreateUser(userCreateDTO)
@@ -54,12 +55,32 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(userUpdateDTO.Username) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+	if !c.userService.IsDuplicateEmail(userUpdateDTO.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {
 		updatedUser := c.userService.UpdateUser(userUpdateDTO)
 		response := helper.BuildResponse(true, "!OK", updatedUser)
 		ctx.JSON(http.StatusCreated, response)
 	}
+}
+
+func (c *userController) InsertRegistration(ctx *gin.Context) {
+	var registrationInsert request.Registration
+	err := ctx.ShouldBind(&registrationInsert)
+	if err != nil {
+		response := helper.BuildErrorResponse("Failed to process request", err.Error(), helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	if !c.userService.IsDuplicateEmail(registrationInsert.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
+		ctx.JSON(http.StatusConflict, response)
+	} else {
+		c.userService.Registration(registrationInsert)
+		response := helper.BuildResponse(true, "!OK", nil)
+		ctx.JSON(http.StatusCreated, response)
+	}
+
 }
