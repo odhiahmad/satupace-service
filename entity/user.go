@@ -2,12 +2,10 @@ package entity
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
+	Id         int      `gorm:"type:int;primary_key"`
 	RoleId     int      `gorm:"column:role_id;not null" json:"role_id"`
 	BusinessId int      `gorm:"column:business_id" json:"business_id"`
 	Business   Business `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`

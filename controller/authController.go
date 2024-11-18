@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,9 +20,10 @@ type authController struct {
 	jwtService  service.JWTService
 }
 
-func NewAuthController(authService service.AuthService) AuthController {
+func NewAuthController(authService service.AuthService, jwtService service.JWTService) AuthController {
 	return &authController{
 		authService: authService,
+		jwtService:  jwtService,
 	}
 }
 
@@ -35,6 +37,11 @@ func (c *authController) Login(ctx *gin.Context) {
 
 	}
 	authResult := c.authService.VerifyCredential(loginDTO.Email, loginDTO.Password)
+
+	if c.jwtService == nil {
+		log.Println("jwtService is nil")
+	}
+
 	if v, ok := authResult.(entity.User); ok {
 		generatedToken := c.jwtService.GenerateToken(v.Email)
 		v.Token = generatedToken

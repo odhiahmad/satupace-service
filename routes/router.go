@@ -28,7 +28,7 @@ var (
 	paymentMethodService service.PaymentMethodService = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productUnitService   service.ProductUnitService   = service.NewProductUnitService(productUnitRepository, validate)
 
-	authController          controller.AuthController          = controller.NewAuthController(authService)
+	authController          controller.AuthController          = controller.NewAuthController(authService, jwtService)
 	userController          controller.UserController          = controller.NewUserController(userService, jwtService)
 	roleController          controller.RoleController          = controller.NewRoleController(roleService, jwtService)
 	businessTypeController  controller.BusinessTypeController  = controller.NewBusinessTypeController(businessTypeService, jwtService)
@@ -39,9 +39,9 @@ var (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	authRoutes := r.Group("api/auth")
+	authRoutes := r.Group("api/auth/business")
 	{
-		authRoutes.POST("/login", authController.Login)
+		authRoutes.POST("", authController.Login)
 	}
 
 	userRoutes := r.Group("api/user")

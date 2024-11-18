@@ -70,7 +70,6 @@ func (service *userService) Registration(registration request.Registration) {
 			OwnerName:      registration.OwnerName,
 			Address:        registration.Address,
 			BusinessTypeId: registration.BusinessTypeId,
-			Email:          registration.Email,
 			IsActive:       true,
 		},
 	}

@@ -49,7 +49,7 @@ func (t *UserConnection) UpdateUser(user entity.User) entity.User {
 
 func (t *UserConnection) VerifyCredential(email string, password string) interface{} {
 	var user entity.User
-	res := t.Db.Where("email = ?", email).Take(&user)
+	res := t.Db.Where("email = ?", email).Preload("Business").Take(&user)
 	if res.Error == nil {
 		return user
 	}
