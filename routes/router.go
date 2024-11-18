@@ -69,7 +69,7 @@ func SetupRouter() *gin.Engine {
 		businessTypeRoutes.DELETE("/:businessTypeId", businessTypeController.DeleteBusinessType)
 	}
 
-	paymentMethodRoutes := r.Group("api/business-type")
+	paymentMethodRoutes := r.Group("api/payment-method")
 	{
 		paymentMethodRoutes.POST("/", paymentMethodController.CreatePaymentMethod)
 		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.UpdatePaymentMethod)
@@ -78,7 +78,7 @@ func SetupRouter() *gin.Engine {
 		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.DeletePaymentMethod)
 	}
 
-	productUnitRoutes := r.Group("api/business-type")
+	productUnitRoutes := r.Group("api/product-unit")
 	{
 		productUnitRoutes.POST("/", productUnitController.CreateProductUnit)
 		productUnitRoutes.PATCH("/:productUnitId", productUnitController.UpdateProductUnit)

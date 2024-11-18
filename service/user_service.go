@@ -13,7 +13,7 @@ import (
 type UserService interface {
 	CreateUser(user request.UserCreateDTO) entity.User
 	UpdateUser(user request.UserUpdateDTO) entity.User
-	IsDuplicateUsername(user string) bool
+	IsDuplicateEmail(user string) bool
 	Registration(user request.Registration)
 }
 
@@ -50,8 +50,8 @@ func (service *userService) UpdateUser(user request.UserUpdateDTO) entity.User {
 	return res
 }
 
-func (service *userService) IsDuplicateUsername(username string) bool {
-	res := service.userRepository.IsDuplicateUsername(username)
+func (service *userService) IsDuplicateEmail(email string) bool {
+	res := service.userRepository.IsDuplicateEmail(email)
 	return !(res.Error == nil)
 }
 
@@ -60,18 +60,19 @@ func (service *userService) Registration(registration request.Registration) {
 	if err != nil {
 		log.Fatalf("Failed map %v:", err)
 	}
-	registrationEntity := entity.Business{
-		User: entity.User{
-			Email:    registration.Email,
-			Password: registration.Password,
-			RoleId:   registration.RoleId,
+	registrationEntity := entity.User{
+		Email:    registration.Email,
+		Password: registration.Password,
+		RoleId:   registration.RoleId,
+		Business: entity.Business{
+			Name:           registration.Name,
+			PhoneNumber:    registration.PhoneNumber,
+			OwnerName:      registration.OwnerName,
+			Address:        registration.Address,
+			BusinessTypeId: registration.BusinessTypeId,
+			Email:          registration.Email,
+			IsActive:       true,
 		},
-		Name:           registration.Name,
-		PhoneNumber:    registration.PhoneNumber,
-		OwnerName:      registration.OwnerName,
-		Address:        registration.Address,
-		BusinessTypeId: registration.BusinessTypeId,
-		IsActive:       true,
 	}
 
 	service.userRepository.InsertRegistration((registrationEntity))

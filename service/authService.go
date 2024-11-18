@@ -9,7 +9,7 @@ import (
 )
 
 type AuthService interface {
-	VerifyCredential(username string, password string) interface{}
+	VerifyCredential(email string, password string) interface{}
 }
 
 type authService struct {
@@ -22,11 +22,11 @@ func NewAuthService(userRep repository.UserRepository) AuthService {
 	}
 }
 
-func (service *authService) VerifyCredential(username string, password string) interface{} {
-	res := service.userRepository.VerifyCredential(username, password)
+func (service *authService) VerifyCredential(email string, password string) interface{} {
+	res := service.userRepository.VerifyCredential(email, password)
 	if v, ok := res.(entity.User); ok {
 		comparedPassword := comparePassword(v.Password, []byte(password))
-		if v.Email == username && comparedPassword {
+		if v.Email == email && comparedPassword {
 			return res
 		}
 		return false

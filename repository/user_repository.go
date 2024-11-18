@@ -12,9 +12,9 @@ import (
 type UserRepository interface {
 	InsertUser(user entity.User) entity.User
 	UpdateUser(user entity.User) entity.User
-	VerifyCredential(username string, password string) interface{}
-	IsDuplicateUsername(username string) (tx *gorm.DB)
-	InsertRegistration(business entity.Business)
+	VerifyCredential(email string, password string) interface{}
+	IsDuplicateEmail(email string) (tx *gorm.DB)
+	InsertRegistration(business entity.User)
 }
 
 type UserConnection struct {
@@ -38,7 +38,7 @@ func (t *UserConnection) UpdateUser(user entity.User) entity.User {
 		user.Password = hashAndSalt([]byte(user.Password))
 	} else {
 		var tempUser entity.User
-		t.Db.Find(&tempUser, user.Id)
+		t.Db.Find(&tempUser, user.Email)
 		user.Password = tempUser.Password
 	}
 
@@ -47,23 +47,23 @@ func (t *UserConnection) UpdateUser(user entity.User) entity.User {
 	return user
 }
 
-func (t *UserConnection) VerifyCredential(username string, password string) interface{} {
+func (t *UserConnection) VerifyCredential(email string, password string) interface{} {
 	var user entity.User
-	res := t.Db.Where("username = ?", username).Take(&user)
+	res := t.Db.Where("email = ?", email).Take(&user)
 	if res.Error == nil {
 		return user
 	}
 	return nil
 }
 
-func (t *UserConnection) IsDuplicateUsername(username string) (tx *gorm.DB) {
+func (t *UserConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
 	var user entity.User
-	return t.Db.Where("username = ?", username).Take(&user)
+	return t.Db.Where("email = ?", email).Take(&user)
 }
 
-func (t *UserConnection) InsertRegistration(business entity.Business) {
-	business.User.Password = hashAndSalt([]byte(business.User.Password))
-	result := t.Db.Create(&business)
+func (t *UserConnection) InsertRegistration(user entity.User) {
+	user.Password = hashAndSalt([]byte(user.Password))
+	result := t.Db.Create(&user)
 
 	helper.ErrorPanic(result.Error)
 }

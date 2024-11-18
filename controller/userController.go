@@ -36,8 +36,8 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(userCreateDTO.Email) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+	if !c.userService.IsDuplicateEmail(userCreateDTO.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {
 		createdUser := c.userService.CreateUser(userCreateDTO)
@@ -55,8 +55,8 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(userUpdateDTO.Username) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+	if !c.userService.IsDuplicateEmail(userUpdateDTO.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {
 		updatedUser := c.userService.UpdateUser(userUpdateDTO)
@@ -74,8 +74,8 @@ func (c *userController) InsertRegistration(ctx *gin.Context) {
 		return
 	}
 
-	if !c.userService.IsDuplicateUsername(registrationInsert.Email) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate username", helper.EmptyObj{})
+	if !c.userService.IsDuplicateEmail(registrationInsert.Email) {
+		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
 		ctx.JSON(http.StatusConflict, response)
 	} else {
 		c.userService.Registration(registrationInsert)
