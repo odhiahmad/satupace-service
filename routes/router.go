@@ -12,13 +12,16 @@ import (
 
 var (
 	// Initialize the validator
-	validate                *validator.Validate                = validator.New()
-	db                      *gorm.DB                           = config.SetupDatabaseConnection()
-	userRepository          repository.UserRepository          = repository.NewUserRepository(db)
-	roleRepository          repository.RoleRepository          = repository.NewRoleRepository(db)
-	businessTypeRepository  repository.BusinessTypeRepository  = repository.NewBusinessTypeRepository(db)
-	paymentMethodRepository repository.PaymentMethodRepository = repository.NewPaymentMethodRepository(db)
-	productUnitRepository   repository.ProductUnitRepository   = repository.NewProductUnitRepository(db)
+	validate                 *validator.Validate                 = validator.New()
+	db                       *gorm.DB                            = config.SetupDatabaseConnection()
+	userRepository           repository.UserRepository           = repository.NewUserRepository(db)
+	userBusinessRepository   repository.UserBusinessRepository   = repository.NewUserBusinessRepository(db)
+	roleRepository           repository.RoleRepository           = repository.NewRoleRepository(db)
+	businessTypeRepository   repository.BusinessTypeRepository   = repository.NewBusinessTypeRepository(db)
+	businessRepository       repository.BusinessRepository       = repository.NewBusinessRepository(db)
+	businessBranchRepository repository.BusinessBranchRepository = repository.NewBusinessBranchRepository(db)
+	paymentMethodRepository  repository.PaymentMethodRepository  = repository.NewPaymentMethodRepository(db)
+	productUnitRepository    repository.ProductUnitRepository    = repository.NewProductUnitRepository(db)
 
 	jwtService           service.JWTService           = service.NewJwtService()
 	authService          service.AuthService          = service.NewAuthService(userRepository)
@@ -27,6 +30,7 @@ var (
 	businessTypeService  service.BusinessTypeService  = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService service.PaymentMethodService = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productUnitService   service.ProductUnitService   = service.NewProductUnitService(productUnitRepository, validate)
+	registrationService  service.RegistrationService  = service.NewRegistrationService(businessRepository, businessBranchRepository, userBusinessRepository, validate)
 
 	authController          controller.AuthController          = controller.NewAuthController(authService, jwtService)
 	userController          controller.UserController          = controller.NewUserController(userService, jwtService)
@@ -34,6 +38,7 @@ var (
 	businessTypeController  controller.BusinessTypeController  = controller.NewBusinessTypeController(businessTypeService, jwtService)
 	paymentMethodController controller.PaymentMethodController = controller.NewPaymentMethodController(paymentMethodService, jwtService)
 	productUnitController   controller.ProductUnitController   = controller.NewProductUnitController(productUnitService, jwtService)
+	registrationController  controller.RegistrationController  = controller.NewRegistrationController(registrationService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -44,9 +49,13 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("", authController.Login)
 	}
 
+	registrationRoutes := r.Group("api/registration")
+	{
+		registrationRoutes.POST("", registrationController.InsertRegistration)
+	}
+
 	userRoutes := r.Group("api/user")
 	{
-		userRoutes.POST("", userController.InsertRegistration)
 		userRoutes.POST("/create", userController.CreateUser)
 		userRoutes.PUT("/update", userController.UpdateUser)
 	}

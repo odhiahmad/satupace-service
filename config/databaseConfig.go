@@ -32,15 +32,21 @@ func SetupDatabaseConnection() *gorm.DB {
 	}
 
 	db.AutoMigrate(
+		&entity.UserBusiness{},
 		&entity.User{},
 		&entity.Business{},
+		&entity.BusinessBranch{},
 		&entity.BusinessType{},
 		&entity.Role{},
 		&entity.Customer{},
 		&entity.Product{},
 		&entity.ProductSize{},
 		&entity.ProductUnit{},
-		&entity.MenuAttribute{},
+		&entity.ProductAttribute{},
+		&entity.ProductVariant{},
+		&entity.ProductStock{},
+		&entity.ProductCategory{},
+		&entity.ProductSubCategory{},
 		&entity.Transaction{},
 		&entity.TransactionDetail{},
 		&entity.PaymentMethod{})
