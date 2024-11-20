@@ -1,11 +1,8 @@
 package repository
 
 import (
-	"log"
-
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +23,7 @@ func NewUserRepository(Db *gorm.DB) UserRepository {
 }
 
 func (t *UserConnection) InsertUser(user entity.User) entity.User {
-	user.Password = hashAndSalt([]byte(user.Password))
+	user.Password = helper.HashAndSalt([]byte(user.Password))
 	t.Db.Save(&user)
 
 	return user
@@ -35,7 +32,7 @@ func (t *UserConnection) InsertUser(user entity.User) entity.User {
 func (t *UserConnection) UpdateUser(user entity.User) entity.User {
 
 	if user.Password != "" {
-		user.Password = hashAndSalt([]byte(user.Password))
+		user.Password = helper.HashAndSalt([]byte(user.Password))
 	} else {
 		var tempUser entity.User
 		t.Db.Find(&tempUser, user.Email)
@@ -62,17 +59,8 @@ func (t *UserConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
 }
 
 func (t *UserConnection) InsertRegistration(user entity.User) {
-	user.Password = hashAndSalt([]byte(user.Password))
+	user.Password = helper.HashAndSalt([]byte(user.Password))
 	result := t.Db.Create(&user)
 
 	helper.ErrorPanic(result.Error)
-}
-
-func hashAndSalt(pwd []byte) string {
-	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
-	if err != nil {
-		log.Println(err)
-		panic("Failed to hash a password")
-	}
-	return string(hash)
 }

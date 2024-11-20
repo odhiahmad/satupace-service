@@ -14,7 +14,6 @@ type UserService interface {
 	CreateUser(user request.UserCreateDTO) entity.User
 	UpdateUser(user request.UserUpdateDTO) entity.User
 	IsDuplicateEmail(user string) bool
-	Registration(user request.Registration)
 }
 
 type userService struct {
@@ -53,26 +52,4 @@ func (service *userService) UpdateUser(user request.UserUpdateDTO) entity.User {
 func (service *userService) IsDuplicateEmail(email string) bool {
 	res := service.userRepository.IsDuplicateEmail(email)
 	return !(res.Error == nil)
-}
-
-func (service *userService) Registration(registration request.Registration) {
-	err := service.Validate.Struct(registration)
-	if err != nil {
-		log.Fatalf("Failed map %v:", err)
-	}
-	registrationEntity := entity.User{
-		Email:    registration.Email,
-		Password: registration.Password,
-		RoleId:   registration.RoleId,
-		Business: entity.Business{
-			Name:           registration.Name,
-			PhoneNumber:    registration.PhoneNumber,
-			OwnerName:      registration.OwnerName,
-			Address:        registration.Address,
-			BusinessTypeId: registration.BusinessTypeId,
-			IsActive:       true,
-		},
-	}
-
-	service.userRepository.InsertRegistration((registrationEntity))
 }

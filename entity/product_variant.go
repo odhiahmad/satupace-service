@@ -6,11 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductSize struct {
+type ProductVariant struct {
 	gorm.Model
-	ProductId       uint    `gorm:"null"`
+	ProductId       int     `gorm:"null"`
 	Product         Product `gorm:"foreignKey:ProductId"`
-	Size            string  `gorm:"type:varchar(255)" json:"size"`
+	Name            string  `gorm:"type:varchar(255)" json:"name"`
 	AdditionalPrice uint    `json:"additional_price"`
 	Discount        string  `gorm:"type:varchar(255)" json:"discount"`
 	Promo           string  `gorm:"type:varchar(255)" json:"promo"`
@@ -18,9 +18,4 @@ type ProductSize struct {
 	IsActive        bool    `gorm:"not null; column:is_active"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
-}
-
-func (u *ProductSize) Prepare() error {
-	u.IsActive = true
-	return nil
 }

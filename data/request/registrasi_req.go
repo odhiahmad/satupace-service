@@ -7,6 +7,9 @@ type Registration struct {
 	Password       string `json:"password" validate:"required"`
 	Name           string `json:"name" validate:"required"`
 	OwnerName      string `json:"owner_name" validate:"required"`
-	PhoneNumber    string `json:"phone_number" validate:"required"`
-	Address        string `json:"address" validate:"required"`
+	Branch         []struct {
+		Pic         string `json:"pic" validate:"required"`
+		PhoneNumber string `json:"phone_number"`
+		Address     string `json:"address" validate:"required"`
+	}
 }
