@@ -1,0 +1,51 @@
+name: Deploy Golang App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout kode
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Setup Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Build Docker Image
+      - name: Build Docker Image
+        run: docker build -t odhiahmad/kasirku-service:latest .
+
+      # Push Docker Image
+      - name: Push Docker Image to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push Docker Image
+        run: docker push odhiahmad/kasirku-service:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # SSH ke VM
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          key: ${{ secrets.VM_PRIVATE_KEY }}
+          port: ${{ secrets.VM_PORT }}
+          script: |
+            docker pull odhiahmad/kasirku-service:latest
+            docker stop kasirku-service || true
+            docker rm kasirku-service || true
+            docker run -d --name kasirku-service -p 80:80 odhiahmad/kasirku-service:latest
