@@ -24,7 +24,7 @@ var (
 	productUnitRepository    repository.ProductUnitRepository    = repository.NewProductUnitRepository(db)
 
 	jwtService           service.JWTService           = service.NewJwtService()
-	authService          service.AuthService          = service.NewAuthService(userRepository)
+	authService          service.AuthService          = service.NewAuthService(userRepository, userBusinessRepository)
 	userService          service.UserService          = service.NewUserService(userRepository, validate)
 	roleService          service.RoleService          = service.NewRoleService(roleRepository, validate)
 	businessTypeService  service.BusinessTypeService  = service.NewBusinessTypeService(businessTypeRepository, validate)
@@ -44,8 +44,9 @@ var (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	authRoutes := r.Group("api/auth/business")
+	authRoutes := r.Group("api/auth")
 	{
+		authRoutes.POST("/business", authController.LoginBusiness)
 		authRoutes.POST("", authController.Login)
 	}
 

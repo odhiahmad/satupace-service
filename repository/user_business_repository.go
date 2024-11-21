@@ -14,6 +14,7 @@ type UserBusinessRepository interface {
 	FindAll() []entity.UserBusiness
 	Delete(userBusinessId int)
 	IsDuplicateEmail(email string) (tx *gorm.DB)
+	VerifyCredentialBusiness(email string, password string) interface{}
 }
 
 type UserBusinessConnection struct {
@@ -57,4 +58,13 @@ func (t *UserBusinessConnection) Delete(userBusinessId int) {
 func (t *UserBusinessConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
 	var userBusiness entity.UserBusiness
 	return t.Db.Where("email = ?", email).Take(&userBusiness)
+}
+
+func (t *UserBusinessConnection) VerifyCredentialBusiness(email string, password string) interface{} {
+	var user entity.UserBusiness
+	res := t.Db.Where("email = ?", email).Preload("Role").Preload("Business.BusinessType").Take(&user)
+	if res.Error == nil {
+		return user
+	}
+	return nil
 }
