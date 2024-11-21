@@ -15,7 +15,6 @@ type RegistrationController interface {
 
 type registrationController struct {
 	registrationService service.RegistrationService
-	userService         service.UserService
 	jwtService          service.JWTService
 }
 

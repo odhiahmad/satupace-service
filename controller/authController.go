@@ -13,6 +13,7 @@ import (
 
 type AuthController interface {
 	Login(ctx *gin.Context)
+	LoginBusiness(ctx *gin.Context)
 }
 
 type authController struct {
@@ -43,6 +44,34 @@ func (c *authController) Login(ctx *gin.Context) {
 	}
 
 	if v, ok := authResult.(entity.User); ok {
+		generatedToken := c.jwtService.GenerateToken(v.Email)
+		v.Token = generatedToken
+		response := helper.BuildResponse(true, "Berhail Login!", v)
+		ctx.JSON(http.StatusOK, response)
+		return
+
+	}
+	response := helper.BuildResponse(false, "Invalid credential", helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+
+}
+
+func (c *authController) LoginBusiness(ctx *gin.Context) {
+	var loginDTO request.LoginDTO
+	errDTO := ctx.ShouldBind(&loginDTO)
+	if errDTO != nil {
+		response := helper.BuildErrorResponse("Failed to process request", errDTO.Error(), helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+
+	}
+	authResult := c.authService.VerifyCredentialBusiness(loginDTO.Email, loginDTO.Password)
+
+	if c.jwtService == nil {
+		log.Println("jwtService is nil")
+	}
+
+	if v, ok := authResult.(entity.UserBusiness); ok {
 		generatedToken := c.jwtService.GenerateToken(v.Email)
 		v.Token = generatedToken
 		response := helper.BuildResponse(true, "Berhail Login!", v)
