@@ -27,7 +27,7 @@ jobs:
       # Build Docker Image
       - name: Build Docker Image
         run: 
-          docker build -t odhiahmad/winpos:latest .
+          docker buildx build --platform linux/amd64,linux/arm64 -t odhiahmad/winpos:latest .
           docker push odhiahmad/winpos:latest
 
   deploy:
