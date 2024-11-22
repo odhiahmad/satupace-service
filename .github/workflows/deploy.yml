@@ -41,11 +41,11 @@ jobs:
     steps:
       # SSH ke VM
       - name: Deploy to VM
-        uses: appleboy/ssh-action@v0.1.10
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USERNAME }}
-          ssh-private-key: ${{ secrets.VM_PRIVATE_KEY }}
+          key: ${{ secrets.VM_PRIVATE_KEY }}
           port: ${{ secrets.VM_PORT }}
           script: |
             docker pull odhiahmad/winpos:latest
