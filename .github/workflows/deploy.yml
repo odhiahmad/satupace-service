@@ -42,9 +42,9 @@ jobs:
 
     - name: Deploy to VPS via SSH
       env:
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-        VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+        VPS_USER: ${{ secrets.VM_USERNAME }}
+        VPS_HOST: ${{ secrets.VM_HOST }}
+        VPS_KEY: ${{ secrets.VM_PRIVATE_KEY }}
       run: |
         # Add SSH key to the agent
         mkdir -p ~/.ssh
