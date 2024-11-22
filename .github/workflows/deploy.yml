@@ -34,21 +34,21 @@ jobs:
           docker build -t odhiahmad/winpos:latest .
           docker push odhiahmad/winpos:latest
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
+  # deploy:
+  #   needs: build
+  #   runs-on: ubuntu-latest
 
-    steps:
-      # SSH ke VM
-      - name: Deploy to VM
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
-          key: ${{ secrets.VM_PRIVATE_KEY }}
-          port: ${{ secrets.VM_PORT }}
-          script: |
-            docker pull odhiahmad/winpos:latest
-            docker stop winpos || true
-            docker rm winpos || true
-            docker run -d --name winpos -p 80:80 odhiahmad/winpos:latest
+  #   steps:
+  #     # SSH ke VM
+  #     - name: Deploy to VM
+  #       uses: appleboy/ssh-action@master
+  #       with:
+  #         host: ${{ secrets.VM_HOST }}
+  #         username: ${{ secrets.VM_USERNAME }}
+  #         key: ${{ secrets.VM_PRIVATE_KEY }}
+  #         port: ${{ secrets.VM_PORT }}
+  #         script: |
+  #           docker pull odhiahmad/winpos:latest
+  #           docker stop winpos || true
+  #           docker rm winpos || true
+  #           docker run -d --name winpos -p 80:80 odhiahmad/winpos:latest

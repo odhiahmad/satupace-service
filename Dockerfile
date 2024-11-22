@@ -20,6 +20,8 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
+COPY --from=build-env /app/kasirku-service /app
+COPY .env /app
 # Copy binary dari tahap builder
 COPY --from=builder /app/app .
 
