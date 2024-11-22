@@ -20,10 +20,14 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
-COPY --from=build-env /app/kasirku-service /app
-COPY .env /app
-# Copy binary dari tahap builder
-COPY --from=builder /app/app .
+# Copy the binary from the build stage
+COPY --from=build-env /app/app /app/
+
+# Copy the .env file into the container (ensure the path is correct)
+COPY .env /app/.env
+
+# Expose the port your app will run on
+EXPOSE 8080
 
 # Jalankan aplikasi
 CMD ["./app"]
