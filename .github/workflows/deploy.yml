@@ -32,6 +32,8 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -t odhiahmad/winpos:latest .
+          docker-compose -f docker-compose.yml up -d
+          docker-compose logs -f
           docker push odhiahmad/winpos:latest
 
   # deploy:
