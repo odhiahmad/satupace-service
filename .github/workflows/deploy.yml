@@ -20,7 +20,7 @@ jobs:
 
       # Build Docker Image
       - name: Build Docker Image
-        run: docker build -t odhiahmad/kasirku-service:latest .
+        run: docker build -t odhiahmad/winpos:latest .
 
       # Push Docker Image
       - name: Push Docker Image to DockerHub
@@ -29,7 +29,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Push Docker Image
-        run: docker push odhiahmad/kasirku-service:latest
+        run: docker push odhiahmad/winpos:latest
 
   deploy:
     needs: build
@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.VM_PRIVATE_KEY }}
           port: ${{ secrets.VM_PORT }}
           script: |
-            docker pull odhiahmad/kasirku-service:latest
-            docker stop kasirku-service || true
-            docker rm kasirku-service || true
-            docker run -d --name kasirku-service -p 80:80 odhiahmad/kasirku-service:latest
+            docker pull odhiahmad/winpos:latest
+            docker stop winpos || true
+            docker rm winpos || true
+            docker run -d --name winpos -p 80:80 odhiahmad/winpos:latest
