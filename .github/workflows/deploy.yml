@@ -12,24 +12,23 @@ jobs:
     steps:
       # Checkout kode
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Setup Docker
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      # Build Docker Image
-      - name: Build Docker Image
-        run: docker build -t odhiahmad/winpos:latest .
-
-      # Push Docker Image
-      - name: Push Docker Image to DockerHub
-        uses: docker/login-action@v2
+      - name: Dockerhub login
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
-      - name: Push Docker Image
-        run: docker push odhiahmad/winpos:latest
+
+      # Build Docker Image
+      - name: Build Docker Image
+        run: 
+          docker build -t odhiahmad/winpos:latest ./
+          docker push odhiahmad/winpos:latest
 
   deploy:
     needs: build
