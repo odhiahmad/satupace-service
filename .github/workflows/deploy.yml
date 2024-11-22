@@ -1,68 +1,52 @@
-name: Deploy Golang App
+name: Build and Deploy Go Application with PostgreSQL
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger deployment on changes to main branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout kode
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-              ${{ runner.os }}-buildx-
+    - name: Build Docker image
+      run: |
+        docker build -t kasirku-service .
 
-      - name: Debug Dockerfile Location
-        run: find . -name Dockerfile
+    - name: Run Docker Compose to test locally
+      run: |
+        docker-compose up -d
+        docker-compose ps
 
-      - name: Dockerhub login
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+    - name: Deploy to VPS via SSH
+      env:
+        VPS_USER: ${{ secrets.VM_USERNAME }}
+        VPS_HOST: ${{ secrets.VM_HOST }}
+        VPS_KEY: ${{ secrets.VM_PRIVATE_KEY }}
+      run: |
+        # Add SSH key to the agent
+        mkdir -p ~/.ssh
+        echo "${VPS_KEY}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
 
-      # Build Docker Image
-      - name: Build Docker Image
-        run: |
-          docker build -t odhiahmad/winpos:latest .
-          docker-compose -f docker-compose.yml up -d
-          docker-compose logs -f
-          docker push odhiahmad/winpos:latest
-
-  # deploy:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     # SSH ke VM
-  #     - name: Deploy to VM
-  #       uses: appleboy/ssh-action@master
-  #       with:
-  #         host: ${{ secrets.VM_HOST }}
-  #         username: ${{ secrets.VM_USERNAME }}
-  #         key: ${{ secrets.VM_PRIVATE_KEY }}
-  #         port: ${{ secrets.VM_PORT }}
-  #         script: |
-  #           docker pull odhiahmad/winpos:latest
-  #           docker stop winpos || true
-  #           docker rm winpos || true
-  #           docker run -d --name winpos -p 80:80 odhiahmad/winpos:latest
+        # SSH to VPS and deploy
+        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'EOF'
+          docker pull kasirku-service:latest
+          docker-compose down
+          docker-compose up -d
+        EOF
