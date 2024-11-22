@@ -14,9 +14,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify Files
+      - name: Verify Build Context
         run: |
-          pwd
+          echo "Current directory: $(pwd)"
           ls -la
 
       # Setup Docker
