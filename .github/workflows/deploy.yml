@@ -51,8 +51,12 @@ jobs:
         echo "${VPS_KEY}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
+        # Add SSH key to the agent
+        eval $(ssh-agent -s)
+        ssh-add ~/.ssh/id_rsa
+
         # SSH to VPS and deploy
-        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} << 'EOF'
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -v ${VPS_USER}@${VPS_HOST} << 'EOF'
           docker pull kasirku-service:latest
           docker-compose down
           docker-compose up -d
