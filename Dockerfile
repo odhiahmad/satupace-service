@@ -1,28 +1,32 @@
-# Stage 1: Build Stage
-FROM golang:1.23.2 AS build-env
+# Start from golang base image
+FROM golang:alpine
 
+# Add Maintainer info
+LABEL maintainer="Odhi Ahmad"
+
+# Install git.
+# Git is required for fetching the dependencies.
+RUN apk update && apk add --no-cache git && apk add --no-cach bash && apk add build-base
+
+# Setup folders
+RUN mkdir /app
 WORKDIR /app
 
-# Copy the Go source code and .env file into the container
+# Copy the source from the current directory to the working Directory inside the container
 COPY . .
+COPY .env .
 
-# Install dependencies and build the application
-RUN go mod download
-RUN go build -o kasirku-service .
+# Download all the dependencies
+RUN go get -d -v ./...
 
-# Stage 2: Production Stage
-FROM ubuntu:latest
+# Install the package
+RUN go install -v ./...
 
-WORKDIR /app
+# Build the Go app
+RUN go build -o /build
 
-# Copy the binary from the build stage
-COPY --from=build-env /app/kasirku-service /app/
-
-# Copy the .env file into the container (ensure the path is correct)
-COPY .env /app/.env
-
-# Expose the port your app will run on
+# Expose port 8080 to the outside world
 EXPOSE 8080
 
-# Run the application
-CMD ["./kasirku-service"]
+# Run the executable
+CMD [ "/build" ]
