@@ -14,6 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify Files
+        run: |
+          pwd
+          ls -la
+
       # Setup Docker
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -27,7 +32,8 @@ jobs:
       # Build Docker Image
       - name: Build Docker Image
         run: |
-          docker buildx build --platform linux/amd64 -t odhiahmad/winpos:latest . --push
+          docker build -t odhiahmad/winpos:latest .
+          docker push odhiahmad/winpos:latest
 
   deploy:
     needs: build
