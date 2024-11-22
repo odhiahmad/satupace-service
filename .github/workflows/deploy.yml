@@ -3,49 +3,43 @@ name: Deploy Golang App
 on:
   push:
     branches:
-      - main
+      - main  # Trigger deployment pada branch `main`.
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      # Checkout kode
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Setup Docker
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # Build Docker Image
-      - name: Build Docker Image
-        run: docker build -t odhiahmad/winpos:latest .
-
-      # Push Docker Image
-      - name: Push Docker Image to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push Docker Image
-        run: docker push odhiahmad/winpos:latest
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
-      # SSH ke VM
-      - name: Deploy to VM
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
-          key: ${{ secrets.VM_PRIVATE_KEY }}
-          port: ${{ secrets.VM_PORT }}
-          script: |
-            docker pull odhiahmad/winpos:latest
-            docker stop winpos || true
-            docker rm winpos || true
-            docker run -d --name winpos -p 80:80 odhiahmad/winpos:latest
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.23.2  # Sesuaikan dengan versi Go Anda
+
+    - name: Build Application
+      run: |
+        go mod tidy
+        go build -o kasirku-service .  # Ganti `kasirku-service` dengan nama aplikasi Anda
+
+    - name: Deploy to VM
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        VM_HOST: ${{ secrets.VM_HOST }}
+        VM_USER: ${{ secrets.VM_USER }}
+      run: |
+        echo "$SSH_PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+
+        # Kirim file aplikasi ke VM
+        scp -i private_key.pem kasirku-service $VM_USER@$VM_HOST:/path/to/deploy/
+
+        # Jalankan aplikasi di VM
+        ssh -i private_key.pem $VM_USER@$VM_HOST << EOF
+          pkill kasirku-service || true  # Stop aplikasi lama
+          nohup /path/to/deploy/kasirku-service > app.log 2>&1 &
+        EOF
+
+    - name: Clean up
+      run: rm -f private_key.pem
