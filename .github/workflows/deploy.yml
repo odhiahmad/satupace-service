@@ -38,7 +38,7 @@ jobs:
         # Jalankan aplikasi di VM
         ssh -i private_key.pem $VM_USER@$VM_HOST << EOF
           pkill kasirku-service || true  # Stop aplikasi lama
-          nohup /path/to/deploy/kasirku-service > app.log 2>&1 &
+          nohup /app/kasirku-service > app.log 2>&1 &
         EOF
 
     - name: Clean up
