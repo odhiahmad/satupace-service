@@ -36,7 +36,6 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM_HOST }}
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
           username: ${{ secrets.VM_USERNAME }}
           password: ${{ secrets.VM_PASSWORD }}
           port: ${{ secrets.VM_PORT }}
