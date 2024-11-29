@@ -1,4 +1,4 @@
-name: Build and Deploy Go Application with PostgreSQL
+name: Build and Deploy Go Application
 
 on:
   push:
