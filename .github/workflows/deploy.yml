@@ -2,62 +2,45 @@ name: Build and Deploy Go Application with PostgreSQL
 
 on:
   push:
-    branches:
-      - main  # Trigger deployment on changes to main branch
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
-    # Install Docker Compose
-    - name: Install Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        docker-compose --version  # Verify installation
-
-    - name: Cache Docker layers
-      uses: actions/cache@v2
+    - name: Connect to Dockerhub
+      uses: docker/login-action@v2
       with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Build Docker image
-      run: |
-        docker build -t kasirku-service .
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-    - name: Run Docker Compose to test locally
-      run: |
-        docker-compose up -d
-        docker-compose ps
-
-    - name: Deploy to VPS via SSH
-      env:
-        VPS_USER: ${{ secrets.VM_USERNAME }}
-        VPS_HOST: ${{ secrets.VM_HOST }}
-        VPS_KEY: ${{ secrets.VM_PRIVATE_KEY }}
-      run: |
-        # Add SSH key to the agent
-        mkdir -p ~/.ssh
-        echo "${VPS_KEY}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-
-        # Add SSH key to the agent
-        eval $(ssh-agent -s)
-        ssh-add ~/.ssh/id_rsa
-
-        # SSH to VPS and deploy
-        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -v ${VPS_USER}@${VPS_HOST} << 'EOF'
-          docker pull kasirku-service:latest
-          docker-compose down
-          docker-compose up -d
-        EOF
+    - name: Build and Push
+      uses: docker/build-push-action@v4
+      with:
+        file: ./Dockerfile
+        push: true
+        tag: ${{ secrets.DOCKER_USERNAME }}/api-kasirku:latest
+        
+  deployment:
+    needs: build 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          password: ${{ secrets.VM_PASSWORD }}
+          port: ${{ secrets.VM_PORT }}
+          script: |
+            whoami
+            docker stop api-kasirku || true && docker rm api-kasirku || true
+            docker pull ${{ vars.IMAGE_NAME }}
+            docker run -d -p 1213:1213 --name ${{ vars.CONTAINER_NAME }} ${{ vars.IMAGE_NAME }}
