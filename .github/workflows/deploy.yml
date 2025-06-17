@@ -2,8 +2,7 @@ name: Deploy to VPS
 
 on:
   push:
-    branches:
-      - release/development
+    branches: release/development  # Atur sesuai branch kamu
 
 jobs:
   deploy:
@@ -13,16 +12,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Connect & deploy via SSH
+        uses: appleboy/ssh-action@master
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Deploy to VPS
-        run: |
-          ssh -o StrictHostKeyChecking=no user@your-vps-ip << 'EOF'
-            cd /var/www/kasirku
-            git pull origin main
-            npm install
-            pm2 restart kasirku-service
-          EOF
+          host: 202.10.44.218
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/kasirku-service
+            git pull origin release/development
+            # Install dependency Golang
+            go mod tidy
+            # Build ulang
+            go build -o app main.go
+            go build -o app main.go
+            pm2 restart kasirku-service || pm2 start ./app --name kasirku-service
