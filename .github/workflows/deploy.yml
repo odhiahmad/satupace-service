@@ -1,63 +1,28 @@
-name: Build and Deploy Go Application with PostgreSQL
+name: Deploy to VPS
 
 on:
   push:
     branches:
-      - main  # Trigger deployment on changes to main branch
+      - release/development
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    # Install Docker Compose
-    - name: Install Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-        docker-compose --version  # Verify installation
-
-    - name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-
-    - name: Build Docker image
-      run: |
-        docker build -t kasirku-service .
-
-    - name: Run Docker Compose to test locally
-      run: |
-        docker-compose up -d
-        docker-compose ps
-
-    - name: Deploy to VPS via SSH
-      env:
-        VPS_USER: ${{ secrets.VM_USERNAME }}
-        VPS_HOST: ${{ secrets.VM_HOST }}
-        VPS_KEY: ${{ secrets.VM_PRIVATE_KEY }}
-      run: |
-        # Add SSH key to the agent
-        mkdir -p ~/.ssh
-        echo "${VPS_KEY}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-
-        # Add SSH key to the agent
-        eval $(ssh-agent -s)
-        ssh-add ~/.ssh/id_rsa
-
-        # SSH to VPS and deploy
-        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -v ${VPS_USER}@${VPS_HOST} << 'EOF'
-          docker pull kasirku-service:latest
-          docker-compose down
-          docker-compose up -d
-        EOF
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no user@your-vps-ip << 'EOF'
+            cd /var/www/kasirku
+            git pull origin main
+            npm install
+            pm2 restart kasirku-service
+          EOF
