@@ -2,16 +2,14 @@ package entity
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type UserBusiness struct {
-	gorm.Model
-	RoleID     int
-	Role       Role `gorm:"foreignKey:RoleID"`
-	BusinessID uint
-	Business   Business `gorm:"foreignKey:BusinessID"`
+	Id         int `gorm:"type:int;primary_key"`
+	RoleId     int
+	Role       Role `gorm:"foreignKey:RoleId"`
+	BusinessId int
+	Business   Business `gorm:"foreignKey:BusinessId"`
 	Email      string   `gorm:"uniqueIndex;type:varchar(255)" json:"email"`
 	Password   string   `gorm:"->;<-;not null" json:"-"`
 	Token      string   `gorm:"-" json:"token,omitempty"`

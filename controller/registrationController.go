@@ -5,42 +5,66 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
 
 type RegistrationController interface {
-	InsertRegistration(ctx *gin.Context)
+	Register(ctx *gin.Context)
+	CheckDuplicateEmail(ctx *gin.Context)
 }
 
 type registrationController struct {
 	registrationService service.RegistrationService
-	jwtService          service.JWTService
 }
 
-func NewRegistrationController(registrationService service.RegistrationService, jwtService service.JWTService) RegistrationController {
+func NewRegistrationController(service service.RegistrationService) RegistrationController {
 	return &registrationController{
-		registrationService: registrationService,
-		jwtService:          jwtService,
+		registrationService: service,
 	}
 }
 
-func (c *registrationController) InsertRegistration(ctx *gin.Context) {
-	var registrationInsert request.Registration
-	err := ctx.ShouldBind(&registrationInsert)
-	if err != nil {
-		response := helper.BuildErrorResponse("Failed to process request", err.Error(), helper.EmptyObj{})
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+func (c *registrationController) Register(ctx *gin.Context) {
+	var req request.RegistrationRequest
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid JSON: " + err.Error(),
+		})
 		return
 	}
 
-	if !c.registrationService.IsDuplicateEmail(registrationInsert.Email) {
-		response := helper.BuildErrorResponse("Failed to process request", "Duplicate email", helper.EmptyObj{})
-		ctx.JSON(http.StatusConflict, response)
-	} else {
-		c.registrationService.Registration(registrationInsert)
-		response := helper.BuildResponse(true, "!OK", nil)
-		ctx.JSON(http.StatusCreated, response)
+	err := c.registrationService.Register(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "Registration successful",
+	})
+}
+
+func (c *registrationController) CheckDuplicateEmail(ctx *gin.Context) {
+	email := ctx.Query("email")
+	if email == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "email query parameter is required",
+		})
+		return
+	}
+
+	duplicate, err := c.registrationService.IsDuplicateEmail(email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"email":         email,
+		"is_duplicated": duplicate,
+	})
 }

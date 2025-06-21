@@ -9,11 +9,11 @@ import (
 )
 
 type UserBusinessRepository interface {
-	InsertUserBusiness(userBusiness entity.UserBusiness) entity.UserBusiness
+	InsertUserBusiness(userBusiness entity.UserBusiness) (entity.UserBusiness, error)
 	FindById(userBusinessId int) (userBusiness entity.UserBusiness, err error)
 	FindAll() []entity.UserBusiness
 	Delete(userBusinessId int)
-	IsDuplicateEmail(email string) (tx *gorm.DB)
+	IsDuplicateEmail(email string) bool
 	VerifyCredentialBusiness(email string, password string) interface{}
 }
 
@@ -25,11 +25,11 @@ func NewUserBusinessRepository(Db *gorm.DB) UserBusinessRepository {
 	return &UserBusinessConnection{Db: Db}
 }
 
-func (t *UserBusinessConnection) InsertUserBusiness(userBusiness entity.UserBusiness) entity.UserBusiness {
-	result := t.Db.Create(&userBusiness)
+func (t *UserBusinessConnection) InsertUserBusiness(user entity.UserBusiness) (entity.UserBusiness, error) {
+	result := t.Db.Create(&user)
 	helper.ErrorPanic(result.Error)
 
-	return userBusiness
+	return user, result.Error
 }
 
 func (t *UserBusinessConnection) FindById(userBusinessId int) (userBusinesss entity.UserBusiness, err error) {
@@ -55,9 +55,17 @@ func (t *UserBusinessConnection) Delete(userBusinessId int) {
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *UserBusinessConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
+func (t *UserBusinessConnection) IsDuplicateEmail(email string) bool {
 	var userBusiness entity.UserBusiness
-	return t.Db.Where("email = ?", email).Take(&userBusiness)
+	err := t.Db.Where("email = ?", email).Take(&userBusiness).Error
+
+	// Perbaikan logika
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false // email belum ada → TIDAK duplikat
+	}
+
+	// Kalau tidak error atau error lain (misalnya koneksi), anggap duplikat
+	return err == nil
 }
 
 func (t *UserBusinessConnection) VerifyCredentialBusiness(email string, password string) interface{} {
