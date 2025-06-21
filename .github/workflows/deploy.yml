@@ -2,7 +2,7 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: release/development  # Atur sesuai branch kamu
+    branches: main  # Atur sesuai branch kamu
 
 jobs:
   deploy:
@@ -20,10 +20,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/html/kasirku-service
-            git pull origin release/development
+            git pull origin main
             # Install dependency Golang
             go mod tidy
             # Build ulang
             go build -o app main.go
-            go build -o app main.go
-            pm2 restart kasirku-service || pm2 start ./app --name kasirku-service
+            pm2 restart kasirku-service || pm2 start ./kasirku --name kasirku-service

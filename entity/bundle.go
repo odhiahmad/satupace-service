@@ -6,7 +6,7 @@ type Bundle struct {
 	Business    Business `gorm:"foreignKey:BusinessId"`
 	Name        string   `gorm:"type:varchar(255)"`
 	Description string   `gorm:"type:varchar(255)"`
-	Image       string   `gorm:"type:varchar(255)"`
+	Image       string   `gorm:"type:text"`
 	BasePrice   float64
 	Discount    float64
 	Promo       float64

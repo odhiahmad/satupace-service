@@ -4,18 +4,18 @@ import (
 	"errors"
 
 	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
 )
 
 type BundleRepository interface {
-	InsertBundle(bundle entity.Bundle) entity.Bundle
-	UpdateBundle(bundle entity.Bundle)
+	InsertBundle(bundle *entity.Bundle) error
+	UpdateBundle(bundle *entity.Bundle) error
 	FindById(bundleId int) (entity.Bundle, error)
-	FindAll() []entity.Bundle
-	Delete(bundleId int)
-	InsertItemsByBundleId(bundleId int, items []entity.BundleItem)
-	DeleteItemsByBundleId(bundleId int)
+	FindAll() ([]entity.Bundle, error)
+	Delete(bundleId int) error
+	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
+	DeleteItemsByBundleId(bundleId int) error
+	FindByBusinessId(businessId int) ([]entity.Bundle, error)
 }
 
 type BundleConnection struct {
@@ -26,15 +26,14 @@ func NewBundleRepository(Db *gorm.DB) BundleRepository {
 	return &BundleConnection{Db: Db}
 }
 
-func (r *BundleConnection) InsertBundle(bundle entity.Bundle) entity.Bundle {
-	result := r.Db.Create(&bundle)
-	helper.ErrorPanic(result.Error)
-	return bundle
+func (r *BundleConnection) InsertBundle(bundle *entity.Bundle) error {
+	result := r.Db.Create(bundle)
+	return result.Error
 }
 
-func (r *BundleConnection) UpdateBundle(bundle entity.Bundle) {
-	result := r.Db.Save(&bundle)
-	helper.ErrorPanic(result.Error)
+func (r *BundleConnection) UpdateBundle(bundle *entity.Bundle) error {
+	result := r.Db.Save(bundle)
+	return result.Error
 }
 
 func (r *BundleConnection) FindById(bundleId int) (entity.Bundle, error) {
@@ -46,28 +45,35 @@ func (r *BundleConnection) FindById(bundleId int) (entity.Bundle, error) {
 	return bundle, result.Error
 }
 
-func (r *BundleConnection) FindAll() []entity.Bundle {
+func (r *BundleConnection) FindAll() ([]entity.Bundle, error) {
 	var bundles []entity.Bundle
 	result := r.Db.Preload("Items.Product").Find(&bundles)
-	helper.ErrorPanic(result.Error)
-	return bundles
+	return bundles, result.Error
 }
 
-func (r *BundleConnection) Delete(bundleId int) {
-	r.DeleteItemsByBundleId(bundleId)
+func (r *BundleConnection) Delete(bundleId int) error {
+	if err := r.DeleteItemsByBundleId(bundleId); err != nil {
+		return err
+	}
 	result := r.Db.Delete(&entity.Bundle{}, bundleId)
-	helper.ErrorPanic(result.Error)
+	return result.Error
 }
 
-func (r *BundleConnection) InsertItemsByBundleId(bundleId int, items []entity.BundleItem) {
+func (r *BundleConnection) InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error {
 	for i := range items {
-		items[i].Id = bundleId
+		items[i].BundleId = bundleId
 	}
 	result := r.Db.Create(&items)
-	helper.ErrorPanic(result.Error)
+	return result.Error
 }
 
-func (r *BundleConnection) DeleteItemsByBundleId(bundleId int) {
-	result := r.Db.Where("bundle_product_id = ?", bundleId).Delete(&entity.Bundle{})
-	helper.ErrorPanic(result.Error)
+func (r *BundleConnection) DeleteItemsByBundleId(bundleId int) error {
+	result := r.Db.Where("bundle_id = ?", bundleId).Delete(&entity.BundleItem{})
+	return result.Error
+}
+
+func (r *BundleConnection) FindByBusinessId(businessId int) ([]entity.Bundle, error) {
+	var bundles []entity.Bundle
+	result := r.Db.Preload("Items.Product").Where("business_id = ?", businessId).Find(&bundles)
+	return bundles, result.Error
 }

@@ -1,22 +1,20 @@
 package service
 
 import (
-	"log"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type BundleService interface {
-	CreateBundle(req request.BundleCreate)
-	UpdateBundle(req request.BundleUpdate)
-	FindById(bundleId int) response.BundleResponse
-	FindAll() []response.BundleResponse
-	Delete(bundleId int)
+	CreateBundle(req request.BundleCreate) error
+	UpdateBundle(id int, req request.BundleUpdate) error
+	FindById(id int) (response.BundleResponse, error)
+	FindAll() ([]response.BundleResponse, error)
+	FindByBusinessId(businessId int) ([]response.BundleResponse, error)
+	Delete(id int) error
 }
 
 type BundleServiceImpl struct {
@@ -31,13 +29,12 @@ func NewBundleService(repo repository.BundleRepository, validate *validator.Vali
 	}
 }
 
-func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) {
-	err := s.Validate.Struct(req)
-	if err != nil {
-		log.Fatalf("Validation failed: %v", err)
+func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) error {
+	if err := s.Validate.Struct(req); err != nil {
+		return err
 	}
 
-	entityBundle := entity.Bundle{
+	bundle := entity.Bundle{
 		BusinessId:  req.BusinessId,
 		Name:        req.Name,
 		Description: req.Description,
@@ -50,74 +47,103 @@ func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) {
 		IsActive:    true,
 	}
 
-	err = entityBundle.Prepare()
-	helper.ErrorPanic(err)
+	if err := bundle.Prepare(); err != nil {
+		return err
+	}
 
-	s.BundleRepository.InsertBundle(entityBundle)
-	saved := entityBundle
+	if err := s.BundleRepository.InsertBundle(&bundle); err != nil {
+		return err
+	}
 
 	var items []entity.BundleItem
 	for _, item := range req.Items {
 		items = append(items, entity.BundleItem{
-			BundleId:  saved.Id,
+			BundleId:  bundle.Id,
 			ProductId: item.ProductId,
 			Quantity:  item.Quantity,
 		})
 	}
-	s.BundleRepository.InsertItemsByBundleId(saved.Id, items)
+
+	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
 }
 
-func (s *BundleServiceImpl) UpdateBundle(req request.BundleUpdate) {
-	err := s.Validate.Struct(req)
+func (s *BundleServiceImpl) UpdateBundle(id int, req request.BundleUpdate) error {
+	if err := s.Validate.Struct(req); err != nil {
+		return err
+	}
+
+	bundle, err := s.BundleRepository.FindById(id)
 	if err != nil {
-		log.Fatalf("Validation failed: %v", err)
+		return err
 	}
 
-	existing, err := s.BundleRepository.FindById(req.Id)
-	helper.ErrorPanic(err)
+	bundle.BusinessId = req.BusinessId
+	bundle.Name = req.Name
+	bundle.Description = req.Description
+	bundle.Image = req.Image
+	bundle.BasePrice = req.BasePrice
+	bundle.FinalPrice = req.FinalPrice
+	bundle.Discount = req.Discount
+	bundle.Promo = req.Promo
+	bundle.IsAvailable = req.IsAvailable
+	bundle.IsActive = req.IsActive
 
-	existing.BusinessId = req.BusinessId
-	existing.Name = req.Name
-	existing.Description = req.Description
-	existing.Image = req.Image
-	existing.BasePrice = req.BasePrice
-	existing.FinalPrice = req.FinalPrice
-	existing.Discount = req.Discount
-	existing.Promo = req.Promo
-	existing.IsAvailable = req.IsAvailable
-	existing.IsActive = req.IsActive
+	if err := s.BundleRepository.UpdateBundle(&bundle); err != nil {
+		return err
+	}
 
-	s.BundleRepository.UpdateBundle(existing)
-	s.BundleRepository.DeleteItemsByBundleId(existing.Id)
+	if err := s.BundleRepository.DeleteItemsByBundleId(bundle.Id); err != nil {
+		return err
+	}
 
 	var items []entity.BundleItem
 	for _, item := range req.Items {
 		items = append(items, entity.BundleItem{
-			BundleId:  existing.Id,
+			BundleId:  bundle.Id,
 			ProductId: item.ProductId,
 			Quantity:  item.Quantity,
 		})
 	}
-	s.BundleRepository.InsertItemsByBundleId(existing.Id, items)
+
+	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
 }
 
-func (s *BundleServiceImpl) FindById(bundleId int) response.BundleResponse {
-	data, err := s.BundleRepository.FindById(bundleId)
-	helper.ErrorPanic(err)
-	return mapBundleToResponse(data)
-}
-
-func (s *BundleServiceImpl) FindAll() []response.BundleResponse {
-	products := s.BundleRepository.FindAll()
-	var responses []response.BundleResponse
-	for _, p := range products {
-		responses = append(responses, mapBundleToResponse(p))
+func (s *BundleServiceImpl) FindById(id int) (response.BundleResponse, error) {
+	bundle, err := s.BundleRepository.FindById(id)
+	if err != nil {
+		return response.BundleResponse{}, err
 	}
-	return responses
+	return mapBundleToResponse(bundle), nil
 }
 
-func (s *BundleServiceImpl) Delete(bundleId int) {
-	s.BundleRepository.Delete(bundleId)
+func (s *BundleServiceImpl) FindAll() ([]response.BundleResponse, error) {
+	bundles, err := s.BundleRepository.FindAll()
+	if err != nil {
+		return nil, err
+	}
+	var responses []response.BundleResponse
+	for _, b := range bundles {
+		responses = append(responses, mapBundleToResponse(b))
+	}
+	return responses, nil
+}
+
+func (s *BundleServiceImpl) FindByBusinessId(businessId int) ([]response.BundleResponse, error) {
+	bundles, err := s.BundleRepository.FindByBusinessId(businessId)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []response.BundleResponse
+	for _, b := range bundles {
+		responses = append(responses, mapBundleToResponse(b))
+	}
+
+	return responses, nil
+}
+
+func (s *BundleServiceImpl) Delete(id int) error {
+	return s.BundleRepository.Delete(id)
 }
 
 func mapBundleToResponse(p entity.Bundle) response.BundleResponse {

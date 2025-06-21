@@ -24,6 +24,7 @@ var (
 	productRepository         repository.ProductRepository         = repository.NewProductRepository(db)
 	productVariantRepository  repository.ProductVariantRepository  = repository.NewProductVariantRepository(db)
 	registrationRepository    repository.RegistrationRepository    = repository.NewRegistrationRepository(db)
+	bundleRepository          repository.BundleRepository          = repository.NewBundleRepository(db)
 
 	jwtService             service.JWTService             = service.NewJwtService()
 	authService            service.AuthService            = service.NewAuthService(userRepository, userBusinessRepository)
@@ -34,6 +35,7 @@ var (
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
 	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, validate)
 	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, validate)
+	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
 
 	authController            controller.AuthController            = controller.NewAuthController(authService, jwtService)
 	userController            controller.UserController            = controller.NewUserController(userService, jwtService)
@@ -43,6 +45,7 @@ var (
 	productCategoryController controller.ProductCategoryController = controller.NewProductCategoryController(productCategoryService, jwtService)
 	registrationController    controller.RegistrationController    = controller.NewRegistrationController(registrationService)
 	productController         controller.ProductController         = controller.NewProductController(productService, jwtService)
+	bundleController          controller.BundleController          = controller.NewBundleController(bundleService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -109,6 +112,16 @@ func SetupRouter() *gin.Engine {
 		productRoutes.GET("/", productController.FindAll)
 		productRoutes.GET("/:id", productController.FindById)
 		productRoutes.DELETE("/:id", productController.Delete)
+	}
+
+	bundleRoutes := r.Group("api/bundle", middleware.AuthorizeJWT(jwtService))
+	{
+		bundleRoutes.POST("/", bundleController.Create)
+		bundleRoutes.PATCH("/:id", bundleController.Update)
+		bundleRoutes.GET("/", bundleController.FindAll)
+		bundleRoutes.GET("/:id", bundleController.FindById)
+		bundleRoutes.DELETE("/:id", bundleController.Delete)
+		bundleRoutes.GET("/business/:business_id", bundleController.FindByBusinessId)
 	}
 
 	return r

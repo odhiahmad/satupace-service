@@ -45,7 +45,9 @@ func SetupDatabaseConnection() *gorm.DB {
 		&entity.Transaction{},
 		&entity.TransactionItem{},
 		&entity.TransactionItemAttribute{},
-		&entity.PaymentMethod{})
+		&entity.PaymentMethod{},
+		&entity.Bundle{},
+		&entity.BundleItem{})
 
 	return db
 }
