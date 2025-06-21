@@ -33,7 +33,7 @@ func (t *BusinessTypeConnection) InsertBusinessType(businessType entity.Business
 
 func (t *BusinessTypeConnection) UpdateBusinessType(businessType entity.BusinessType) {
 	var updateBusinessType = request.BusinessTypeUpdate{
-		Id:   businessType.ID,
+		Id:   businessType.Id,
 		Name: businessType.Name,
 	}
 

@@ -1,46 +1,28 @@
-name: Build and Deploy Go Application
+name: Deploy to VPS
 
 on:
   push:
-    branches: ["main"]
+    branches: main  # Atur sesuai branch kamu
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Connect to Dockerhub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_TOKEN }}
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Build and Push
-      uses: docker/build-push-action@v4
-      with:
-        file: ./Dockerfile
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/api-kasirku:latest
-        
-  deployment:
-    needs: build 
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to VPS
+      - name: Connect & deploy via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
+          host: 202.10.44.218
+          username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.VM_PORT }}
           script: |
-            whoami
-            docker stop api-kasirku || true && docker rm api-kasirku || true
-            docker pull ${{ vars.IMAGE_NAME }}
-            docker run -d -p 1213:1213 --name ${{ vars.CONTAINER_NAME }} ${{ vars.IMAGE_NAME }}
+            cd /var/www/html/kasirku-service
+            git pull origin main
+            # Install dependency Golang
+            go mod tidy
+            # Build ulang
+            go build -o app main.go
+            pm2 restart kasirku-service || pm2 start ./kasirku --name kasirku-service

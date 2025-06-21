@@ -57,7 +57,7 @@ func (service *BusinessTypeRepository) FindById(businessTypeId int) response.Bus
 	helper.ErrorPanic(err)
 
 	tagResponse := response.BusinessTypeResponse{
-		Id:   businessTypeData.ID,
+		Id:   businessTypeData.Id,
 		Nama: businessTypeData.Name,
 	}
 	return tagResponse
@@ -69,7 +69,7 @@ func (t *BusinessTypeRepository) FindAll() []response.BusinessTypeResponse {
 	var tags []response.BusinessTypeResponse
 	for _, value := range result {
 		tag := response.BusinessTypeResponse{
-			Id:   value.ID,
+			Id:   value.Id,
 			Nama: value.Name,
 		}
 		tags = append(tags, tag)

@@ -9,7 +9,7 @@ import (
 )
 
 type BusinessRepository interface {
-	InsertBusiness(business entity.Business) entity.Business
+	InsertBusiness(business entity.Business) (entity.Business, error)
 	FindById(businessId int) (business entity.Business, err error)
 	FindAll() []entity.Business
 	Delete(businessId int)
@@ -23,22 +23,20 @@ func NewBusinessRepository(Db *gorm.DB) BusinessRepository {
 	return &BusinessConnection{Db: Db}
 }
 
-func (t *BusinessConnection) InsertBusiness(business entity.Business) entity.Business {
+func (t *BusinessConnection) InsertBusiness(business entity.Business) (entity.Business, error) {
 	result := t.Db.Create(&business)
-
 	helper.ErrorPanic(result.Error)
 
-	return business
+	return business, result.Error
 }
 
 func (t *BusinessConnection) FindById(businessId int) (businesss entity.Business, err error) {
 	var business entity.Business
-	result := t.Db.Find(&business, businessId)
-	if result != nil {
-		return business, nil
-	} else {
-		return business, errors.New("tag is not found")
+	result := t.Db.First(&business, businessId)
+	if result.Error != nil {
+		return business, errors.New("business not found")
 	}
+	return business, nil
 }
 
 func (t *BusinessConnection) FindAll() []entity.Business {
