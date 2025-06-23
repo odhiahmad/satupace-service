@@ -36,11 +36,10 @@ func (s *ProductCategoryServiceImpl) Create(req request.ProductCategoryCreate) e
 	}
 
 	category := entity.ProductCategory{
-		Name:        req.Name,
-		ParentId:    req.ParentId,
-		BusinessId:  req.BusinessId,
-		IsActive:    true,
-		IsAvailable: true,
+		Name:       req.Name,
+		ParentId:   req.ParentId,
+		BusinessId: req.BusinessId,
+		IsActive:   true,
 	}
 
 	return s.Repo.InsertProductCategory(category)

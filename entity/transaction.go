@@ -5,7 +5,7 @@ import (
 )
 
 type Transaction struct {
-	Id              int `gorm:"type:int;primary_key" json:"transaction_id"`
+	Id              int `gorm:"primaryKey" json:"id"`
 	BusinessId      int
 	Business        Business `gorm:"foreignKey:BusinessId"`
 	CustomerId      *int
@@ -13,13 +13,15 @@ type Transaction struct {
 	PaymentMethodId *int
 	PaymentMethod   PaymentMethod     `gorm:"foreignKey:PaymentMethodId"`
 	BillNumber      string            `gorm:"type:varchar(255)" json:"bill_number"`
-	Items           []TransactionItem `gorm:"foreignKey:TransactionId"`
-	Total           int               `json:"total"`
-	Discount        string            `gorm:"type:varchar(255)" json:"discount"`
-	Promo           int               ` json:"promo"`
-	Status          string            `gorm:"type:varchar(255)" json:"status"`
-	Rating          int               ` json:"rating"`
-	Notes           string            `gorm:"type:varchar(255)" json:"notes"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	Items           []TransactionItem `gorm:"foreignKey:TransactionId" json:"items"`
+	Total           float64           `json:"total"`
+	Discount        *float64          `json:"discount"`
+	Promo           *float64          `json:"promo"`
+	Status          *string           `gorm:"type:varchar(255)" json:"status"`
+	Rating          *float64          `json:"rating"`
+	Notes           *string           `gorm:"type:varchar(255)" json:"notes"`
+	AmountReceived  *float64          `json:"amount_received"` // Jumlah uang yang diterima dari pelanggan
+	Change          *float64          `json:"change"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }

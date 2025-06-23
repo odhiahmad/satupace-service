@@ -25,30 +25,48 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func redirectHTTP(w http.ResponseWriter, req *http.Request) {
-	http.Redirect(w, req, "http://"+req.Host+req.URL.String(), http.StatusFound)
+	// Ubah ke HTTPS (bukan HTTP) untuk redirect production
+	http.Redirect(w, req, "https://"+req.Host+req.URL.String(), http.StatusFound)
 }
 
 func main() {
-
 	mode := os.Getenv("GIN_MODE")
-	r := routes.SetupRouter()
+	if mode == "" {
+		mode = "release"
+	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Set Gin mode SEBELUM router dibuat
 	if mode == "debug" {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
-		go http.ListenAndServe(":80", http.HandlerFunc(redirectHTTP))
-		err := http.ListenAndServeTLS(":443", "cert.pem", "key.pem", r)
-		if err != nil {
-			panic("Failed to start server: " + err.Error())
-		}
 	}
 
+	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port
+	if mode == "debug" {
+		// Development mode: pakai HTTP di port custom
+		if err := r.Run(":" + port); err != nil {
+			panic("Failed to start debug server: " + err.Error())
+		}
+	} else {
+		// Production mode:
+		// Redirect HTTP (port 80) ke HTTPS (port 443)
+		go func() {
+			if err := http.ListenAndServe(":80", http.HandlerFunc(redirectHTTP)); err != nil {
+				panic("Failed to start redirect server: " + err.Error())
+			}
+		}()
+
+		// Jalankan server HTTPS (port 443)
+		if err := r.RunTLS(":443", "cert.pem", "key.pem"); err != nil {
+			panic("Failed to start TLS server: " + err.Error())
+		}
 	}
-	r.Run(":" + port)
 }

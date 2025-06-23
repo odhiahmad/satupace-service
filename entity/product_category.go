@@ -3,19 +3,13 @@ package entity
 import "time"
 
 type ProductCategory struct {
-	Id          int      `gorm:"primaryKey"`
-	BusinessId  int      `gorm:"not null"`
-	Business    Business `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Name        string   `gorm:"type:varchar(255)"`
-	ParentId    *int
-	Children    []ProductCategory `gorm:"foreignKey:ParentId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	IsAvailable bool              `gorm:"not null"`
-	IsActive    bool              `gorm:"not null"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-func (p *ProductCategory) Prepare() error {
-	p.IsActive = true
-	return nil
+	Id         int               `gorm:"primaryKey" json:"id"`
+	BusinessId int               `gorm:"not null" json:"business_id"`
+	Business   *Business         `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
+	Name       string            `gorm:"type:varchar(255)" json:"name"`
+	ParentId   *int              `json:"parent_id,omitempty"`
+	Children   []ProductCategory `gorm:"foreignKey:ParentId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"children,omitempty"`
+	IsActive   bool              `gorm:"not null" json:"is_active"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
 }

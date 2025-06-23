@@ -13,9 +13,9 @@ import (
 type ProductController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
-	FindById(ctx *gin.Context)
-	FindAll(ctx *gin.Context)
 	Delete(ctx *gin.Context)
+	FindById(ctx *gin.Context)
+	FindWithPagination(ctx *gin.Context)
 }
 
 type productController struct {
@@ -30,102 +30,132 @@ func NewProductController(productService service.ProductService, jwtService serv
 	}
 }
 
-// Create Product
+// CREATE PRODUCT
 func (c *productController) Create(ctx *gin.Context) {
 	var req request.ProductCreate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Gagal bind data", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.productService.Create(req); err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat produk", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	res := helper.BuildResponse(true, "Produk berhasil dibuat", helper.EmptyObj{})
-	ctx.JSON(http.StatusCreated, res)
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Product created successfully"})
 }
 
-// Update Product
+// UPDATE PRODUCT
 func (c *productController) Update(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+	idParam := ctx.Param("id")
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
 
 	var req request.ProductUpdate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Gagal bind data", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.productService.Update(id, req); err != nil {
-		res := helper.BuildErrorResponse("Gagal mengupdate produk", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	res := helper.BuildResponse(true, "Produk berhasil diperbarui", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
 }
 
-// Find By ID
-func (c *productController) FindById(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+// DELETE PRODUCT
+func (c *productController) Delete(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		return
+	}
+
+	if err := c.productService.Delete(id); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+}
+
+// FIND PRODUCT BY ID
+func (c *productController) FindById(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
 
 	product, err := c.productService.FindById(id)
 	if err != nil {
-		res := helper.BuildErrorResponse("Produk tidak ditemukan", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusNotFound, res)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
 
-	res := helper.BuildResponse(true, "Produk berhasil ditemukan", product)
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, product)
 }
 
-// Find All
-func (c *productController) FindAll(ctx *gin.Context) {
-	products, err := c.productService.FindAll()
+func (c *productController) FindWithPagination(ctx *gin.Context) {
+	businessIDStr := ctx.Query("business_id")
+	if businessIDStr == "" {
+		res := helper.BuildErrorResponse("Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	businessID, err := strconv.Atoi(businessIDStr)
+	if err != nil || businessID <= 0 {
+		res := helper.BuildErrorResponse("Parameter business_id tidak valid", err.Error(), helper.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	// Ambil query parameter lainnya
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sortBy", "id")
+	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	search := ctx.DefaultQuery("search", "")
+	before := ctx.Query("before")
+	after := ctx.Query("after")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		res := helper.BuildErrorResponse("Parameter limit tidak valid", err.Error(), helper.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	pagination := request.Pagination{
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
+		Before:  before,
+		After:   after,
+	}
+
+	products, total, err := c.productService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		res := helper.BuildErrorResponse("Gagal mengambil data produk", err.Error(), helper.EmptyObj{})
 		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
-	res := helper.BuildResponse(true, "Semua produk berhasil diambil", products)
-	ctx.JSON(http.StatusOK, res)
-}
-
-// Delete Product
-func (c *productController) Delete(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
-		return
+	response := gin.H{
+		"total":      total,
+		"limit":      limit,
+		"results":    products,
+		"totalPages": (total + int64(limit) - 1) / int64(limit),
 	}
 
-	if err := c.productService.Delete(id); err != nil {
-		res := helper.BuildErrorResponse("Gagal menghapus produk", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	res := helper.BuildResponse(true, "Produk berhasil dihapus", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil data produk", response))
 }

@@ -15,6 +15,7 @@ type UserBusinessRepository interface {
 	Delete(userBusinessId int)
 	IsDuplicateEmail(email string) bool
 	VerifyCredentialBusiness(email string, password string) interface{}
+	FindByEmailOrPhone(identifier string) (entity.UserBusiness, error)
 }
 
 type UserBusinessConnection struct {
@@ -75,4 +76,16 @@ func (t *UserBusinessConnection) VerifyCredentialBusiness(email string, password
 		return user
 	}
 	return nil
+}
+
+func (t *UserBusinessConnection) FindByEmailOrPhone(identifier string) (entity.UserBusiness, error) {
+	var user entity.UserBusiness
+	res := t.Db.Where("email = ? OR phone = ?", identifier, identifier).
+		Preload("Role").Preload("Business.BusinessType").
+		First(&user)
+
+	if res.Error != nil {
+		return user, res.Error
+	}
+	return user, nil
 }

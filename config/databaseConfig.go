@@ -31,10 +31,21 @@ func SetupDatabaseConnection() *gorm.DB {
 		panic("Gagal membuat koneksi ke database")
 	}
 
+	// Tambahkan ENUM PostgreSQL secara manual (jika belum ada)
+	db.Exec(`
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_type') THEN
+				CREATE TYPE discount_type AS ENUM ('percent', 'fixed');
+			END IF;
+		END$$;
+	`)
+
 	db.AutoMigrate(
 		&entity.UserBusiness{},
 		&entity.User{},
 		&entity.Business{},
+		&entity.BusinessBranch{},
 		&entity.BusinessType{},
 		&entity.Role{},
 		&entity.Customer{},
@@ -47,7 +58,13 @@ func SetupDatabaseConnection() *gorm.DB {
 		&entity.TransactionItemAttribute{},
 		&entity.PaymentMethod{},
 		&entity.Bundle{},
-		&entity.BundleItem{})
+		&entity.BundleItem{},
+		&entity.Tax{},
+		&entity.ProductUnit{},
+		&entity.ProductPromo{},
+		&entity.Promo{},
+		&entity.Discount{},
+	)
 
 	return db
 }

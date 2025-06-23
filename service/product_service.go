@@ -13,75 +13,99 @@ type ProductService interface {
 	Update(id int, req request.ProductUpdate) error
 	Delete(id int) error
 	FindById(id int) (response.ProductResponse, error)
-	FindAll() ([]response.ProductResponse, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) // <- Tambahan
 }
 
 type productService struct {
 	ProductRepo        repository.ProductRepository
 	ProductVariantRepo repository.ProductVariantRepository
+	ProductPromoRepo   repository.ProductPromoRepository
 	Validate           *validator.Validate
 }
 
-func NewProductService(productRepo repository.ProductRepository, variantRepo repository.ProductVariantRepository, validate *validator.Validate) ProductService {
+func NewProductService(productRepo repository.ProductRepository, variantRepo repository.ProductVariantRepository, promoRepo repository.ProductPromoRepository, validate *validator.Validate) ProductService {
 	return &productService{
 		ProductRepo:        productRepo,
 		ProductVariantRepo: variantRepo,
+		ProductPromoRepo:   promoRepo,
 		Validate:           validate,
 	}
 }
 
 func (s *productService) Create(req request.ProductCreate) error {
-	err := s.Validate.Struct(req)
-	if err != nil {
+	if err := s.Validate.Struct(req); err != nil {
 		return err
+	}
+
+	var unitId int
+	if req.UnitId != nil {
+		unitId = *req.UnitId
+	}
+
+	var categoryId int
+	if req.ProductCategoryId != nil {
+		categoryId = *req.ProductCategoryId
 	}
 
 	product := entity.Product{
 		BusinessId:        req.BusinessId,
-		ProductCategoryId: req.ProductCategoryId,
+		ProductCategoryId: categoryId,
 		Name:              req.Name,
 		Description:       req.Description,
 		Image:             req.Image,
 		BasePrice:         req.BasePrice,
-		Discount:          req.Discount,
-		Promo:             req.Promo,
-		Stock:             req.Stock,
-		FinalPrice:        req.BasePrice - req.Discount - req.Promo,
 		SKU:               req.SKU,
+		Stock:             req.Stock,
 		HasVariant:        len(req.Variants) > 0,
+		IsAvailable:       true,
+		IsActive:          true,
+		TaxId:             req.TaxId,
+		DiscountId:        req.DiscountId,
+		UnitId:            unitId,
 	}
-	product.Prepare()
 
-	err = s.ProductRepo.InsertProduct(&product)
+	_, err := s.ProductRepo.Create(product)
 	if err != nil {
 		return err
 	}
-	// Handle variants
+
+	// Simpan Variant
 	for _, v := range req.Variants {
 		variant := entity.ProductVariant{
-			BusinessId:  v.BusinessId,
+			BusinessId:  req.BusinessId,
 			ProductId:   product.Id,
 			Name:        v.Name,
 			Image:       v.Image,
 			BasePrice:   v.BasePrice,
-			Discount:    v.Discount,
-			Promo:       v.Promo,
-			FinalPrice:  v.BasePrice - v.Discount - v.Promo,
 			SKU:         v.SKU,
 			Stock:       v.Stock,
 			IsAvailable: true,
 			IsActive:    true,
 		}
-		variant.Prepare()
 		_ = s.ProductVariantRepo.Create(&variant)
+	}
+
+	var productPromos []entity.ProductPromo
+	for _, promoId := range req.PromoIds {
+		productPromos = append(productPromos, entity.ProductPromo{
+			BusinessId: req.BusinessId,
+			ProductId:  product.Id,
+			PromoId:    promoId,
+		})
+	}
+
+	if len(productPromos) > 0 {
+		err := s.ProductPromoRepo.CreateMany(productPromos)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (s *productService) Update(id int, req request.ProductUpdate) error {
-	err := s.Validate.Struct(req)
-	if err != nil {
+	if err := s.Validate.Struct(req); err != nil {
 		return err
 	}
 
@@ -90,51 +114,71 @@ func (s *productService) Update(id int, req request.ProductUpdate) error {
 		return err
 	}
 
+	var unitId int
+	if req.UnitId != nil {
+		unitId = *req.UnitId
+	}
+
+	var categoryId int
+	if req.ProductCategoryId != nil {
+		categoryId = *req.ProductCategoryId
+	}
+	product.ProductCategoryId = categoryId
 	product.Name = req.Name
 	product.Description = req.Description
 	product.Image = req.Image
 	product.BasePrice = req.BasePrice
-	product.Discount = req.Discount
-	product.Promo = req.Promo
-	product.Stock = req.Stock
-	product.FinalPrice = req.BasePrice - req.Discount - req.Promo
 	product.SKU = req.SKU
+	product.Stock = req.Stock
 	product.IsAvailable = req.IsAvailable
 	product.IsActive = req.IsActive
 	product.HasVariant = len(req.Variants) > 0
+	product.TaxId = req.TaxId
+	product.DiscountId = req.DiscountId
+	product.UnitId = unitId
 
-	err = s.ProductRepo.UpdateProduct(&product)
+	updatedProduct, err := s.ProductRepo.Update(product)
 	if err != nil {
 		return err
 	}
+	// Kalau ingin tetap pakai updatedProduct
+	product = updatedProduct
 
-	// Hapus semua variant lama
+	// Hapus & update Variant
 	_ = s.ProductVariantRepo.DeleteByProductId(product.Id)
-
-	// Tambahkan ulang variant baru
 	for _, v := range req.Variants {
 		variant := entity.ProductVariant{
-			BusinessId:  v.BusinessId,
 			ProductId:   product.Id,
 			Name:        v.Name,
 			Image:       v.Image,
 			BasePrice:   v.BasePrice,
-			Discount:    v.Discount,
-			Promo:       v.Promo,
-			FinalPrice:  v.BasePrice - v.Discount - v.Promo,
 			SKU:         v.SKU,
 			Stock:       v.Stock,
 			IsAvailable: v.IsAvailable,
 			IsActive:    v.IsActive,
 		}
-		variant.Prepare()
 		_ = s.ProductVariantRepo.Create(&variant)
 	}
+
+	// Hapus & tambahkan ulang ProductPromo
+	_ = s.ProductPromoRepo.DeleteByProductId(product.Id)
+
+	var promos []entity.ProductPromo
+	for _, promoId := range req.PromoIds {
+		promos = append(promos, entity.ProductPromo{
+			ProductId: product.Id,
+			PromoId:   promoId,
+		})
+	}
+
+	_ = s.ProductPromoRepo.CreateMany(promos)
 
 	return nil
 }
 
 func (s *productService) Delete(id int) error {
+	_ = s.ProductVariantRepo.DeleteByProductId(id)
+	_ = s.ProductPromoRepo.DeleteByProductId(id)
 	return s.ProductRepo.Delete(id)
 }
 
@@ -146,20 +190,20 @@ func (s *productService) FindById(id int) (response.ProductResponse, error) {
 	return mapProductToResponse(product), nil
 }
 
-func (s *productService) FindAll() ([]response.ProductResponse, error) {
-	products, err := s.ProductRepo.FindAll()
+func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
+	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	var responses []response.ProductResponse
-	for _, p := range products {
-		responses = append(responses, mapProductToResponse(p))
+	var result []response.ProductResponse
+	for _, product := range products {
+		result = append(result, mapProductToResponse(product))
 	}
-	return responses, nil
+
+	return result, total, nil
 }
 
-// Helper function to map entity to response
 func mapProductToResponse(product entity.Product) response.ProductResponse {
 	var variants []response.ProductVariantResponse
 	for _, variant := range product.Variants {
@@ -171,11 +215,49 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		})
 	}
 
+	var promos []response.ProductPromoResponse
+	for _, promo := range product.ProductPromos {
+		if promo.Promo.Id != 0 {
+			promos = append(promos, response.ProductPromoResponse{
+				PromoId:   promo.PromoId,
+				ProductId: promo.ProductId,
+			})
+		}
+	}
+
 	var categoryRes *response.ProductCategoryResponse
 	if product.ProductCategory.Id != 0 {
 		categoryRes = &response.ProductCategoryResponse{
 			Id:   product.ProductCategory.Id,
 			Name: product.ProductCategory.Name,
+		}
+	}
+
+	var taxRes *response.TaxResponse
+	if product.Tax != nil {
+		taxRes = &response.TaxResponse{
+			Id:     product.Tax.Id,
+			Name:   product.Tax.Name,
+			Amount: product.Tax.Amount,
+		}
+	}
+
+	var discountRes *response.DiscountResponse
+	if product.Discount != nil {
+		discountRes = &response.DiscountResponse{
+			Id:     product.Discount.Id,
+			Name:   product.Discount.Name,
+			Amount: product.Discount.Amount,
+		}
+	}
+
+	var unitRes *response.ProductUnitResponse
+	if product.Unit != nil {
+		unitRes = &response.ProductUnitResponse{
+			Id:         product.Unit.Id,
+			Name:       product.Unit.Name,
+			Alias:      product.Unit.Alias,
+			Multiplier: product.Unit.Multiplier,
 		}
 	}
 
@@ -186,8 +268,6 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		Image:             product.Image,
 		BasePrice:         product.BasePrice,
 		FinalPrice:        product.FinalPrice,
-		Discount:          product.Discount,
-		Promo:             product.Promo,
 		SKU:               product.SKU,
 		Stock:             product.Stock,
 		IsAvailable:       product.IsAvailable,
@@ -196,5 +276,9 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		Variants:          variants,
 		ProductCategoryId: product.ProductCategoryId,
 		ProductCategory:   categoryRes,
+		Tax:               taxRes,
+		Discount:          discountRes,
+		Unit:              unitRes,
+		Promos:            promos,
 	}
 }

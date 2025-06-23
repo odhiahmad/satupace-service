@@ -1,5 +1,7 @@
 package entity
 
+import "time"
+
 type Bundle struct {
 	Id          int `gorm:"primaryKey"`
 	BusinessId  int
@@ -15,9 +17,6 @@ type Bundle struct {
 	Items       []BundleItem `gorm:"foreignKey:BundleId"`
 	IsAvailable bool         `gorm:"not null;column:is_available"`
 	IsActive    bool         `gorm:"not null;column:is_active"`
-}
-
-func (u *Bundle) Prepare() error {
-	u.IsActive = true
-	return nil
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 }

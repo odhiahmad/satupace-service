@@ -23,34 +23,46 @@ func NewRegistrationController(service service.RegistrationService) Registration
 	}
 }
 
+// Register handles user registration
 func (c *registrationController) Register(ctx *gin.Context) {
 	var req request.RegistrationRequest
 
+	// Bind & validate JSON input
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid JSON: " + err.Error(),
+			"status":  "error",
+			"message": "Invalid JSON: " + err.Error(),
 		})
 		return
 	}
 
-	err := c.registrationService.Register(req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+	// Call service
+	if err := c.registrationService.Register(req); err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "email sudah digunakan" {
+			statusCode = http.StatusConflict // 409
+		}
+		ctx.JSON(statusCode, gin.H{
+			"status":  "error",
+			"message": err.Error(),
 		})
 		return
 	}
 
+	// Success response
 	ctx.JSON(http.StatusCreated, gin.H{
+		"status":  "success",
 		"message": "Registration successful",
 	})
 }
 
+// CheckDuplicateEmail handles checking if email is already registered
 func (c *registrationController) CheckDuplicateEmail(ctx *gin.Context) {
 	email := ctx.Query("email")
 	if email == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "email query parameter is required",
+			"status":  "error",
+			"message": "Query parameter 'email' is required",
 		})
 		return
 	}
@@ -58,12 +70,14 @@ func (c *registrationController) CheckDuplicateEmail(ctx *gin.Context) {
 	duplicate, err := c.registrationService.IsDuplicateEmail(email)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"status":  "error",
+			"message": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
+		"status":        "success",
 		"email":         email,
 		"is_duplicated": duplicate,
 	})

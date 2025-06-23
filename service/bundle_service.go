@@ -12,9 +12,8 @@ type BundleService interface {
 	CreateBundle(req request.BundleCreate) error
 	UpdateBundle(id int, req request.BundleUpdate) error
 	FindById(id int) (response.BundleResponse, error)
-	FindAll() ([]response.BundleResponse, error)
-	FindByBusinessId(businessId int) ([]response.BundleResponse, error)
 	Delete(id int) error
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) // <- Tambahan
 }
 
 type BundleServiceImpl struct {
@@ -45,10 +44,6 @@ func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) error {
 		Promo:       req.Promo,
 		IsAvailable: true,
 		IsActive:    true,
-	}
-
-	if err := bundle.Prepare(); err != nil {
-		return err
 	}
 
 	if err := s.BundleRepository.InsertBundle(&bundle); err != nil {
@@ -116,30 +111,18 @@ func (s *BundleServiceImpl) FindById(id int) (response.BundleResponse, error) {
 	return mapBundleToResponse(bundle), nil
 }
 
-func (s *BundleServiceImpl) FindAll() ([]response.BundleResponse, error) {
-	bundles, err := s.BundleRepository.FindAll()
+func (s *BundleServiceImpl) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
+	bundles, total, err := s.BundleRepository.FindWithPagination(businessId, pagination)
 	if err != nil {
-		return nil, err
-	}
-	var responses []response.BundleResponse
-	for _, b := range bundles {
-		responses = append(responses, mapBundleToResponse(b))
-	}
-	return responses, nil
-}
-
-func (s *BundleServiceImpl) FindByBusinessId(businessId int) ([]response.BundleResponse, error) {
-	bundles, err := s.BundleRepository.FindByBusinessId(businessId)
-	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	var responses []response.BundleResponse
-	for _, b := range bundles {
-		responses = append(responses, mapBundleToResponse(b))
+	var result []response.BundleResponse
+	for _, bundleItem := range bundles {
+		result = append(result, mapBundleToResponse(bundleItem))
 	}
 
-	return responses, nil
+	return result, total, nil
 }
 
 func (s *BundleServiceImpl) Delete(id int) error {
