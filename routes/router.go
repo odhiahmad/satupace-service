@@ -90,7 +90,7 @@ func SetupRouter() *gin.Engine {
 		userRoutes.PUT("/update", userController.UpdateUser)
 	}
 
-	roleRoutes := r.Group("role")
+	roleRoutes := r.Group("role", middleware.AuthorizeJWT(jwtService))
 	{
 		roleRoutes.POST("", roleController.CreateRole)
 		roleRoutes.PATCH("/:roleId", roleController.UpdateRole)
@@ -102,10 +102,10 @@ func SetupRouter() *gin.Engine {
 	businessTypeRoutes := r.Group("business-type", middleware.AuthorizeJWT(jwtService))
 	{
 		businessTypeRoutes.POST("", businessTypeController.CreateBusinessType)
-		businessTypeRoutes.PATCH("/:businessTypeId", businessTypeController.UpdateBusinessType)
+		businessTypeRoutes.PATCH("/:id", businessTypeController.UpdateBusinessType)
 		businessTypeRoutes.GET("", businessTypeController.FindBusinessTypeAll)
-		businessTypeRoutes.GET("/:businessTypeId", businessTypeController.FindBusinessTypeById)
-		businessTypeRoutes.DELETE("/:businessTypeId", businessTypeController.DeleteBusinessType)
+		businessTypeRoutes.GET("/:id", businessTypeController.FindBusinessTypeById)
+		businessTypeRoutes.DELETE("/:id", businessTypeController.DeleteBusinessType)
 	}
 
 	paymentMethodRoutes := r.Group("payment-method")

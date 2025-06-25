@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
@@ -117,60 +118,64 @@ func (c *bundleController) Delete(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-// Find All with Pagination
 func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
-		res := helper.BuildErrorResponse("Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
-		res := helper.BuildErrorResponse("Parameter business_id tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Ambil query parameter lainnya
+	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sortBy", "created_at")
+	orderBy := ctx.DefaultQuery("orderBy", "desc")
 	search := ctx.DefaultQuery("search", "")
-	before := ctx.Query("before")
-	after := ctx.Query("after")
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		res := helper.BuildErrorResponse("Parameter limit tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
+	// Susun struct pagination
 	pagination := request.Pagination{
 		Limit:   limit,
 		SortBy:  sortBy,
 		OrderBy: orderBy,
 		Search:  search,
-		Before:  before,
-		After:   after,
 	}
 
+	// Ambil data dari service
 	bundles, total, err := c.bundleService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal mengambil data bundle", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusInternalServerError, res)
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data bundle", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Bisa disesuaikan jika kamu ingin kirim next/prev cursor juga
-	responseData := gin.H{
-		"total":   total,
-		"limit":   limit,
-		"results": bundles,
+	// Susun metadata pagination
+	paginationMeta := response.PaginatedResponse{
+		Page:      pagination.Page, // jika kamu pakai offset-based
+		Limit:     pagination.Limit,
+		Total:     total,
+		OrderBy:   pagination.SortBy,
+		SortOrder: pagination.OrderBy,
 	}
 
-	res := helper.BuildResponse(true, "Bundle berhasil diambil", responseData)
-	ctx.JSON(http.StatusOK, res)
+	// Kirim response
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
+		true,
+		"Data bundle berhasil diambil",
+		bundles,
+		paginationMeta,
+	))
 }

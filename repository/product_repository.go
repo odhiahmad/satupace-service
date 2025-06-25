@@ -8,7 +8,7 @@ import (
 )
 
 type ProductRepository interface {
-	Create(product entity.Product) (entity.Product, error)
+	Create(product *entity.Product) error
 	Update(product entity.Product) (entity.Product, error)
 	Delete(id int) error
 	FindById(id int) (entity.Product, error)
@@ -23,9 +23,8 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{db}
 }
 
-func (r *productRepository) Create(product entity.Product) (entity.Product, error) {
-	err := r.db.Create(&product).Error
-	return product, err
+func (r *productRepository) Create(product *entity.Product) error {
+	return r.db.Create(product).Error // ✅ cukup satu pointer
 }
 
 func (r *productRepository) Update(product entity.Product) (entity.Product, error) {
@@ -51,40 +50,31 @@ func (r *productRepository) FindById(id int) (entity.Product, error) {
 }
 
 func (r *productRepository) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
-	var products []entity.Product
+	var bundles []entity.Product
 	var total int64
 
-	// Base query dengan preload relasi
-	baseQuery := r.db.Model(&entity.Product{}).
-		Where("business_id = ?", businessId).
-		Preload("Variants").
-		Preload("Tax").
-		Preload("Discount").
-		Preload("Unit").
-		Preload("ProductPromos.Promo")
+	// Base query
+	baseQuery := r.db.Model(&entity.Product{}).Where("business_id = ?", businessId)
 
-	// Filter pencarian
+	// Search filter
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where(
-			"name ILIKE ? OR brand ILIKE ? OR description ILIKE ?",
-			search, search, search,
-		)
+		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ? OR brand ILIKE ?", search, search)
 	}
 
-	// Hitung total data sebelum paginasi
+	// Hitung total data
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Siapkan paginator
+	// Gunakan helper paginator dengan validasi sort
 	p := helper.Paginate(pagination)
 
-	// Query dengan paginasi
-	_, _, err := p.Paginate(baseQuery, &products)
+	// Ambil data hasil paginasi
+	_, _, err := p.Paginate(baseQuery, &bundles)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return products, total, nil
+	return bundles, total, nil
 }

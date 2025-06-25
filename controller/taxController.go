@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
@@ -94,55 +95,76 @@ func (c *taxController) FindById(ctx *gin.Context) {
 func (c *taxController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
-		res := helper.BuildErrorResponse("Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
-		res := helper.BuildErrorResponse("Parameter business_id tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Ambil query parameter lainnya
+	// Ambil parameter pagination & sorting
+	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "id")
 	orderBy := ctx.DefaultQuery("orderBy", "asc")
 	search := ctx.DefaultQuery("search", "")
-	before := ctx.Query("before")
-	after := ctx.Query("after")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
+		return
+	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		res := helper.BuildErrorResponse("Parameter limit tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	pagination := request.Pagination{
+		Page:    page,
 		Limit:   limit,
 		SortBy:  sortBy,
 		OrderBy: orderBy,
 		Search:  search,
-		Before:  before,
-		After:   after,
 	}
 
 	taxes, total, err := c.taxService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal mengambil data pajak", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusInternalServerError, res)
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data pajak", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	response := gin.H{
-		"total":      total,
-		"limit":      limit,
-		"results":    taxes,
-		"totalPages": (total + int64(limit) - 1) / int64(limit),
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+
+	paginationMeta := response.PaginatedResponse{
+		Page:      page,
+		Limit:     limit,
+		Total:     total,
+		OrderBy:   sortBy,
+		SortOrder: orderBy,
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil data pajak", response))
+	response := gin.H{
+		"results":    taxes,
+		"total":      total,
+		"limit":      limit,
+		"page":       page,
+		"totalPages": totalPages,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
+		true,
+		"Berhasil mengambil data pajak",
+		response,
+		paginationMeta,
+	))
 }

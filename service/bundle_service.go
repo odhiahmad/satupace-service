@@ -16,19 +16,19 @@ type BundleService interface {
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) // <- Tambahan
 }
 
-type BundleServiceImpl struct {
+type bundleService struct {
 	BundleRepository repository.BundleRepository
 	Validate         *validator.Validate
 }
 
 func NewBundleService(repo repository.BundleRepository, validate *validator.Validate) BundleService {
-	return &BundleServiceImpl{
+	return &bundleService{
 		BundleRepository: repo,
 		Validate:         validate,
 	}
 }
 
-func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) error {
+func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 	if err := s.Validate.Struct(req); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (s *BundleServiceImpl) CreateBundle(req request.BundleCreate) error {
 	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
 }
 
-func (s *BundleServiceImpl) UpdateBundle(id int, req request.BundleUpdate) error {
+func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
 	if err := s.Validate.Struct(req); err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (s *BundleServiceImpl) UpdateBundle(id int, req request.BundleUpdate) error
 	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
 }
 
-func (s *BundleServiceImpl) FindById(id int) (response.BundleResponse, error) {
+func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
 	bundle, err := s.BundleRepository.FindById(id)
 	if err != nil {
 		return response.BundleResponse{}, err
@@ -111,7 +111,7 @@ func (s *BundleServiceImpl) FindById(id int) (response.BundleResponse, error) {
 	return mapBundleToResponse(bundle), nil
 }
 
-func (s *BundleServiceImpl) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
+func (s *bundleService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
 	bundles, total, err := s.BundleRepository.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -125,7 +125,7 @@ func (s *BundleServiceImpl) FindWithPagination(businessId int, pagination reques
 	return result, total, nil
 }
 
-func (s *BundleServiceImpl) Delete(id int) error {
+func (s *bundleService) Delete(id int) error {
 	return s.BundleRepository.Delete(id)
 }
 

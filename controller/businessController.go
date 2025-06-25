@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
@@ -93,43 +94,58 @@ func (c *businessController) FindById(ctx *gin.Context) {
 
 func (c *businessController) FindWithPagination(ctx *gin.Context) {
 	// Ambil query parameter
+	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "id")
 	orderBy := ctx.DefaultQuery("orderBy", "asc")
 	search := ctx.DefaultQuery("search", "")
-	before := ctx.Query("before")
-	after := ctx.Query("after")
 
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		res := helper.BuildErrorResponse("Parameter limit tidak valid", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+	// Validasi dan parsing
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Pagination (tanpa businessID karena tidak dibutuhkan)
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	// Susun struct pagination
 	pagination := request.Pagination{
+		Page:    page,
 		Limit:   limit,
 		SortBy:  sortBy,
 		OrderBy: orderBy,
 		Search:  search,
-		Before:  before,
-		After:   after,
 	}
 
+	// Ambil data dari service
 	businesses, total, err := c.businessService.FindWithPagination(pagination)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal mengambil data bisnis", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusInternalServerError, res)
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data bisnis", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	responseData := gin.H{
-		"total":   total,
-		"limit":   limit,
-		"results": businesses,
+	// Metadata pagination
+	paginationMeta := response.PaginatedResponse{
+		Page:      page,
+		Limit:     limit,
+		Total:     total,
+		OrderBy:   sortBy,
+		SortOrder: orderBy,
 	}
 
-	res := helper.BuildResponse(true, "Berhasil mengambil data bisnis", responseData)
-	ctx.JSON(http.StatusOK, res)
+	// Kirim response JSON
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
+		true,
+		"Berhasil mengambil data bisnis",
+		businesses,
+		paginationMeta,
+	))
 }

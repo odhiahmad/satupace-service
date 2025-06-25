@@ -116,7 +116,7 @@ func (c *productCategoryController) FindAll(ctx *gin.Context) {
 }
 
 func (c *productCategoryController) FindByBusinessId(ctx *gin.Context) {
-	businessIdStr := ctx.Param("business_id")
+	businessIdStr := ctx.Param("id")
 	businessId, err := strconv.Atoi(businessIdStr)
 	if err != nil {
 		res := helper.BuildErrorResponse("Business ID tidak valid", err.Error(), helper.EmptyObj{})

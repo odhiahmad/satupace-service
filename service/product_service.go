@@ -5,6 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -37,15 +38,10 @@ func (s *productService) Create(req request.ProductCreate) error {
 		return err
 	}
 
-	var unitId int
-	if req.UnitId != nil {
-		unitId = *req.UnitId
-	}
-
-	var categoryId int
-	if req.ProductCategoryId != nil {
-		categoryId = *req.ProductCategoryId
-	}
+	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
+	basePrice := helper.Float64OrDefault(req.BasePrice, 0.0)
+	sku := helper.StringOrDefault(req.SKU, "")
+	stock := helper.IntOrDefault(req.Stock, 0)
 
 	product := entity.Product{
 		BusinessId:        req.BusinessId,
@@ -53,23 +49,21 @@ func (s *productService) Create(req request.ProductCreate) error {
 		Name:              req.Name,
 		Description:       req.Description,
 		Image:             req.Image,
-		BasePrice:         req.BasePrice,
-		SKU:               req.SKU,
-		Stock:             req.Stock,
+		BasePrice:         basePrice,
+		SKU:               sku,
+		Stock:             stock,
 		HasVariant:        len(req.Variants) > 0,
 		IsAvailable:       true,
 		IsActive:          true,
-		TaxId:             req.TaxId,
-		DiscountId:        req.DiscountId,
-		UnitId:            unitId,
 	}
 
-	_, err := s.ProductRepo.Create(product)
+	// ✅ simpan dengan pointer agar ID terisi
+	err := s.ProductRepo.Create(&product)
 	if err != nil {
 		return err
 	}
 
-	// Simpan Variant
+	// ✅ Gunakan product.Id yang sudah terisi
 	for _, v := range req.Variants {
 		variant := entity.ProductVariant{
 			BusinessId:  req.BusinessId,
@@ -114,28 +108,24 @@ func (s *productService) Update(id int, req request.ProductUpdate) error {
 		return err
 	}
 
-	var unitId int
-	if req.UnitId != nil {
-		unitId = *req.UnitId
-	}
+	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
+	basePrice := helper.Float64OrDefault(req.BasePrice, 0.0)
+	sku := helper.StringOrDefault(req.SKU, "")
+	stock := helper.IntOrDefault(req.Stock, 0)
 
-	var categoryId int
-	if req.ProductCategoryId != nil {
-		categoryId = *req.ProductCategoryId
-	}
 	product.ProductCategoryId = categoryId
 	product.Name = req.Name
 	product.Description = req.Description
 	product.Image = req.Image
-	product.BasePrice = req.BasePrice
-	product.SKU = req.SKU
-	product.Stock = req.Stock
+	product.BasePrice = basePrice
+	product.SKU = sku
+	product.Stock = stock
 	product.IsAvailable = req.IsAvailable
 	product.IsActive = req.IsActive
 	product.HasVariant = len(req.Variants) > 0
 	product.TaxId = req.TaxId
 	product.DiscountId = req.DiscountId
-	product.UnitId = unitId
+	product.UnitId = req.UnitId
 
 	updatedProduct, err := s.ProductRepo.Update(product)
 	if err != nil {
@@ -226,7 +216,7 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 	}
 
 	var categoryRes *response.ProductCategoryResponse
-	if product.ProductCategory.Id != 0 {
+	if product.ProductCategory != nil && product.ProductCategory.Id != 0 {
 		categoryRes = &response.ProductCategoryResponse{
 			Id:   product.ProductCategory.Id,
 			Name: product.ProductCategory.Name,
