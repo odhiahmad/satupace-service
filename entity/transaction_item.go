@@ -16,10 +16,9 @@ type TransactionItem struct {
 	ProductVariantId   *int                       `json:"product_variant_id"`
 	ProductVariant     *ProductVariant            `gorm:"foreignKey:ProductVariantId"`
 	Quantity           int                        `json:"quantity"`
-	UnitPrice          float64                    `json:"unit_price"`
 	Price              float64                    `json:"price"`
-	Discount           *float64                   `json:"discount"`
-	Promo              *float64                   `json:"promo"`
+	Discount           float64                    `json:"discount"`
+	Promo              float64                    `json:"promo"`
 	Rating             *float64                   `json:"rating"`
 	Attributes         []TransactionItemAttribute `gorm:"foreignKey:TransactionItemId"`
 	CreatedAt          time.Time

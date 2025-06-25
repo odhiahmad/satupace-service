@@ -19,7 +19,6 @@ type ProductCreate struct {
 }
 
 type ProductUpdate struct {
-	Id                int                    `json:"id" validate:"required"`
 	ProductCategoryId *int                   `json:"product_category_id" validate:"required"`
 	Name              string                 `json:"name" validate:"required"`
 	Description       *string                `json:"description,omitempty"`

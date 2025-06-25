@@ -1,11 +1,15 @@
 package service
 
 import (
+	"time"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
+	"gorm.io/gorm"
 )
 
 type TransactionService interface {
@@ -13,61 +17,50 @@ type TransactionService interface {
 	Update(id int, req request.TransactionUpdateRequest) error
 	FindById(id int) (response.TransactionResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TransactionResponse, int64, error)
+	AddOrUpdateItem(transactionId int, item request.TransactionItemCreate) error
 }
 
 type transactionService struct {
 	transactionRepo repository.TransactionRepository
 	validate        *validator.Validate
+	db              *gorm.DB
 }
 
-func NewTransactionService(repo repository.TransactionRepository, validate *validator.Validate) TransactionService {
+func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, validate *validator.Validate) TransactionService {
 	return &transactionService{
+		db:              db,
 		transactionRepo: repo,
 		validate:        validator.New(),
 	}
 }
 
 func (s *transactionService) Create(req request.TransactionCreateRequest) error {
-	var items []entity.TransactionItem
-
+	var allProductIds []int
 	for _, item := range req.Items {
-		var attrs []entity.TransactionItemAttribute
-		for _, attr := range item.Attributes {
-			attrs = append(attrs, entity.TransactionItemAttribute{
-				ProductAttributeId: attr.ProductAttributeId,
-				AdditionalPrice:    attr.AdditionalPrice,
-			})
+		productId := helper.IntOrDefault(item.ProductId, 0)
+		if productId != 0 {
+			allProductIds = append(allProductIds, productId)
 		}
+	}
 
-		items = append(items, entity.TransactionItem{
-			ProductId:          item.ProductId,
-			BundleId:           item.BundleId,
-			ProductAttributeId: item.ProductAttributeId,
-			ProductVariantId:   item.ProductVariantId,
-			Quantity:           item.Quantity,
-			UnitPrice:          item.UnitPrice,
-			Price:              item.Price,
-			Discount:           item.Discount,
-			Promo:              item.Promo,
-			Rating:             item.Rating,
-			Attributes:         attrs,
-		})
+	res, err := helper.PrepareTransactionItemsCreate(helper.TransactionItemInput{
+		DB:            s.db,
+		Items:         req.Items,
+		AllProductIds: allProductIds,
+	})
+	if err != nil {
+		return err
 	}
 
 	transaction := &entity.Transaction{
-		BusinessId:      req.BusinessId,
-		CustomerId:      req.CustomerId,
-		PaymentMethodId: req.PaymentMethodId,
-		BillNumber:      req.BillNumber,
-		Items:           items,
-		Total:           req.Total,
-		Discount:        req.Discount,
-		Promo:           req.Promo,
-		Status:          req.Status,
-		Rating:          req.Rating,
-		Notes:           req.Notes,
-		AmountReceived:  req.AmountReceived,
-		Change:          req.Change,
+		BusinessId: req.BusinessId,
+		CustomerId: req.CustomerId,
+		Items:      res.Items,
+		Status:     "cart",
+		Total:      res.Total,
+		Discount:   res.TotalDiscount,
+		Promo:      res.TotalPromo,
+		CreatedAt:  time.Now(),
 	}
 
 	return s.transactionRepo.Create(transaction)
@@ -75,32 +68,21 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) error 
 
 // UPDATE
 func (s *transactionService) Update(id int, req request.TransactionUpdateRequest) error {
-	var items []entity.TransactionItem
-
+	var allProductIds []int
 	for _, item := range req.Items {
-		var attrs []entity.TransactionItemAttribute
-		for _, attr := range item.Attributes {
-			attrs = append(attrs, entity.TransactionItemAttribute{
-				Id:                 attr.Id,
-				ProductAttributeId: attr.ProductAttributeId,
-				AdditionalPrice:    attr.AdditionalPrice,
-			})
+		productId := helper.IntOrDefault(item.ProductId, 0)
+		if productId != 0 {
+			allProductIds = append(allProductIds, productId)
 		}
+	}
 
-		items = append(items, entity.TransactionItem{
-			Id:                 item.Id,
-			ProductId:          item.ProductId,
-			BundleId:           item.BundleId,
-			ProductAttributeId: item.ProductAttributeId,
-			ProductVariantId:   item.ProductVariantId,
-			Quantity:           item.Quantity,
-			UnitPrice:          item.UnitPrice,
-			Price:              item.Price,
-			Discount:           item.Discount,
-			Promo:              item.Promo,
-			Rating:             item.Rating,
-			Attributes:         attrs,
-		})
+	res, err := helper.PrepareTransactionItemsUpdate(helper.TransactionItemInputUpdate{
+		DB:            s.db,
+		Items:         req.Items,
+		AllProductIds: allProductIds,
+	})
+	if err != nil {
+		return err
 	}
 
 	transaction := &entity.Transaction{
@@ -108,10 +90,10 @@ func (s *transactionService) Update(id int, req request.TransactionUpdateRequest
 		CustomerId:      req.CustomerId,
 		PaymentMethodId: req.PaymentMethodId,
 		BillNumber:      req.BillNumber,
-		Items:           items,
-		Total:           req.Total,
-		Discount:        req.Discount,
-		Promo:           req.Promo,
+		Items:           res.Items,
+		Total:           res.Total,
+		Discount:        res.TotalDiscount,
+		Promo:           res.TotalPromo,
 		Status:          req.Status,
 		Rating:          req.Rating,
 		Notes:           req.Notes,
@@ -120,6 +102,58 @@ func (s *transactionService) Update(id int, req request.TransactionUpdateRequest
 	}
 
 	return s.transactionRepo.Update(transaction)
+}
+
+func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.TransactionItemCreate) error {
+	// Mapping attribute request ke entity
+	var attrs []entity.TransactionItemAttribute
+	for _, attr := range itemReq.Attributes {
+		attrs = append(attrs, entity.TransactionItemAttribute{
+			ProductAttributeId: attr.ProductAttributeId,
+			AdditionalPrice:    attr.AdditionalPrice,
+		})
+	}
+
+	// Mapping item request ke entity
+	item := entity.TransactionItem{
+		ProductId:          itemReq.ProductId,
+		BundleId:           itemReq.BundleId,
+		ProductAttributeId: itemReq.ProductAttributeId,
+		ProductVariantId:   itemReq.ProductVariantId,
+		Quantity:           itemReq.Quantity,
+		Price:              itemReq.Price,
+		Discount:           itemReq.Discount,
+		Promo:              itemReq.Promo,
+		Rating:             itemReq.Rating,
+		Attributes:         attrs,
+	}
+
+	// Tambahkan atau update item
+	err := s.transactionRepo.AddOrUpdateItem(transactionId, item)
+	if err != nil {
+		return err
+	}
+
+	// 🔁 Hitung ulang total transaksi setelah item ditambahkan
+	items, err := s.transactionRepo.FindItemsByTransactionId(transactionId)
+	if err != nil {
+		return err
+	}
+
+	res, err := helper.CalculateTransactionTotals(s.db, items)
+	if err != nil {
+		return err
+	}
+
+	// Update transaksi dengan nilai total, diskon, promo terbaru
+	update := &entity.Transaction{
+		Id:       transactionId,
+		Total:    res.Total,
+		Discount: res.TotalDiscount,
+		Promo:    res.TotalPromo,
+	}
+
+	return s.transactionRepo.Update(update)
 }
 
 // FINDBYID
@@ -166,7 +200,6 @@ func ToTransactionResponse(trx entity.Transaction) response.TransactionResponse 
 			ProductAttributeId: item.ProductAttributeId,
 			ProductVariantId:   item.ProductVariantId,
 			Quantity:           item.Quantity,
-			UnitPrice:          item.UnitPrice,
 			Price:              item.Price,
 			Discount:           item.Discount,
 			Promo:              item.Promo,

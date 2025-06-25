@@ -5,6 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -39,9 +40,6 @@ func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 		Description: req.Description,
 		Image:       req.Image,
 		BasePrice:   req.BasePrice,
-		FinalPrice:  req.FinalPrice,
-		Discount:    req.Discount,
-		Promo:       req.Promo,
 		IsAvailable: true,
 		IsActive:    true,
 	}
@@ -77,9 +75,6 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
 	bundle.Description = req.Description
 	bundle.Image = req.Image
 	bundle.BasePrice = req.BasePrice
-	bundle.FinalPrice = req.FinalPrice
-	bundle.Discount = req.Discount
-	bundle.Promo = req.Promo
 	bundle.IsAvailable = req.IsAvailable
 	bundle.IsActive = req.IsActive
 
@@ -111,6 +106,10 @@ func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
 	return mapBundleToResponse(bundle), nil
 }
 
+func (s *bundleService) Delete(id int) error {
+	return s.BundleRepository.Delete(id)
+}
+
 func (s *bundleService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
 	bundles, total, err := s.BundleRepository.FindWithPagination(businessId, pagination)
 	if err != nil {
@@ -125,30 +124,34 @@ func (s *bundleService) FindWithPagination(businessId int, pagination request.Pa
 	return result, total, nil
 }
 
-func (s *bundleService) Delete(id int) error {
-	return s.BundleRepository.Delete(id)
-}
-
 func mapBundleToResponse(p entity.Bundle) response.BundleResponse {
 	var items []response.BundleItemResponse
 	for _, i := range p.Items {
 		items = append(items, response.BundleItemResponse{
-			Id:        i.Id,
-			ProductId: i.ProductId,
-			Product:   i.Product.Name,
-			Quantity:  i.Quantity,
+			Id:          i.Id,
+			ProductId:   i.ProductId,
+			Name:        i.Product.Name,
+			Description: i.Product.Description,
+			Image:       i.Product.Image,
+			BasePrice:   i.Product.BasePrice,
+			FinalPrice:  i.Product.FinalPrice,
+			SKU:         i.Product.SKU,
+			Stock:       i.Product.Stock,
+			IsAvailable: i.Product.IsAvailable,
+			IsActive:    i.Product.IsActive,
+			Quantity:    i.Quantity,
 		})
 	}
+
+	description := helper.StringOrDefault(p.Description, "")
+	image := helper.StringOrDefault(p.Image, "")
 
 	return response.BundleResponse{
 		Id:          p.Id,
 		Name:        p.Name,
-		Description: p.Description,
-		Image:       p.Image,
+		Description: description,
+		Image:       image,
 		BasePrice:   p.BasePrice,
-		FinalPrice:  p.FinalPrice,
-		Discount:    p.Discount,
-		Promo:       p.Promo,
 		Stock:       p.Stock,
 		IsAvailable: p.IsAvailable,
 		IsActive:    p.IsActive,

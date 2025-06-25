@@ -17,8 +17,8 @@ type TransactionItemResponse struct {
 	Quantity           int                                `json:"quantity"`
 	UnitPrice          float64                            `json:"unit_price"`
 	Price              float64                            `json:"price"`
-	Discount           *float64                           `json:"discount"`
-	Promo              *float64                           `json:"promo"`
+	Discount           float64                            `json:"discount"`
+	Promo              float64                            `json:"promo"`
 	Rating             *float64                           `json:"rating"`
 	Attributes         []TransactionItemAttributeResponse `json:"attributes"`
 }
@@ -31,9 +31,9 @@ type TransactionResponse struct {
 	BillNumber      string                    `json:"bill_number"`
 	Items           []TransactionItemResponse `json:"items"`
 	Total           float64                   `json:"total"`
-	Discount        *float64                  `json:"discount"`
-	Promo           *float64                  `json:"promo"`
-	Status          *string                   `json:"status"`
+	Discount        float64                   `json:"discount"`
+	Promo           float64                   `json:"promo"`
+	Status          string                    `json:"status"`
 	Rating          *float64                  `json:"rating"`
 	Notes           *string                   `json:"notes"`
 	AmountReceived  *float64                  `json:"amount_received"`

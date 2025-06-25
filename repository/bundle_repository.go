@@ -72,7 +72,7 @@ func (r *BundleConnection) FindWithPagination(businessId int, pagination request
 	var total int64
 
 	// Base query untuk count
-	baseQuery := r.Db.Model(&entity.Bundle{}).Where("business_id = ?", businessId)
+	baseQuery := r.Db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
 
 	// Apply search filter
 	if pagination.Search != "" {

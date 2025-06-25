@@ -59,7 +59,7 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	// Search filter
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ? OR brand ILIKE ?", search, search)
+		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ? OR brand ILIKE ?", search, search, search)
 	}
 
 	// Hitung total data
