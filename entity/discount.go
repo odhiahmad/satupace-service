@@ -14,6 +14,7 @@ type Discount struct {
 	StartAt     time.Time `json:"start_at"`
 	EndAt       time.Time `json:"end_at"`
 	Products    []Product `gorm:"many2many:product_discounts;" json:"products,omitempty"`
+	IsActive    bool      `gorm:"not null" json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

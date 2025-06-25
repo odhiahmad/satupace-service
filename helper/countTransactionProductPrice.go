@@ -10,6 +10,7 @@ type TransactionPricing struct {
 	Price    float64
 	Discount float64
 	Promo    float64
+	Tax      float64
 }
 
 // HitungHargaTransaksi menentukan harga, diskon, dan promo yang berlaku saat transaksi
@@ -21,7 +22,7 @@ func HitungHargaTransaksi(
 ) (*TransactionPricing, error) {
 	var price float64
 
-	// 1. Tentukan harga
+	// 1. Tentukan harga dari base atau variant
 	if product.HasVariant {
 		if productVariantId == nil {
 			return nil, errors.New("product variant ID is required for product with variants")
@@ -29,9 +30,7 @@ func HitungHargaTransaksi(
 		var found bool
 		for _, variant := range product.Variants {
 			if variant.Id == *productVariantId {
-
-				price = *variant.FinalPrice
-
+				price = *variant.BasePrice
 				found = true
 				break
 			}
@@ -40,14 +39,12 @@ func HitungHargaTransaksi(
 			return nil, errors.New("variant not found for this product")
 		}
 	} else {
-
-		price = *product.FinalPrice
-
+		price = product.BasePrice
 	}
 
 	// 2. Hitung diskon
 	var discount float64
-	if product.Discount != nil {
+	if product.Discount != nil && product.Discount.IsActive {
 		if product.Discount.Type == "percent" {
 			discount = price * (product.Discount.Amount / 100.0)
 		} else {
@@ -55,31 +52,39 @@ func HitungHargaTransaksi(
 		}
 	}
 
-	// 3. Hitung promo (gunakan satu saja yang aktif, logikanya bisa dikembangkan)
+	// 3. Hitung promo
 	var promo float64
 	for _, pp := range product.ProductPromos {
 		if !pp.Promo.IsActive || quantity < pp.MinQuantity {
 			continue
 		}
-
-		// ✅ Cek apakah RequiredProductIds terpenuhi
-		if len(pp.Promo.RequiredProductIds) > 0 && !containsAll(allProductIds, pp.Promo.RequiredProductIds) {
+		if len(pp.Promo.RequiredProductIds) > 0 &&
+			!containsAll(allProductIds, pp.Promo.RequiredProductIds) {
 			continue
 		}
-
-		// ✅ Hitung promo
 		if pp.Promo.Type == "percent" {
 			promo = price * (pp.Promo.Amount / 100.0)
 		} else {
 			promo = pp.Promo.Amount
 		}
-		break
+		break // hanya satu promo aktif
+	}
+
+	// 4. Hitung pajak
+	var totalTax float64
+	if product.Tax != nil && product.Tax.IsActive {
+		if product.Tax.Type == "percentage" {
+			totalTax += price * (product.Tax.Amount / 100.0)
+		} else {
+			totalTax += product.Tax.Amount
+		}
 	}
 
 	return &TransactionPricing{
-		Price:    price,
-		Discount: discount,
-		Promo:    promo,
+		Price:    price * float64(quantity),
+		Discount: discount * float64(quantity),
+		Promo:    promo * float64(quantity),
+		Tax:      totalTax * float64(quantity),
 	}, nil
 }
 

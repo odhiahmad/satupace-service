@@ -12,7 +12,7 @@ type Transaction struct {
 	Customer        Customer `gorm:"foreignKey:CustomerId"`
 	PaymentMethodId *int
 	PaymentMethod   PaymentMethod     `gorm:"foreignKey:PaymentMethodId"`
-	BillNumber      string            `gorm:"type:varchar(255)" json:"bill_number"`
+	BillNumber      string            `gorm:"uniqueIndex" json:"bill_number"`
 	Items           []TransactionItem `gorm:"foreignKey:TransactionId" json:"items"`
 	Total           float64           `json:"total"`
 	Discount        float64           `json:"discount"`

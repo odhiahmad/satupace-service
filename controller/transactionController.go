@@ -37,13 +37,13 @@ func (c *transactionController) Create(ctx *gin.Context) {
 		return
 	}
 
-	err := c.transactionService.Create(input)
+	transaction, err := c.transactionService.Create(input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat transaksi", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat transaksi", nil))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat transaksi", transaction))
 }
 
 func (c *transactionController) Update(ctx *gin.Context) {

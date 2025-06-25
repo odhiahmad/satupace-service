@@ -13,7 +13,7 @@ import (
 )
 
 type TransactionService interface {
-	Create(req request.TransactionCreateRequest) error
+	Create(req request.TransactionCreateRequest) (*entity.Transaction, error)
 	Update(id int, req request.TransactionUpdateRequest) error
 	FindById(id int) (response.TransactionResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TransactionResponse, int64, error)
@@ -34,7 +34,7 @@ func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, v
 	}
 }
 
-func (s *transactionService) Create(req request.TransactionCreateRequest) error {
+func (s *transactionService) Create(req request.TransactionCreateRequest) (*entity.Transaction, error) {
 	var allProductIds []int
 	for _, item := range req.Items {
 		productId := helper.IntOrDefault(item.ProductId, 0)
@@ -49,12 +49,19 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) error 
 		AllProductIds: allProductIds,
 	})
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Generate nomor bill
+	billNumber, err := helper.GenerateBillNumber(s.db)
+	if err != nil {
+		return nil, err
 	}
 
 	transaction := &entity.Transaction{
 		BusinessId: req.BusinessId,
 		CustomerId: req.CustomerId,
+		BillNumber: billNumber,
 		Items:      res.Items,
 		Status:     "cart",
 		Total:      res.Total,
@@ -63,7 +70,11 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) error 
 		CreatedAt:  time.Now(),
 	}
 
-	return s.transactionRepo.Create(transaction)
+	savedTx, err := s.transactionRepo.Create(transaction)
+	if err != nil {
+		return nil, err
+	}
+	return savedTx, nil
 }
 
 // UPDATE

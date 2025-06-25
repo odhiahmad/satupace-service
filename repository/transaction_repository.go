@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -10,7 +11,7 @@ import (
 )
 
 type TransactionRepository interface {
-	Create(transaction *entity.Transaction) error
+	Create(transaction *entity.Transaction) (*entity.Transaction, error)
 	Update(transaction *entity.Transaction) error
 	FindById(id int) (entity.Transaction, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error)
@@ -27,27 +28,60 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 }
 
 // CREATE
-func (r *transactionRepository) Create(transaction *entity.Transaction) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity.Transaction, error) {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		// 🔁 Simpan transaksi utama TANPA items
+		items := transaction.Items
+		transaction.Items = nil
+
 		if err := tx.Create(transaction).Error; err != nil {
 			return err
 		}
 
-		for i := range transaction.Items {
+		// 🔁 Kembalikan items dan simpan manual satu per satu
+		transaction.Items = items
+
+		fmt.Println("Jumlah item yang akan disimpan:", len(transaction.Items))
+		for i, item := range transaction.Items {
+			fmt.Printf("Item: %+v\n", item)
+			transaction.Items[i].Id = 0
 			transaction.Items[i].TransactionId = transaction.Id
+
 			if err := tx.Create(&transaction.Items[i]).Error; err != nil {
 				return err
 			}
 
 			for j := range transaction.Items[i].Attributes {
+				transaction.Items[i].Attributes[j].Id = 0
 				transaction.Items[i].Attributes[j].TransactionItemId = transaction.Items[i].Id
+
 				if err := tx.Create(&transaction.Items[i].Attributes[j]).Error; err != nil {
 					return err
 				}
 			}
 		}
+
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
+	var result entity.Transaction
+	if err := r.db.
+		Preload("Items.Attributes").
+		Preload("Items.Product").
+		Preload("Items.ProductVariant").
+		Preload("Customer").
+		Preload("Business").
+		Preload("PaymentMethod").
+		First(&result, transaction.Id).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 // UPDATE
