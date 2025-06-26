@@ -11,10 +11,12 @@ import (
 
 type ProductService interface {
 	Create(req request.ProductCreate) error
-	Update(id int, req request.ProductUpdate) error
+	Update(id int, req request.ProductUpdate) (*entity.Product, error)
 	Delete(id int) error
 	FindById(id int) (response.ProductResponse, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) // <- Tambahan
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
+	SetActive(id int, isActive bool) error
+	SetAvailable(id int, isAvailable bool) error
 }
 
 type productService struct {
@@ -57,13 +59,11 @@ func (s *productService) Create(req request.ProductCreate) error {
 		IsActive:          true,
 	}
 
-	// ✅ simpan dengan pointer agar ID terisi
 	err := s.ProductRepo.Create(&product)
 	if err != nil {
 		return err
 	}
 
-	// ✅ Gunakan product.Id yang sudah terisi
 	for _, v := range req.Variants {
 		variant := entity.ProductVariant{
 			BusinessId:  req.BusinessId,
@@ -98,14 +98,14 @@ func (s *productService) Create(req request.ProductCreate) error {
 	return nil
 }
 
-func (s *productService) Update(id int, req request.ProductUpdate) error {
+func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Product, error) {
 	if err := s.Validate.Struct(req); err != nil {
-		return err
+		return nil, err
 	}
 
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
@@ -120,8 +120,6 @@ func (s *productService) Update(id int, req request.ProductUpdate) error {
 	product.BasePrice = basePrice
 	product.SKU = sku
 	product.Stock = stock
-	product.IsAvailable = req.IsAvailable
-	product.IsActive = req.IsActive
 	product.HasVariant = len(req.Variants) > 0
 	product.TaxId = req.TaxId
 	product.DiscountId = req.DiscountId
@@ -129,41 +127,10 @@ func (s *productService) Update(id int, req request.ProductUpdate) error {
 
 	updatedProduct, err := s.ProductRepo.Update(product)
 	if err != nil {
-		return err
-	}
-	// Kalau ingin tetap pakai updatedProduct
-	product = updatedProduct
-
-	// Hapus & update Variant
-	_ = s.ProductVariantRepo.DeleteByProductId(product.Id)
-	for _, v := range req.Variants {
-		variant := entity.ProductVariant{
-			ProductId:   product.Id,
-			Name:        v.Name,
-			Image:       v.Image,
-			BasePrice:   v.BasePrice,
-			SKU:         v.SKU,
-			Stock:       v.Stock,
-			IsAvailable: v.IsAvailable,
-			IsActive:    v.IsActive,
-		}
-		_ = s.ProductVariantRepo.Create(&variant)
+		return nil, err
 	}
 
-	// Hapus & tambahkan ulang ProductPromo
-	_ = s.ProductPromoRepo.DeleteByProductId(product.Id)
-
-	var promos []entity.ProductPromo
-	for _, promoId := range req.PromoIds {
-		promos = append(promos, entity.ProductPromo{
-			ProductId: product.Id,
-			PromoId:   promoId,
-		})
-	}
-
-	_ = s.ProductPromoRepo.CreateMany(promos)
-
-	return nil
+	return &updatedProduct, nil
 }
 
 func (s *productService) Delete(id int) error {
@@ -192,6 +159,14 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 	}
 
 	return result, total, nil
+}
+
+func (s *productService) SetActive(id int, isActive bool) error {
+	return s.ProductRepo.SetActive(id, isActive)
+}
+
+func (s *productService) SetAvailable(id int, isAvailable bool) error {
+	return s.ProductRepo.SetAvailable(id, isAvailable)
 }
 
 func mapProductToResponse(product entity.Product) response.ProductResponse {
@@ -257,7 +232,6 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		Description:       product.Description,
 		Image:             product.Image,
 		BasePrice:         product.BasePrice,
-		FinalPrice:        product.FinalPrice,
 		SKU:               product.SKU,
 		Stock:             product.Stock,
 		IsAvailable:       product.IsAvailable,

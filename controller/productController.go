@@ -17,6 +17,8 @@ type ProductController interface {
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
+	SetActive(ctx *gin.Context)
+	SetAvailable(ctx *gin.Context)
 }
 
 type productController struct {
@@ -62,12 +64,14 @@ func (c *productController) Update(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.productService.Update(id, req); err != nil {
+	result, err := c.productService.Update(id, req)
+
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah transaksi", result))
 }
 
 // DELETE PRODUCT
@@ -175,4 +179,53 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 		products,
 		paginationMeta,
 	))
+}
+
+func (c *productController) SetActive(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		return
+	}
+
+	var body struct {
+		IsActive bool `json:"is_active"`
+	}
+
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = c.productService.SetActive(id, body.IsActive)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product active status updated"})
+}
+
+func (c *productController) SetAvailable(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		return
+	}
+
+	var body struct {
+		IsAvailable bool `json:"is_available"`
+	}
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = c.productService.SetAvailable(id, body.IsAvailable)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Product availability status updated"})
 }

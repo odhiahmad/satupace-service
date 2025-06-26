@@ -14,6 +14,8 @@ type ProductVariantRepository interface {
 	DeleteByProductId(productId int) error
 	FindById(id int) (entity.ProductVariant, error)
 	FindByProductId(productId int) ([]entity.ProductVariant, error)
+	SetActive(id int, active bool) error
+	SetAvailable(id int, available bool) error
 }
 
 type ProductVariantConnection struct {
@@ -54,4 +56,16 @@ func (r *ProductVariantConnection) FindByProductId(productId int) ([]entity.Prod
 	var variants []entity.ProductVariant
 	err := r.db.Where("product_id = ?", productId).Find(&variants).Error
 	return variants, err
+}
+
+func (r *ProductVariantConnection) SetActive(id int, active bool) error {
+	return r.db.Model(&entity.ProductVariant{}).
+		Where("id = ?", id).
+		Update("is_active", active).Error
+}
+
+func (r *ProductVariantConnection) SetAvailable(id int, available bool) error {
+	return r.db.Model(&entity.ProductVariant{}).
+		Where("id = ?", id).
+		Update("is_available", available).Error
 }

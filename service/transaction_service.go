@@ -14,10 +14,10 @@ import (
 
 type TransactionService interface {
 	Create(req request.TransactionCreateRequest) (*entity.Transaction, error)
-	Update(id int, req request.TransactionUpdateRequest) error
+	Update(id int, req request.TransactionUpdateRequest) (*entity.Transaction, error)
 	FindById(id int) (response.TransactionResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TransactionResponse, int64, error)
-	AddOrUpdateItem(transactionId int, item request.TransactionItemCreate) error
+	AddOrUpdateItem(transactionId int, item request.TransactionItemCreate) (*entity.Transaction, error)
 }
 
 type transactionService struct {
@@ -78,7 +78,7 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*enti
 }
 
 // UPDATE
-func (s *transactionService) Update(id int, req request.TransactionUpdateRequest) error {
+func (s *transactionService) Update(id int, req request.TransactionUpdateRequest) (*entity.Transaction, error) {
 	var allProductIds []int
 	for _, item := range req.Items {
 		productId := helper.IntOrDefault(item.ProductId, 0)
@@ -93,7 +93,7 @@ func (s *transactionService) Update(id int, req request.TransactionUpdateRequest
 		AllProductIds: allProductIds,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	transaction := &entity.Transaction{
@@ -112,11 +112,14 @@ func (s *transactionService) Update(id int, req request.TransactionUpdateRequest
 		Change:          req.Change,
 	}
 
-	return s.transactionRepo.Update(transaction)
+	savedTx, err := s.transactionRepo.Update(transaction)
+	if err != nil {
+		return nil, err
+	}
+	return savedTx, nil
 }
 
-func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.TransactionItemCreate) error {
-	// Mapping attribute request ke entity
+func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.TransactionItemCreate) (*entity.Transaction, error) {
 	var attrs []entity.TransactionItemAttribute
 	for _, attr := range itemReq.Attributes {
 		attrs = append(attrs, entity.TransactionItemAttribute{
@@ -125,7 +128,6 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		})
 	}
 
-	// Mapping item request ke entity
 	item := entity.TransactionItem{
 		ProductId:          itemReq.ProductId,
 		BundleId:           itemReq.BundleId,
@@ -139,24 +141,21 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		Attributes:         attrs,
 	}
 
-	// Tambahkan atau update item
-	err := s.transactionRepo.AddOrUpdateItem(transactionId, item)
+	_, err := s.transactionRepo.AddOrUpdateItem(transactionId, item)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// 🔁 Hitung ulang total transaksi setelah item ditambahkan
 	items, err := s.transactionRepo.FindItemsByTransactionId(transactionId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res, err := helper.CalculateTransactionTotals(s.db, items)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Update transaksi dengan nilai total, diskon, promo terbaru
 	update := &entity.Transaction{
 		Id:       transactionId,
 		Total:    res.Total,

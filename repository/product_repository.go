@@ -13,6 +13,9 @@ type ProductRepository interface {
 	Delete(id int) error
 	FindById(id int) (entity.Product, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
+	SetActive(id int, active bool) error
+	SetAvailable(id int, available bool) error
+	SetHasVariant(productId int, hasVariant bool) error
 }
 
 type productRepository struct {
@@ -54,7 +57,7 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Product{}).Where("business_id = ?", businessId)
+	baseQuery := r.db.Model(&entity.Product{}).Preload("Variants").Preload("ProductCategory").Where("business_id = ?", businessId)
 
 	// Search filter
 	if pagination.Search != "" {
@@ -77,4 +80,22 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	}
 
 	return bundles, total, nil
+}
+
+func (r *productRepository) SetActive(id int, active bool) error {
+	return r.db.Model(&entity.Product{}).
+		Where("id = ?", id).
+		Update("is_active", active).Error
+}
+
+func (r *productRepository) SetAvailable(id int, available bool) error {
+	return r.db.Model(&entity.Product{}).
+		Where("id = ?", id).
+		Update("is_available", available).Error
+}
+
+func (r *productRepository) SetHasVariant(productId int, hasVariant bool) error {
+	return r.db.Model(&entity.Product{}).
+		Where("id = ?", productId).
+		Update("has_variant", hasVariant).Error
 }

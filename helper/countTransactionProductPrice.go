@@ -19,6 +19,7 @@ func HitungHargaTransaksi(
 	productVariantId *int,
 	quantity int,
 	allProductIds []int,
+	usedPromo map[int]bool, // ditambahkan parameter
 ) (*TransactionPricing, error) {
 	var price float64
 
@@ -55,19 +56,23 @@ func HitungHargaTransaksi(
 	// 3. Hitung promo
 	var promo float64
 	for _, pp := range product.ProductPromos {
-		if !pp.Promo.IsActive || quantity < pp.MinQuantity {
+		p := pp.Promo
+		if p == nil || !p.IsActive || usedPromo[p.Id] {
 			continue
 		}
-		if len(pp.Promo.RequiredProductIds) > 0 &&
-			!containsAll(allProductIds, pp.Promo.RequiredProductIds) {
+		if quantity < pp.MinQuantity {
 			continue
 		}
-		if pp.Promo.Type == "percent" {
-			promo = price * (pp.Promo.Amount / 100.0)
+		if len(p.RequiredProducts) > 0 && !containsAll(allProductIds, p.RequiredProducts) {
+			continue
+		}
+		if p.Type == "percent" || p.Type == "percentage" {
+			promo = price * (p.Amount / 100.0)
 		} else {
-			promo = pp.Promo.Amount
+			promo = p.Amount
 		}
-		break // hanya satu promo aktif
+		usedPromo[p.Id] = true // tandai sudah dipakai
+		break                  // hanya satu promo aktif
 	}
 
 	// 4. Hitung pajak
@@ -88,12 +93,16 @@ func HitungHargaTransaksi(
 	}, nil
 }
 
-func containsAll(target []int, required []int) bool {
-	requiredMap := make(map[int]bool)
-	for _, id := range required {
-		requiredMap[id] = false
+func containsAll(cartProductIds []int, requiredProducts []entity.Product) bool {
+	if len(requiredProducts) == 0 {
+		return true
 	}
-	for _, id := range target {
+
+	requiredMap := make(map[int]bool)
+	for _, p := range requiredProducts {
+		requiredMap[p.Id] = false
+	}
+	for _, id := range cartProductIds {
 		if _, ok := requiredMap[id]; ok {
 			requiredMap[id] = true
 		}

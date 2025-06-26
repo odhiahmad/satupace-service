@@ -14,6 +14,7 @@ import (
 type TransactionController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
+	AddOrUpdateItem(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 }
@@ -59,13 +60,35 @@ func (c *transactionController) Update(ctx *gin.Context) {
 		return
 	}
 
-	err = c.transactionService.Update(id, input)
+	transaction, err := c.transactionService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah transaksi", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah transaksi", nil))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah transaksi", transaction))
+}
+
+func (c *transactionController) AddOrUpdateItem(ctx *gin.Context) {
+	transactionId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil || transactionId <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID transaksi tidak valid", err.Error(), nil))
+		return
+	}
+
+	var input request.TransactionItemCreate
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input item tidak valid", err.Error(), nil))
+		return
+	}
+
+	transaction, err := c.transactionService.AddOrUpdateItem(transactionId, input)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menambahkan item", err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Item berhasil ditambahkan/diupdate", transaction))
 }
 
 func (c *transactionController) FindById(ctx *gin.Context) {

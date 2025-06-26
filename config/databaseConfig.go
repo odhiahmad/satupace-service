@@ -64,6 +64,7 @@ func SetupDatabaseConnection() *gorm.DB {
 		&entity.ProductPromo{},
 		&entity.Promo{},
 		&entity.Discount{},
+		&entity.PromoRequiredProduct{},
 	)
 
 	return db

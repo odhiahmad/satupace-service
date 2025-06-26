@@ -45,13 +45,27 @@ func (c *discountController) Create(ctx *gin.Context) {
 }
 
 func (c *discountController) Update(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id wajib diisi", "missing id", helper.EmptyObj{}))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id tidak valid", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
 	var input request.DiscountUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
 		return
 	}
 
-	res, err := c.discountService.Update(input)
+	res, err := c.discountService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah diskon", err.Error(), nil))
 		return

@@ -6,12 +6,13 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type DiscountService interface {
 	Create(req request.DiscountCreate) (entity.Discount, error)
-	Update(req request.DiscountUpdate) (entity.Discount, error)
+	Update(id int, req request.DiscountUpdate) (entity.Discount, error)
 	Delete(id int) error
 	FindById(id int) (entity.Discount, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error)
@@ -40,27 +41,22 @@ func (s *discountService) Create(req request.DiscountCreate) (entity.Discount, e
 		return entity.Discount{}, errors.New("tanggal berakhir harus setelah tanggal mulai")
 	}
 
+	typeVal := helper.DeterminePromoType(req.Amount)
+
 	discount := entity.Discount{
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
-		Type:       req.Type,
+		Type:       typeVal,
 		Amount:     req.Amount,
 		StartAt:    req.StartAt,
 		EndAt:      req.EndAt,
 		IsGlobal:   req.IsGlobal,
 	}
 
-	// Jika bukan global, kaitkan ke produk tertentu
-	if !req.IsGlobal {
-		for _, pid := range req.ProductIds {
-			discount.Products = append(discount.Products, entity.Product{Id: pid})
-		}
-	}
-
 	return s.repo.Create(discount)
 }
 
-func (s *discountService) Update(req request.DiscountUpdate) (entity.Discount, error) {
+func (s *discountService) Update(id int, req request.DiscountUpdate) (entity.Discount, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Discount{}, err
 	}
@@ -71,21 +67,16 @@ func (s *discountService) Update(req request.DiscountUpdate) (entity.Discount, e
 		return entity.Discount{}, errors.New("tanggal berakhir harus setelah tanggal mulai")
 	}
 
+	typeVal := helper.DeterminePromoType(req.Amount)
+
 	discount := entity.Discount{
-		Id:         req.Id,
+		Id:         id,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
-		Type:       req.Type,
+		Type:       typeVal,
 		Amount:     req.Amount,
 		StartAt:    req.StartAt,
 		EndAt:      req.EndAt,
-		IsGlobal:   req.IsGlobal,
-	}
-
-	if !req.IsGlobal {
-		for _, pid := range req.ProductIds {
-			discount.Products = append(discount.Products, entity.Product{Id: pid})
-		}
 	}
 
 	return s.repo.Update(discount)

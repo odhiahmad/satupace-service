@@ -50,7 +50,8 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				return result, err
 			}
 
-			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
+			usedPromos := make(map[int]bool)
+			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds, usedPromos)
 			if err != nil {
 				return result, err
 			}
@@ -134,7 +135,8 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				return result, err
 			}
 
-			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
+			usedPromos := make(map[int]bool)
+			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds, usedPromos)
 			if err != nil {
 				return result, err
 			}

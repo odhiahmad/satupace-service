@@ -51,6 +51,7 @@ var (
 	discountService        service.DiscountService        = service.NewDiscountService(discountRepository, validate)
 	businessBranchService  service.BusinessBranchService  = service.NewBusinessBranchService(businessBranchRepository, validate)
 	businessService        service.BusinessService        = service.NewBusinessService(businessRepository, validate)
+	productVariantService  service.ProductVariantService  = service.NewProductVariantService(productVariantRepository, productRepository, validate)
 
 	authController            controller.AuthController            = controller.NewAuthController(authService, jwtService)
 	userController            controller.UserController            = controller.NewUserController(userService, jwtService)
@@ -68,6 +69,7 @@ var (
 	discountController        controller.DiscountController        = controller.NewDiscountController(discountService, jwtService)
 	businessBranchController  controller.BusinessBranchController  = controller.NewBusinessBranchController(businessBranchService, jwtService)
 	businessController        controller.BusinessController        = controller.NewBusinessController(businessService, jwtService)
+	productVariantController  controller.ProductVariantController  = controller.NewProductVariantController(productVariantService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -134,6 +136,16 @@ func SetupRouter() *gin.Engine {
 		productRoutes.GET("/:id", productController.FindById)
 		productRoutes.DELETE("/:id", productController.Delete)
 		productRoutes.GET("", productController.FindWithPagination)
+		productRoutes.POST("/:id/variant", productVariantController.Create)
+		productRoutes.PATCH("/:id/variant", productVariantController.Update)
+		productRoutes.DELETE("/variant/:id", productVariantController.Delete)
+		productRoutes.DELETE("/variant/product/:productId", productVariantController.DeleteByProductId)
+		productRoutes.GET("/variant/:id", productVariantController.FindById)
+		productRoutes.GET("/variant/product/:productId", productVariantController.FindByProductId)
+		productRoutes.PUT("/:id/active", productController.SetActive)
+		productRoutes.PUT("/:id/available", productController.SetAvailable)
+		productRoutes.PUT("/variant/:id/active", productVariantController.SetActive)
+		productRoutes.PUT("/variant/:id/available", productVariantController.SetAvailable)
 	}
 
 	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService))
@@ -171,6 +183,7 @@ func SetupRouter() *gin.Engine {
 		transactionRoutes.PATCH("/:id", transactionController.Update)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
+		transactionRoutes.POST("/:id/items", transactionController.AddOrUpdateItem)
 	}
 
 	promoRoutes := r.Group("promo", middleware.AuthorizeJWT(jwtService))
@@ -179,7 +192,7 @@ func SetupRouter() *gin.Engine {
 		promoRoutes.PATCH("/:id", promoController.Update)
 		promoRoutes.GET("/:id", promoController.FindById)
 		promoRoutes.DELETE("/:id", promoController.Delete)
-		promoRoutes.GET("", promoController.FindWithPagination)
+		promoRoutes.GET("/business", promoController.FindWithPagination)
 
 	}
 
@@ -189,7 +202,7 @@ func SetupRouter() *gin.Engine {
 		discountRoutes.PATCH("/:id", discountController.Update)
 		discountRoutes.GET("/:id", discountController.FindById)
 		discountRoutes.DELETE("/:id", discountController.Delete)
-		discountRoutes.GET("", discountController.FindWithPagination)
+		discountRoutes.GET("/business", discountController.FindWithPagination)
 
 	}
 

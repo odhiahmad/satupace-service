@@ -40,8 +40,8 @@ func CalculateTransactionTotals(db *gorm.DB, items []entity.TransactionItem) (*T
 			if err != nil {
 				return nil, err
 			}
-
-			pricing, err = HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, nil)
+			usedPromos := make(map[int]bool)
+			pricing, err = HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, nil, usedPromos)
 			if err != nil {
 				return nil, err
 			}

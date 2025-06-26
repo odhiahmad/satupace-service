@@ -12,10 +12,10 @@ import (
 
 type TransactionRepository interface {
 	Create(transaction *entity.Transaction) (*entity.Transaction, error)
-	Update(transaction *entity.Transaction) error
+	Update(transaction *entity.Transaction) (*entity.Transaction, error)
 	FindById(id int) (entity.Transaction, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error)
-	AddOrUpdateItem(transactionId int, item entity.TransactionItem) error
+	AddOrUpdateItem(transactionId int, item entity.TransactionItem) (*entity.TransactionItem, error)
 	FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error)
 }
 
@@ -30,7 +30,6 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 // CREATE
 func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity.Transaction, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		// 🔁 Simpan transaksi utama TANPA items
 		items := transaction.Items
 		transaction.Items = nil
 
@@ -38,7 +37,6 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 			return err
 		}
 
-		// 🔁 Kembalikan items dan simpan manual satu per satu
 		transaction.Items = items
 
 		fmt.Println("Jumlah item yang akan disimpan:", len(transaction.Items))
@@ -68,7 +66,6 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 		return nil, err
 	}
 
-	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
 	var result entity.Transaction
 	if err := r.db.
 		Preload("Items.Attributes").
@@ -85,8 +82,8 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 }
 
 // UPDATE
-func (r *transactionRepository) Update(transaction *entity.Transaction) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *transactionRepository) Update(transaction *entity.Transaction) (*entity.Transaction, error) {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(transaction).Error; err != nil {
 			return err
 		}
@@ -117,6 +114,25 @@ func (r *transactionRepository) Update(transaction *entity.Transaction) error {
 
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
+	var result entity.Transaction
+	if err := r.db.
+		Preload("Items.Attributes").
+		Preload("Items.Product").
+		Preload("Items.ProductVariant").
+		Preload("Customer").
+		Preload("Business").
+		Preload("PaymentMethod").
+		First(&result, transaction.Id).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 // FINDBYID
@@ -164,8 +180,8 @@ func (r *transactionRepository) FindWithPagination(businessId int, pagination re
 	return transactions, total, nil
 }
 
-func (r *transactionRepository) AddOrUpdateItem(transactionId int, item entity.TransactionItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *transactionRepository) AddOrUpdateItem(transactionId int, item entity.TransactionItem) (*entity.TransactionItem, error) {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var existing entity.TransactionItem
 		err := tx.Where("transaction_id = ? AND product_id = ?", transactionId, item.ProductId).First(&existing).Error
 
@@ -210,6 +226,23 @@ func (r *transactionRepository) AddOrUpdateItem(transactionId int, item entity.T
 
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
+	var result entity.TransactionItem
+	if err := r.db.
+		Preload("Attributes").
+		Preload("Product").
+		Preload("ProductVariant").
+		First(&result, transactionId).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+
 }
 
 func (r *transactionRepository) FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error) {
