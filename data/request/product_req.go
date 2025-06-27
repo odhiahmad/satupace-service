@@ -11,7 +11,6 @@ type ProductCreate struct {
 	SKU               *string                `json:"sku,omitempty"`
 	Stock             *int                   `json:"stock,omitempty"`
 	TrackStock        *bool                  `json:"track_stock,omitempty"`
-	HasVariant        bool                   `json:"has_variant"`
 	Variants          []ProductVariantCreate `json:"variants,omitempty"`
 	TaxId             *int                   `json:"tax_id,omitempty"`
 	DiscountId        *int                   `json:"discount_id,omitempty"`
@@ -29,7 +28,6 @@ type ProductUpdate struct {
 	SKU               *string                `json:"sku,omitempty"`
 	Stock             *int                   `json:"stock,omitempty"`
 	TrackStock        *bool                  `json:"track_stock,omitempty"`
-	HasVariant        bool                   `json:"has_variant"`
 	Variants          []ProductVariantUpdate `json:"variants,omitempty"`
 	TaxId             *int                   `json:"tax_id,omitempty"`
 	DiscountId        *int                   `json:"discount_id,omitempty"`
