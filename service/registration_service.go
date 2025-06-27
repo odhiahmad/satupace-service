@@ -33,39 +33,60 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return err
 	}
 
-	// Email sudah ada?
+	// Cek duplikat email
 	exists, err := s.repo.IsEmailExists(req.Email)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return errors.New("duplicate email")
+		return errors.New("email sudah digunakan")
 	}
 
-	// Buat Business
+	// 1. Buat Business
 	business := entity.Business{
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: req.BusinessTypeId,
-		Logo:           req.Logo,
-		Rating:         req.Rating,
 		Image:          req.Image,
 		IsActive:       true,
 	}
+
 	savedBusiness, err := s.repo.CreateBusiness(business)
 	if err != nil {
 		return err
 	}
 
-	// Buat User
-	user := entity.UserBusiness{
-		Email:      req.Email,
-		Password:   helper.HashAndSalt([]byte(req.Password)),
-		RoleId:     req.RoleId,
-		BusinessId: savedBusiness.Id,
-		IsActive:   true,
-		IsVerified: false,
+	// 2. Buat Branch Utama (default)
+	mainBranch := entity.BusinessBranch{
+		BusinessId:  savedBusiness.Id,
+		Address:     req.Address,
+		PhoneNumber: req.PhoneNumber,
+		Rating:      req.Rating,
+		Provinsi:    req.Provinsi,
+		Kota:        req.Kota,
+		Kecamatan:   req.Kecamatan,
+		PostalCode:  req.PostalCode,
+		IsMain:      true,
+		IsActive:    true,
 	}
+
+	err = s.repo.CreateMainBranch(&mainBranch) // butuh method tambahan di repository
+	if err != nil {
+		return err
+	}
+
+	// 3. Buat User (dengan cabang utama)
+	user := entity.UserBusiness{
+		Email:       req.Email,
+		Password:    helper.HashAndSalt([]byte(req.Password)),
+		RoleId:      req.RoleId,
+		BusinessId:  savedBusiness.Id,
+		BranchId:    &mainBranch.Id,
+		PhoneNumber: req.PhoneNumber,
+		IsActive:    true,
+		IsVerified:  false,
+	}
+
 	if err := s.repo.CreateUser(user); err != nil {
 		return err
 	}

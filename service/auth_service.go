@@ -10,7 +10,7 @@ import (
 
 type AuthService interface {
 	VerifyCredential(email string, password string) interface{}
-	VerifyCredentialBusiness(email string, password string) interface{}
+	VerifyCredentialBusiness(identifier string, password string) interface{}
 }
 
 type authService struct {
@@ -37,14 +37,14 @@ func (service *authService) VerifyCredential(email string, password string) inte
 	return false
 }
 
-func (service *authService) VerifyCredentialBusiness(email string, password string) interface{} {
-	res := service.userBusinessRepository.VerifyCredentialBusiness(email, password)
-	if v, ok := res.(entity.UserBusiness); ok {
-		comparedPassword := comparePassword(v.Password, []byte(password))
-		if v.Email == email && comparedPassword {
-			return res
-		}
+func (service *authService) VerifyCredentialBusiness(identifier string, password string) interface{} {
+	user, err := service.userBusinessRepository.FindByEmailOrPhone(identifier)
+	if err != nil {
 		return false
+	}
+
+	if comparePassword(user.Password, []byte(password)) {
+		return user
 	}
 	return false
 }

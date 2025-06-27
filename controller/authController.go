@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,57 +28,43 @@ func NewAuthController(authService service.AuthService, jwtService service.JWTSe
 }
 
 func (c *authController) Login(ctx *gin.Context) {
-	var loginDTO request.LoginDTO
-	errDTO := ctx.ShouldBind(&loginDTO)
-	if errDTO != nil {
-		response := helper.BuildErrorResponse("Failed to process request", errDTO.Error(), helper.EmptyObj{})
+	var loginDTO request.LoginUserDTO
+	if err := ctx.ShouldBind(&loginDTO); err != nil {
+		response := helper.BuildErrorResponse("Gagal memproses permintaan", err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
-
 	}
+
 	authResult := c.authService.VerifyCredential(loginDTO.Email, loginDTO.Password)
-
-	if c.jwtService == nil {
-		log.Println("jwtService is nil")
-	}
-
-	if v, ok := authResult.(entity.User); ok {
-		generatedToken := c.jwtService.GenerateToken(v.Email)
-		v.Token = generatedToken
-		response := helper.BuildResponse(true, "Berhail Login!", v)
+	if user, ok := authResult.(entity.User); ok {
+		token := c.jwtService.GenerateToken(user.Id) // Gunakan ID, bukan email
+		user.Token = token
+		response := helper.BuildResponse(true, "Berhasil login", user)
 		ctx.JSON(http.StatusOK, response)
 		return
-
 	}
-	response := helper.BuildResponse(false, "Invalid credential", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, response)
 
+	response := helper.BuildErrorResponse("Login gagal", "Email atau password tidak valid", nil)
+	ctx.JSON(http.StatusUnauthorized, response)
 }
 
 func (c *authController) LoginBusiness(ctx *gin.Context) {
-	var loginDTO request.LoginDTO
-	errDTO := ctx.ShouldBind(&loginDTO)
-	if errDTO != nil {
-		response := helper.BuildErrorResponse("Failed to process request", errDTO.Error(), helper.EmptyObj{})
+	var loginDTO request.LoginUserBusinessDTO
+	if err := ctx.ShouldBind(&loginDTO); err != nil {
+		response := helper.BuildErrorResponse("Gagal memproses permintaan", err.Error(), nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
-
-	}
-	authResult := c.authService.VerifyCredentialBusiness(loginDTO.Email, loginDTO.Password)
-
-	if c.jwtService == nil {
-		log.Println("jwtService is nil")
 	}
 
-	if v, ok := authResult.(entity.UserBusiness); ok {
-		generatedToken := c.jwtService.GenerateToken(v.Email)
-		v.Token = generatedToken
-		response := helper.BuildResponse(true, "Berhail Login!", v)
+	authResult := c.authService.VerifyCredentialBusiness(loginDTO.Identifier, loginDTO.Password)
+	if user, ok := authResult.(entity.UserBusiness); ok {
+		token := c.jwtService.GenerateToken(user.Id) // Gunakan ID
+		user.Token = token
+		response := helper.BuildResponse(true, "Berhasil login", user)
 		ctx.JSON(http.StatusOK, response)
 		return
-
 	}
-	response := helper.BuildResponse(false, "Invalid credential", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, response)
 
+	response := helper.BuildErrorResponse("Login gagal", "Email/Nomor HP atau password tidak valid", nil)
+	ctx.JSON(http.StatusUnauthorized, response)
 }

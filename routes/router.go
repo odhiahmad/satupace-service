@@ -25,6 +25,14 @@ var (
 	productVariantRepository  repository.ProductVariantRepository  = repository.NewProductVariantRepository(db)
 	registrationRepository    repository.RegistrationRepository    = repository.NewRegistrationRepository(db)
 	bundleRepository          repository.BundleRepository          = repository.NewBundleRepository(db)
+	taxRepository             repository.TaxRepository             = repository.NewTaxRepository(db)
+	productPromoRepository    repository.ProductPromoRepository    = repository.NewProductPromoRepository(db)
+	discountRepository        repository.DiscountRepository        = repository.NewDiscountRepository(db)
+	productUnitRepository     repository.ProductUnitRepository     = repository.NewProductUnitRepository(db)
+	transactionRepository     repository.TransactionRepository     = repository.NewTransactionRepository(db)
+	promoRepository           repository.PromoRepository           = repository.NewPromoRepository(db)
+	businessBranchRepository  repository.BusinessBranchRepository  = repository.NewBusinessBranchRepository(db)
+	businessRepository        repository.BusinessRepository        = repository.NewBusinessRepository(db)
 
 	jwtService             service.JWTService             = service.NewJwtService()
 	authService            service.AuthService            = service.NewAuthService(userRepository, userBusinessRepository)
@@ -34,8 +42,16 @@ var (
 	paymentMethodService   service.PaymentMethodService   = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
 	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, validate)
-	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, validate)
+	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate)
 	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
+	taxService             service.TaxService             = service.NewTaxService(taxRepository, validate)
+	productUnitService     service.ProductUnitService     = service.NewProductUnitService(productUnitRepository)
+	transactionService     service.TransactionService     = service.NewTransactionService(db, transactionRepository, validate)
+	promoService           service.PromoService           = service.NewPromoService(promoRepository, productPromoRepository, validate)
+	discountService        service.DiscountService        = service.NewDiscountService(discountRepository, validate)
+	businessBranchService  service.BusinessBranchService  = service.NewBusinessBranchService(businessBranchRepository, validate)
+	businessService        service.BusinessService        = service.NewBusinessService(businessRepository, validate)
+	productVariantService  service.ProductVariantService  = service.NewProductVariantService(productVariantRepository, productRepository, validate)
 
 	authController            controller.AuthController            = controller.NewAuthController(authService, jwtService)
 	userController            controller.UserController            = controller.NewUserController(userService, jwtService)
@@ -46,29 +62,37 @@ var (
 	registrationController    controller.RegistrationController    = controller.NewRegistrationController(registrationService)
 	productController         controller.ProductController         = controller.NewProductController(productService, jwtService)
 	bundleController          controller.BundleController          = controller.NewBundleController(bundleService, jwtService)
+	taxController             controller.TaxController             = controller.NewTaxController(taxService, jwtService)
+	productUnitController     controller.ProductUnitController     = controller.NewProductUnitController(productUnitService, jwtService)
+	transactionController     controller.TransactionController     = controller.NewTransactionController(transactionService, jwtService)
+	promoController           controller.PromoController           = controller.NewPromoController(promoService, jwtService)
+	discountController        controller.DiscountController        = controller.NewDiscountController(discountService, jwtService)
+	businessBranchController  controller.BusinessBranchController  = controller.NewBusinessBranchController(businessBranchService, jwtService)
+	businessController        controller.BusinessController        = controller.NewBusinessController(businessService, jwtService)
+	productVariantController  controller.ProductVariantController  = controller.NewProductVariantController(productVariantService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	authRoutes := r.Group("api/auth")
+	authRoutes := r.Group("auth")
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
 		authRoutes.POST("", authController.Login)
 	}
 
-	registrationRoutes := r.Group("api/registration")
+	registrationRoutes := r.Group("registration")
 	{
 		registrationRoutes.POST("", registrationController.Register)
 	}
 
-	userRoutes := r.Group("api/user")
+	userRoutes := r.Group("user")
 	{
 		userRoutes.POST("/create", userController.CreateUser)
 		userRoutes.PUT("/update", userController.UpdateUser)
 	}
 
-	roleRoutes := r.Group("api/role")
+	roleRoutes := r.Group("role", middleware.AuthorizeJWT(jwtService))
 	{
 		roleRoutes.POST("", roleController.CreateRole)
 		roleRoutes.PATCH("/:roleId", roleController.UpdateRole)
@@ -77,51 +101,128 @@ func SetupRouter() *gin.Engine {
 		roleRoutes.DELETE("/:roleId", roleController.DeleteRole)
 	}
 
-	businessTypeRoutes := r.Group("api/business-type", middleware.AuthorizeJWT(jwtService))
+	businessTypeRoutes := r.Group("business-type", middleware.AuthorizeJWT(jwtService))
 	{
-		businessTypeRoutes.POST("/", businessTypeController.CreateBusinessType)
-		businessTypeRoutes.PATCH("/:businessTypeId", businessTypeController.UpdateBusinessType)
-		businessTypeRoutes.GET("/", businessTypeController.FindBusinessTypeAll)
-		businessTypeRoutes.GET("/:businessTypeId", businessTypeController.FindBusinessTypeById)
-		businessTypeRoutes.DELETE("/:businessTypeId", businessTypeController.DeleteBusinessType)
+		businessTypeRoutes.POST("", businessTypeController.CreateBusinessType)
+		businessTypeRoutes.PATCH("/:id", businessTypeController.UpdateBusinessType)
+		businessTypeRoutes.GET("", businessTypeController.FindBusinessTypeAll)
+		businessTypeRoutes.GET("/:id", businessTypeController.FindBusinessTypeById)
+		businessTypeRoutes.DELETE("/:id", businessTypeController.DeleteBusinessType)
 	}
 
-	paymentMethodRoutes := r.Group("api/payment-method")
+	paymentMethodRoutes := r.Group("payment-method")
 	{
-		paymentMethodRoutes.POST("/", paymentMethodController.CreatePaymentMethod)
+		paymentMethodRoutes.POST("", paymentMethodController.CreatePaymentMethod)
 		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.UpdatePaymentMethod)
-		paymentMethodRoutes.GET("/", paymentMethodController.FindPaymentMethodAll)
+		paymentMethodRoutes.GET("", paymentMethodController.FindPaymentMethodAll)
 		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindPaymentMethodById)
 		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.DeletePaymentMethod)
 	}
 
-	productCategoryRoutes := r.Group("api/product-category", middleware.AuthorizeJWT(jwtService))
+	productCategoryRoutes := r.Group("product-category", middleware.AuthorizeJWT(jwtService))
 	{
-		productCategoryRoutes.POST("/", productCategoryController.Create)
+		productCategoryRoutes.POST("", productCategoryController.Create)
 		productCategoryRoutes.PATCH("/:id", productCategoryController.Update)
-		productCategoryRoutes.GET("/", productCategoryController.FindAll)
+		productCategoryRoutes.GET("", productCategoryController.FindAll)
 		productCategoryRoutes.GET("/:id", productCategoryController.FindById)
-		productCategoryRoutes.GET("/business/:business_id", productCategoryController.FindByBusinessId)
+		productCategoryRoutes.GET("/business/:id", productCategoryController.FindByBusinessId)
 		productCategoryRoutes.DELETE("/:id", productCategoryController.Delete)
 	}
 
-	productRoutes := r.Group("api/product", middleware.AuthorizeJWT(jwtService))
+	productRoutes := r.Group("product", middleware.AuthorizeJWT(jwtService))
 	{
-		productRoutes.POST("/", productController.Create)
+		productRoutes.POST("", productController.Create)
 		productRoutes.PATCH("/:id", productController.Update)
-		productRoutes.GET("/", productController.FindAll)
 		productRoutes.GET("/:id", productController.FindById)
 		productRoutes.DELETE("/:id", productController.Delete)
+		productRoutes.GET("", productController.FindWithPagination)
+		productRoutes.POST("/:id/variant", productVariantController.Create)
+		productRoutes.PATCH("/:id/variant", productVariantController.Update)
+		productRoutes.DELETE("/variant/:id", productVariantController.Delete)
+		productRoutes.DELETE("/variant/product/:productId", productVariantController.DeleteByProductId)
+		productRoutes.GET("/variant/:id", productVariantController.FindById)
+		productRoutes.GET("/variant/product/:productId", productVariantController.FindByProductId)
+		productRoutes.PUT("/:id/active", productController.SetActive)
+		productRoutes.PUT("/:id/available", productController.SetAvailable)
+		productRoutes.PUT("/variant/:id/active", productVariantController.SetActive)
+		productRoutes.PUT("/variant/:id/available", productVariantController.SetAvailable)
 	}
 
-	bundleRoutes := r.Group("api/bundle", middleware.AuthorizeJWT(jwtService))
+	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService))
 	{
-		bundleRoutes.POST("/", bundleController.Create)
+		bundleRoutes.POST("", bundleController.Create)
 		bundleRoutes.PATCH("/:id", bundleController.Update)
-		bundleRoutes.GET("/", bundleController.FindAll)
 		bundleRoutes.GET("/:id", bundleController.FindById)
 		bundleRoutes.DELETE("/:id", bundleController.Delete)
-		bundleRoutes.GET("/business/:business_id", bundleController.FindByBusinessId)
+		bundleRoutes.GET("", bundleController.FindWithPagination)
+	}
+
+	taxRoutes := r.Group("tax", middleware.AuthorizeJWT(jwtService))
+	{
+		taxRoutes.POST("", taxController.Create)
+		taxRoutes.PATCH("/:id", taxController.Update)
+		taxRoutes.GET("/:id", taxController.FindById)
+		taxRoutes.DELETE("/:id", taxController.Delete)
+		taxRoutes.GET("/business", taxController.FindWithPagination)
+
+	}
+
+	productUnitRoutes := r.Group("product-unit", middleware.AuthorizeJWT(jwtService))
+	{
+		productUnitRoutes.POST("", productUnitController.Create)
+		productUnitRoutes.PATCH("/:id", productUnitController.Update)
+		productUnitRoutes.GET("/:id", productUnitController.FindById)
+		productUnitRoutes.DELETE("/:id", productUnitController.Delete)
+		productUnitRoutes.GET("", productUnitController.FindWithPagination)
+
+	}
+
+	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService))
+	{
+		transactionRoutes.POST("", transactionController.Create)
+		transactionRoutes.PATCH("/:id", transactionController.Update)
+		transactionRoutes.GET("/:id", transactionController.FindById)
+		transactionRoutes.GET("", transactionController.FindWithPagination)
+		transactionRoutes.POST("/:id/items", transactionController.AddOrUpdateItem)
+	}
+
+	promoRoutes := r.Group("promo", middleware.AuthorizeJWT(jwtService))
+	{
+		promoRoutes.POST("", promoController.Create)
+		promoRoutes.PATCH("/:id", promoController.Update)
+		promoRoutes.GET("/:id", promoController.FindById)
+		promoRoutes.DELETE("/:id", promoController.Delete)
+		promoRoutes.GET("/business", promoController.FindWithPagination)
+
+	}
+
+	discountRoutes := r.Group("discount", middleware.AuthorizeJWT(jwtService))
+	{
+		discountRoutes.POST("", discountController.Create)
+		discountRoutes.PATCH("/:id", discountController.Update)
+		discountRoutes.GET("/:id", discountController.FindById)
+		discountRoutes.DELETE("/:id", discountController.Delete)
+		discountRoutes.GET("/business", discountController.FindWithPagination)
+
+	}
+
+	businessBranchRoutes := r.Group("business-branch", middleware.AuthorizeJWT(jwtService))
+	{
+		businessBranchRoutes.POST("", businessBranchController.Create)
+		businessBranchRoutes.PATCH("/:id", businessBranchController.Update)
+		businessBranchRoutes.GET("/:id", businessBranchController.FindById)
+		businessBranchRoutes.DELETE("/:id", businessBranchController.Delete)
+		businessBranchRoutes.GET("", businessBranchController.FindWithPagination)
+	}
+
+	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService))
+	{
+		businessRoutes.POST("", businessController.Create)
+		businessRoutes.PATCH("/:id", businessController.Update)
+		businessRoutes.GET("/:id", businessController.FindById)
+		businessRoutes.DELETE("/:id", businessController.Delete)
+		businessRoutes.GET("", businessController.FindWithPagination)
+
 	}
 
 	return r

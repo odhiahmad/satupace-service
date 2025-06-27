@@ -1,53 +1,81 @@
 package repository
 
 import (
-	"errors"
-
+	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
 )
 
 type BusinessRepository interface {
-	InsertBusiness(business entity.Business) (entity.Business, error)
-	FindById(businessId int) (business entity.Business, err error)
-	FindAll() []entity.Business
-	Delete(businessId int)
+	Create(business entity.Business) (entity.Business, error)
+	Update(business entity.Business) (entity.Business, error)
+	Delete(business entity.Business) error
+	FindById(id int) (entity.Business, error)
+	FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error)
 }
 
-type BusinessConnection struct {
-	Db *gorm.DB
+type businessRepository struct {
+	db *gorm.DB
 }
 
-func NewBusinessRepository(Db *gorm.DB) BusinessRepository {
-	return &BusinessConnection{Db: Db}
+func NewBusinessRepository(db *gorm.DB) BusinessRepository {
+	return &businessRepository{db}
 }
 
-func (t *BusinessConnection) InsertBusiness(business entity.Business) (entity.Business, error) {
-	result := t.Db.Create(&business)
-	helper.ErrorPanic(result.Error)
-
-	return business, result.Error
+// Create inserts a new business entity into the database.
+func (r *businessRepository) Create(business entity.Business) (entity.Business, error) {
+	err := r.db.Create(&business).Error
+	return business, err
 }
 
-func (t *BusinessConnection) FindById(businessId int) (businesss entity.Business, err error) {
+// Update modifies an existing business entity.
+func (r *businessRepository) Update(business entity.Business) (entity.Business, error) {
+	err := r.db.Save(&business).Error // Gunakan Save agar seluruh field diperbarui
+	return business, err
+}
+
+// Delete removes a business entity.
+func (r *businessRepository) Delete(business entity.Business) error {
+	return r.db.Delete(&business).Error
+}
+
+// FindById retrieves a business entity by its ID, with branches and business type preloaded.
+func (r *businessRepository) FindById(id int) (entity.Business, error) {
 	var business entity.Business
-	result := t.Db.First(&business, businessId)
-	if result.Error != nil {
-		return business, errors.New("business not found")
+	err := r.db.Preload("Branches").Preload("BusinessType").First(&business, id).Error
+	return business, err
+}
+
+// FindWithPagination retrieves paginated business data, with optional search.
+func (r *businessRepository) FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error) {
+	var businesses []entity.Business
+	var total int64
+
+	// Base query
+	baseQuery := r.db.Model(&entity.Business{}).
+		Preload("Branches").
+		Preload("BusinessType")
+
+	// Apply search filter
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		baseQuery = baseQuery.Where("name ILIKE ? OR owner_name ILIKE ?", search, search)
 	}
-	return business, nil
-}
 
-func (t *BusinessConnection) FindAll() []entity.Business {
-	var business []entity.Business
-	result := t.Db.Find(&business)
-	helper.ErrorPanic(result.Error)
-	return business
-}
+	// Count total data (tanpa pagination)
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 
-func (t *BusinessConnection) Delete(businessId int) {
-	var businesss entity.Business
-	result := t.Db.Where("id = ?", businessId).Delete(&businesss)
-	helper.ErrorPanic(result.Error)
+	// Siapkan paginator
+	p := helper.Paginate(pagination)
+
+	// Query utama dengan paginator
+	_, _, err := p.Paginate(baseQuery, &businesses)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return businesses, total, nil
 }

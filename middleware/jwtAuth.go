@@ -3,6 +3,7 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,20 +14,30 @@ import (
 func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			response := helper.BuildErrorResponse("Failed to process request", "No token found", nil)
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			response := helper.BuildErrorResponse("Unauthorized", "No valid Bearer token found", nil)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
 			return
 		}
-		token, err := jwtService.ValidateToken(authHeader)
-		if token.Valid {
-			claims := token.Claims.(jwt.MapClaims)
-			log.Println("Claim[userId] ", claims["userId"])
-			log.Println("Claim[issuer] :", claims["issuer"])
-		} else {
-			log.Println(err)
-			response := helper.BuildErrorResponse("Token is not valid", err.Error(), nil)
+
+		// Ambil token-nya setelah "Bearer "
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		token, err := jwtService.ValidateToken(tokenString)
+		if err != nil || !token.Valid {
+			log.Println("JWT error:", err)
+			response := helper.BuildErrorResponse("Unauthorized", "Invalid token", nil)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
+			return
 		}
+
+		// Simpan klaim ke context jika diperlukan
+		claims := token.Claims.(jwt.MapClaims)
+		log.Println("Claim[userId]:", claims["userId"])
+		log.Println("Claim[issuer]:", claims["issuer"])
+
+		// Simpan userId ke context jika ingin digunakan di handler
+		c.Set("userId", claims["userId"])
+		c.Next()
 	}
 }

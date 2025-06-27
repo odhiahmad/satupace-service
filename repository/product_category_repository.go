@@ -34,11 +34,7 @@ func (r *ProductCategoryConnection) InsertProductCategory(productCategory entity
 		return err
 	}
 
-	// Optional: set default active
 	productCategory.IsActive = true
-	productCategory.IsAvailable = true
-
-	// Simpan kategori
 	result := r.Db.Create(&productCategory)
 	return result.Error
 }

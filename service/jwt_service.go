@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/odhiahmad/kasirku-service/helper"
 )
 
 type JWTService interface {
-	GenerateToken(userId string) string
+	GenerateToken(userId int) string
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
@@ -25,7 +26,7 @@ type jwtService struct {
 
 func NewJwtService() JWTService {
 	return &jwtService{
-		issuer:    "kasirku",
+		issuer:    "loka",
 		secretKey: getSecretKey(),
 	}
 }
@@ -39,20 +40,16 @@ func getSecretKey() string {
 	return secretKey
 }
 
-func (j *jwtService) GenerateToken(UserId string) string {
-	claims := &jwtCustomClaim{
-		UserId,
-		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			Issuer:    j.issuer,
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
+func (j *jwtService) GenerateToken(UserId int) string {
+	claims := jwt.MapClaims{}
+	claims["userId"] = UserId
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	claims["issuer"] = "loka"
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	t, err := token.SignedString([]byte(j.secretKey))
-	if err != nil {
-		panic(err)
-	}
+	helper.ErrorPanic(err)
+
 	return t
 }
 

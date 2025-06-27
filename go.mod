@@ -8,6 +8,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/joho/godotenv v1.3.0
 	github.com/mashingan/smapping v0.1.11
+	github.com/pilagod/gorm-cursor-paginator/v2 v2.7.0
 	github.com/swaggo/swag v1.8.12
 	golang.org/x/crypto v0.5.0
 	gorm.io/driver/postgres v1.4.6

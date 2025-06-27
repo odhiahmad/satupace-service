@@ -3,7 +3,9 @@ package repository
 import (
 	"errors"
 
+	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
 )
 
@@ -11,11 +13,10 @@ type BundleRepository interface {
 	InsertBundle(bundle *entity.Bundle) error
 	UpdateBundle(bundle *entity.Bundle) error
 	FindById(bundleId int) (entity.Bundle, error)
-	FindAll() ([]entity.Bundle, error)
 	Delete(bundleId int) error
 	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
 	DeleteItemsByBundleId(bundleId int) error
-	FindByBusinessId(businessId int) ([]entity.Bundle, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
 }
 
 type BundleConnection struct {
@@ -45,12 +46,6 @@ func (r *BundleConnection) FindById(bundleId int) (entity.Bundle, error) {
 	return bundle, result.Error
 }
 
-func (r *BundleConnection) FindAll() ([]entity.Bundle, error) {
-	var bundles []entity.Bundle
-	result := r.Db.Preload("Items.Product").Find(&bundles)
-	return bundles, result.Error
-}
-
 func (r *BundleConnection) Delete(bundleId int) error {
 	if err := r.DeleteItemsByBundleId(bundleId); err != nil {
 		return err
@@ -72,8 +67,32 @@ func (r *BundleConnection) DeleteItemsByBundleId(bundleId int) error {
 	return result.Error
 }
 
-func (r *BundleConnection) FindByBusinessId(businessId int) ([]entity.Bundle, error) {
+func (r *BundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
 	var bundles []entity.Bundle
-	result := r.Db.Preload("Items.Product").Where("business_id = ?", businessId).Find(&bundles)
-	return bundles, result.Error
+	var total int64
+
+	// Base query untuk count
+	baseQuery := r.Db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
+
+	// Apply search filter
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
+	}
+
+	// Hitung total data (tanpa cursor pagination)
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Siapkan paginator
+	p := helper.Paginate(pagination)
+
+	// Query utama dengan paginator
+	_, _, err := p.Paginate(baseQuery, &bundles)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return bundles, total, nil
 }
