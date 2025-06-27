@@ -16,6 +16,7 @@ type ProductVariantRepository interface {
 	FindByProductId(productId int) ([]entity.ProductVariant, error)
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
+	IsSKUExists(sku string) (bool, error)
 }
 
 type ProductVariantConnection struct {
@@ -68,4 +69,10 @@ func (r *ProductVariantConnection) SetAvailable(id int, available bool) error {
 	return r.db.Model(&entity.ProductVariant{}).
 		Where("id = ?", id).
 		Update("is_available", available).Error
+}
+
+func (r *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
+	var count int64
+	err := r.db.Model(&entity.ProductVariant{}).Where("sku = ?", sku).Count(&count).Error
+	return count > 0, err
 }

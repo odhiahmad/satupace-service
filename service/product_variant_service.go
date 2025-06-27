@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -44,13 +45,19 @@ func (s *productVariantService) Create(req request.ProductVariantCreate, product
 		return nil, fmt.Errorf("product not found: %w", err)
 	}
 
+	sku := req.SKU
+
+	if sku == "" {
+		sku = helper.GenerateSKU(req.Name)
+	}
+
 	variant := entity.ProductVariant{
 		ProductId:  productId,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
 		Image:      req.Image,
 		BasePrice:  req.BasePrice,
-		SKU:        req.SKU,
+		SKU:        sku,
 		Stock:      req.Stock,
 		TrackStock: req.TrackStock,
 		TaxId:      req.TaxId,
@@ -80,12 +87,18 @@ func (s *productVariantService) Update(id int, req request.ProductVariantUpdate)
 		return err
 	}
 
+	sku := req.SKU
+
+	if sku == "" {
+		sku = helper.GenerateSKU(req.Name)
+	}
+
 	// Update field
 	existing.Name = req.Name
 	existing.Image = req.Image
 	existing.BasePrice = req.BasePrice
 	existing.FinalPrice = req.FinalPrice
-	existing.SKU = req.SKU
+	existing.SKU = sku
 	existing.Stock = req.Stock
 	existing.TrackStock = req.TrackStock
 	existing.TaxId = req.TaxId

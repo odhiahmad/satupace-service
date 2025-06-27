@@ -134,7 +134,7 @@ func mapBundleToResponse(p entity.Bundle) response.BundleResponse {
 			Description: i.Product.Description,
 			Image:       i.Product.Image,
 			BasePrice:   i.Product.BasePrice,
-			SKU:         i.Product.SKU,
+			SKU:         *i.Product.SKU,
 			Stock:       i.Product.Stock,
 			IsAvailable: i.Product.IsAvailable,
 			IsActive:    i.Product.IsActive,

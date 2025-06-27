@@ -26,7 +26,7 @@ type Product struct {
 	Description       *string          `gorm:"type:text" json:"description"`
 	Image             *string          `gorm:"type:text" json:"image"`
 	BasePrice         float64          `gorm:"not null" json:"base_price"`
-	SKU               string           `gorm:"type:varchar(100);uniqueIndex" json:"sku"`
+	SKU               *string          `gorm:"type:varchar(100);uniqueIndex" json:"sku"`
 	Stock             int              `gorm:"default:0" json:"stock"`
 	TrackStock        bool             `gorm:"default:false" json:"track_stock"`
 	MinimumSales      int              `gorm:"default:1" json:"minimum_sales"`

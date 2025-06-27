@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -42,9 +44,14 @@ func (s *productService) Create(req request.ProductCreate) error {
 
 	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
 	basePrice := helper.Float64OrDefault(req.BasePrice, 0.0)
-	sku := helper.StringOrDefault(req.SKU, "")
 	stock := helper.IntOrDefault(req.Stock, 0)
+	sku := helper.StringOrDefault(req.SKU, "")
 
+	if sku == "" {
+		sku = helper.GenerateSKU(req.Name)
+	}
+
+	// Siapkan entity produk dasar
 	product := entity.Product{
 		BusinessId:        req.BusinessId,
 		ProductCategoryId: categoryId,
@@ -52,45 +59,61 @@ func (s *productService) Create(req request.ProductCreate) error {
 		Description:       req.Description,
 		Image:             req.Image,
 		BasePrice:         basePrice,
-		SKU:               sku,
+		SKU:               helper.StringPtr(sku),
 		Stock:             stock,
 		HasVariant:        len(req.Variants) > 0,
 		IsAvailable:       true,
 		IsActive:          true,
 	}
 
-	err := s.ProductRepo.Create(&product)
-	if err != nil {
+	// Jika memiliki variant, basePrice & stock diset 0 di produk induk
+	if len(req.Variants) > 0 {
+		product.BasePrice = 0
+		product.Stock = 0
+		product.SKU = helper.StringPtr("") // opsional: kosongkan SKU induk jika hanya varian yang dijual
+	}
+
+	// Simpan produk
+	if err := s.ProductRepo.Create(&product); err != nil {
 		return err
 	}
 
+	// Simpan varian jika ada
 	for _, v := range req.Variants {
+		skuVariant := v.SKU
+		if skuVariant == "" {
+			skuVariant = helper.GenerateSKU(fmt.Sprintf("%s-%s", req.Name, v.Name))
+		}
+
 		variant := entity.ProductVariant{
 			BusinessId:  req.BusinessId,
 			ProductId:   product.Id,
 			Name:        v.Name,
 			Image:       v.Image,
 			BasePrice:   v.BasePrice,
-			SKU:         v.SKU,
+			SKU:         skuVariant,
 			Stock:       v.Stock,
 			IsAvailable: true,
 			IsActive:    true,
 		}
-		_ = s.ProductVariantRepo.Create(&variant)
+
+		if err := s.ProductVariantRepo.Create(&variant); err != nil {
+			return err
+		}
 	}
 
-	var productPromos []entity.ProductPromo
-	for _, promoId := range req.PromoIds {
-		productPromos = append(productPromos, entity.ProductPromo{
-			BusinessId: req.BusinessId,
-			ProductId:  product.Id,
-			PromoId:    promoId,
-		})
-	}
+	// Simpan relasi promo jika ada
+	if len(req.PromoIds) > 0 {
+		var productPromos []entity.ProductPromo
+		for _, promoId := range req.PromoIds {
+			productPromos = append(productPromos, entity.ProductPromo{
+				BusinessId: req.BusinessId,
+				ProductId:  product.Id,
+				PromoId:    promoId,
+			})
+		}
 
-	if len(productPromos) > 0 {
-		err := s.ProductPromoRepo.CreateMany(productPromos)
-		if err != nil {
+		if err := s.ProductPromoRepo.CreateMany(productPromos); err != nil {
 			return err
 		}
 	}
@@ -110,24 +133,53 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 
 	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
 	basePrice := helper.Float64OrDefault(req.BasePrice, 0.0)
-	sku := helper.StringOrDefault(req.SKU, "")
 	stock := helper.IntOrDefault(req.Stock, 0)
+	sku := helper.StringOrDefault(req.SKU, "")
+	if sku == "" {
+		sku = helper.GenerateSKU(req.Name)
+	}
+
+	hasVariants := len(req.Variants) > 0
 
 	product.ProductCategoryId = categoryId
 	product.Name = req.Name
 	product.Description = req.Description
 	product.Image = req.Image
-	product.BasePrice = basePrice
-	product.SKU = sku
-	product.Stock = stock
-	product.HasVariant = len(req.Variants) > 0
+	product.HasVariant = hasVariants
+	product.IsAvailable = true
+	product.IsActive = true
 	product.TaxId = req.TaxId
 	product.DiscountId = req.DiscountId
 	product.UnitId = req.UnitId
 
+	// jika punya variant, kosongkan harga dan stock di induk
+	if hasVariants {
+		product.BasePrice = 0
+		product.Stock = 0
+		product.SKU = nil
+	} else {
+		product.BasePrice = basePrice
+		product.Stock = stock
+		product.SKU = helper.StringPtr(sku)
+	}
+
 	updatedProduct, err := s.ProductRepo.Update(product)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(req.PromoIds) > 0 {
+		var promos []entity.ProductPromo
+		for _, promoId := range req.PromoIds {
+			promos = append(promos, entity.ProductPromo{
+				BusinessId: product.BusinessId,
+				ProductId:  product.Id,
+				PromoId:    promoId,
+			})
+		}
+		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
+			return nil, err
+		}
 	}
 
 	return &updatedProduct, nil
@@ -230,22 +282,21 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 	}
 
 	return response.ProductResponse{
-		Id:                product.Id,
-		Name:              product.Name,
-		Description:       product.Description,
-		Image:             product.Image,
-		BasePrice:         product.BasePrice,
-		SKU:               product.SKU,
-		Stock:             product.Stock,
-		IsAvailable:       product.IsAvailable,
-		IsActive:          product.IsActive,
-		HasVariant:        product.HasVariant,
-		Variants:          variants,
-		ProductCategoryId: product.ProductCategoryId,
-		ProductCategory:   categoryRes,
-		Tax:               taxRes,
-		Discount:          discountRes,
-		Unit:              unitRes,
-		Promos:            promos,
+		Id:              product.Id,
+		Name:            product.Name,
+		Description:     product.Description,
+		Image:           product.Image,
+		BasePrice:       product.BasePrice,
+		SKU:             *product.SKU,
+		Stock:           product.Stock,
+		IsAvailable:     product.IsAvailable,
+		IsActive:        product.IsActive,
+		HasVariant:      product.HasVariant,
+		Variants:        variants,
+		ProductCategory: categoryRes,
+		Tax:             taxRes,
+		Discount:        discountRes,
+		Unit:            unitRes,
+		Promos:          promos,
 	}
 }

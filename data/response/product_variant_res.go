@@ -9,7 +9,7 @@ type ProductVariantResponse struct {
 	TaxId       *int     `json:"tax_id,omitempty"`
 	DiscountId  *int     `json:"discount_id,omitempty"`
 	PromoIds    []int    `json:"promo_ids"`
-	SKU         *string  `json:"sku,omitempty"`
+	SKU         string   `json:"sku,omitempty"`
 	Stock       int      `json:"stock,omitempty"`
 	IsAvailable bool     `json:"is_available,omitempty"`
 	IsActive    bool     `json:"is_active,omitempty"`
