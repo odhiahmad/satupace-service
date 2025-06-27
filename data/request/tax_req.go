@@ -1,23 +1,16 @@
 package request
 
 type TaxCreate struct {
-	BusinessId  int     `json:"business_id" validate:"required"`
-	Name        string  `json:"name" validate:"required"`
-	Description string  `json:"description"`
-	Type        string  `json:"type" validate:"required,oneof=percentage fixed"`
-	Amount      float64 `json:"amount" validate:"required"`
-	IsGlobal    bool    `json:"is_global"`
-	IsActive    bool    `json:"is_active"`
-	ProductIds  []int   `json:"product_ids,omitempty"` // hanya digunakan jika !IsGlobal
+	BusinessId int     `json:"business_id" validate:"required"`
+	Name       string  `json:"name" validate:"required"`
+	Amount     float64 `json:"amount" validate:"required"`
+	IsGlobal   bool    `json:"is_global"`
+	ProductIds []int   `json:"product_ids,omitempty"` // hanya digunakan jika !IsGlobal
 }
 
 type TaxUpdate struct {
-	Id          int     `json:"id" validate:"required"`
-	Name        string  `json:"name" validate:"required"`
-	Description string  `json:"description"`
-	Type        string  `json:"type" validate:"required,oneof=percentage fixed"`
-	Amount      float64 `json:"amount" validate:"required"`
-	IsGlobal    bool    `json:"is_global"`
-	IsActive    bool    `json:"is_active"`
-	ProductIds  []int   `json:"product_ids,omitempty"` // untuk update relasi jika perlu
+	Name       string  `json:"name" validate:"required"`
+	Amount     float64 `json:"amount" validate:"required"`
+	IsGlobal   bool    `json:"is_global"`
+	ProductIds []int   `json:"product_ids,omitempty"` // untuk update relasi jika perlu
 }

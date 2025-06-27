@@ -4,12 +4,13 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type TaxService interface {
 	Create(req request.TaxCreate) (entity.Tax, error)
-	Update(req request.TaxUpdate) (entity.Tax, error)
+	Update(id int, req request.TaxUpdate) (entity.Tax, error)
 	Delete(id int) error
 	FindById(id int) (entity.Tax, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
@@ -32,14 +33,14 @@ func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
 		return entity.Tax{}, err
 	}
 
+	typeVal := helper.DeterminePromoType(req.Amount)
+
 	tax := entity.Tax{
-		BusinessId:  req.BusinessId,
-		Name:        req.Name,
-		Description: req.Description,
-		Type:        req.Type,
-		Amount:      req.Amount,
-		IsGlobal:    req.IsGlobal,
-		IsActive:    req.IsActive,
+		BusinessId: req.BusinessId,
+		Name:       req.Name,
+		Type:       typeVal,
+		Amount:     req.Amount,
+		IsGlobal:   req.IsGlobal,
 	}
 
 	// jika bukan global dan ada produk terkait
@@ -52,19 +53,19 @@ func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
 	return s.repo.Create(tax)
 }
 
-func (s *taxService) Update(req request.TaxUpdate) (entity.Tax, error) {
+func (s *taxService) Update(id int, req request.TaxUpdate) (entity.Tax, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Tax{}, err
 	}
 
+	typeVal := helper.DeterminePromoType(req.Amount)
+
 	tax := entity.Tax{
-		Id:          req.Id,
-		Name:        req.Name,
-		Description: req.Description,
-		Type:        req.Type,
-		Amount:      req.Amount,
-		IsGlobal:    req.IsGlobal,
-		IsActive:    req.IsActive,
+		Id:       id,
+		Name:     req.Name,
+		Type:     typeVal,
+		Amount:   req.Amount,
+		IsGlobal: req.IsGlobal,
 	}
 
 	if !req.IsGlobal && len(req.ProductIds) > 0 {

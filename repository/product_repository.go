@@ -57,7 +57,8 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Product{}).Preload("Variants").Preload("ProductCategory").Where("business_id = ?", businessId)
+	baseQuery := r.db.Model(&entity.Product{}).Preload("Variants").Preload("ProductCategory").Preload("Tax").Preload("Discount").
+		Preload("Unit").Where("business_id = ?", businessId)
 
 	// Search filter
 	if pagination.Search != "" {

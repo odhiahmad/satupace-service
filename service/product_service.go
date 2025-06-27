@@ -184,8 +184,9 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 	for _, promo := range product.ProductPromos {
 		if promo.Promo.Id != 0 {
 			promos = append(promos, response.ProductPromoResponse{
-				PromoId:   promo.PromoId,
-				ProductId: promo.ProductId,
+				PromoId:     promo.PromoId,
+				ProductId:   promo.ProductId,
+				MinQuantity: promo.MinQuantity,
 			})
 		}
 	}
@@ -204,6 +205,7 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 			Id:     product.Tax.Id,
 			Name:   product.Tax.Name,
 			Amount: product.Tax.Amount,
+			Type:   product.Tax.Type,
 		}
 	}
 
@@ -213,6 +215,7 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 			Id:     product.Discount.Id,
 			Name:   product.Discount.Name,
 			Amount: product.Discount.Amount,
+			Type:   product.Discount.Type,
 		}
 	}
 

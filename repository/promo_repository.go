@@ -68,9 +68,9 @@ func (r *promoRepository) FindWithPagination(businessId int, pagination request.
 	var total int64
 
 	baseQuery := r.db.Model(&entity.Promo{}).
-		Where("business_id = ?", businessId).
 		Preload("ProductPromos.Product").
-		Preload("RequiredProducts")
+		Preload("RequiredProducts").
+		Where("business_id = ?", businessId)
 
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"

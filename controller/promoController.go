@@ -121,19 +121,11 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
-	// Ambil parameter pagination & sorting
-	pageStr := ctx.DefaultQuery("page", "1")
+	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sortBy", "created_at")
+	orderBy := ctx.DefaultQuery("orderBy", "desc")
 	search := ctx.DefaultQuery("search", "")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
-		return
-	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
@@ -142,14 +134,15 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
+	// Susun struct pagination
 	pagination := request.Pagination{
-		Page:    page,
 		Limit:   limit,
 		SortBy:  sortBy,
 		OrderBy: orderBy,
 		Search:  search,
 	}
 
+	// Ambil data dari service
 	promos, total, err := c.promoService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
@@ -157,28 +150,20 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
+	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
-		Page:      page,
-		Limit:     limit,
+		Page:      pagination.Page, // kamu bisa isi Page = 1 jika tidak pakai offset-based
+		Limit:     pagination.Limit,
 		Total:     total,
-		OrderBy:   sortBy,
-		SortOrder: orderBy,
+		OrderBy:   pagination.SortBy,
+		SortOrder: pagination.OrderBy,
 	}
 
-	response := gin.H{
-		"results":    promos,
-		"total":      total,
-		"limit":      limit,
-		"page":       page,
-		"totalPages": totalPages,
-	}
-
+	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
-		"Berhasil mengambil data promo",
-		response,
+		"Data promo berhasil diambil",
+		promos,
 		paginationMeta,
 	))
 }

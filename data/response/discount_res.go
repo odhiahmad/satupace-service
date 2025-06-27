@@ -6,7 +6,7 @@ type DiscountResponse struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Amount      float64 `json:"amount"`
-	IsPercent   bool    `json:"is_percent"`
+	Type        string  `json:"type"` // "percentage", "fixed"
 	IsGlobal    bool    `json:"is_global"`
 	StartAt     string  `json:"start_at"`
 	EndAt       string  `json:"end_at"`

@@ -163,7 +163,7 @@ func SetupRouter() *gin.Engine {
 		taxRoutes.PATCH("/:id", taxController.Update)
 		taxRoutes.GET("/:id", taxController.FindById)
 		taxRoutes.DELETE("/:id", taxController.Delete)
-		taxRoutes.GET("", taxController.FindWithPagination)
+		taxRoutes.GET("/business", taxController.FindWithPagination)
 
 	}
 

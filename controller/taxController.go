@@ -37,27 +37,41 @@ func (c *taxController) Create(ctx *gin.Context) {
 
 	res, err := c.taxService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat diskon", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat tax", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat diskon", res))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat tax", res))
 }
 
 func (c *taxController) Update(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id wajib diisi", "missing id", helper.EmptyObj{}))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id tidak valid", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
 	var input request.TaxUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
 		return
 	}
 
-	res, err := c.taxService.Update(input)
+	res, err := c.taxService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah diskon", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah tax", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah diskon", res))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah tax", res))
 }
 
 func (c *taxController) Delete(ctx *gin.Context) {
@@ -69,11 +83,11 @@ func (c *taxController) Delete(ctx *gin.Context) {
 
 	err = c.taxService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus diskon", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus tax", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus diskon", nil))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus tax", nil))
 }
 
 func (c *taxController) FindById(ctx *gin.Context) {
@@ -85,11 +99,11 @@ func (c *taxController) FindById(ctx *gin.Context) {
 
 	res, err := c.taxService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Diskon tidak ditemukan", err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Tax tidak ditemukan", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil diskon", res))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil tax", res))
 }
 
 func (c *taxController) FindWithPagination(ctx *gin.Context) {
@@ -107,19 +121,11 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
-	// Ambil parameter pagination & sorting
-	pageStr := ctx.DefaultQuery("page", "1")
+	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sortBy", "created_at")
+	orderBy := ctx.DefaultQuery("orderBy", "desc")
 	search := ctx.DefaultQuery("search", "")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
-		return
-	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
@@ -128,43 +134,36 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
+	// Susun struct pagination
 	pagination := request.Pagination{
-		Page:    page,
 		Limit:   limit,
 		SortBy:  sortBy,
 		OrderBy: orderBy,
 		Search:  search,
 	}
 
+	// Ambil data dari service
 	taxes, total, err := c.taxService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data pajak", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data tax", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
+	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
-		Page:      page,
-		Limit:     limit,
+		Page:      1, // Default 1 jika tidak ada page
+		Limit:     pagination.Limit,
 		Total:     total,
-		OrderBy:   sortBy,
-		SortOrder: orderBy,
+		OrderBy:   pagination.SortBy,
+		SortOrder: pagination.OrderBy,
 	}
 
-	response := gin.H{
-		"results":    taxes,
-		"total":      total,
-		"limit":      limit,
-		"page":       page,
-		"totalPages": totalPages,
-	}
-
+	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
-		"Berhasil mengambil data pajak",
-		response,
+		"Data tax berhasil diambil",
+		taxes,
 		paginationMeta,
 	))
 }
