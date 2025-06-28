@@ -93,9 +93,9 @@ func main() {
 	}
 
 	go func() {
-		log.Println("🔒 Running HTTPS server on port 443")
-		if err := server.ListenAndServeTLS("cert.pem", "key.pem"); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Failed to start TLS server: %v", err)
+		log.Println("🌐 Running HTTP server on port 80")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Failed to start HTTP server: %v", err)
 		}
 	}()
 
