@@ -25,11 +25,11 @@ type Product struct {
 	Name              string           `gorm:"type:varchar(255);not null" json:"name"`
 	Description       *string          `gorm:"type:text" json:"description"`
 	Image             *string          `gorm:"type:text" json:"image"`
-	BasePrice         float64          `gorm:"not null" json:"base_price"`
+	BasePrice         *float64         `json:"base_price"`
 	SKU               *string          `gorm:"type:varchar(100);uniqueIndex" json:"sku"`
-	Stock             int              `gorm:"default:0" json:"stock"`
+	Stock             *int             `gorm:"default:0" json:"stock"`
 	TrackStock        bool             `gorm:"default:false" json:"track_stock"`
-	MinimumSales      int              `gorm:"default:1" json:"minimum_sales"`
+	MinimumSales      *int             `gorm:"default:1" json:"minimum_sales"`
 	DiscountId        *int             `gorm:"index" json:"discount_id"`
 	Discount          *Discount        `gorm:"foreignKey:DiscountId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"discount"`
 	TaxId             *int             `gorm:"index" json:"tax_id"`

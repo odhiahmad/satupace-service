@@ -97,7 +97,6 @@ func (s *productVariantService) Update(id int, req request.ProductVariantUpdate)
 	existing.Name = req.Name
 	existing.Image = req.Image
 	existing.BasePrice = req.BasePrice
-	existing.FinalPrice = req.FinalPrice
 	existing.SKU = sku
 	existing.Stock = req.Stock
 	existing.TrackStock = req.TrackStock

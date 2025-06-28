@@ -13,7 +13,6 @@ type ProductVariant struct {
 	BasePrice     *float64       `json:"base_price"`
 	Stock         int            `json:"stock"`
 	TrackStock    *bool          `gorm:"default:false" json:"track_stock"`
-	FinalPrice    *float64       `json:"final_price"`
 	SKU           string         `gorm:"type:varchar(100);uniqueIndex" json:"sku"`
 	DiscountId    *int           `gorm:"index" json:"discount_id"`
 	Discount      *Discount      `gorm:"foreignKey:DiscountId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"discount"`

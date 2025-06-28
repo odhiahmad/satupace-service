@@ -40,7 +40,7 @@ func HitungHargaTransaksi(
 			return nil, errors.New("variant not found for this product")
 		}
 	} else {
-		price = product.BasePrice
+		price = *product.BasePrice
 	}
 
 	// 2. Hitung diskon

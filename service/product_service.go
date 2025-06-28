@@ -1,7 +1,10 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -9,6 +12,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type ProductService interface {
@@ -26,14 +30,16 @@ type productService struct {
 	ProductVariantRepo repository.ProductVariantRepository
 	ProductPromoRepo   repository.ProductPromoRepository
 	Validate           *validator.Validate
+	Redis              *redis.Client
 }
 
-func NewProductService(productRepo repository.ProductRepository, variantRepo repository.ProductVariantRepository, promoRepo repository.ProductPromoRepository, validate *validator.Validate) ProductService {
+func NewProductService(productRepo repository.ProductRepository, variantRepo repository.ProductVariantRepository, promoRepo repository.ProductPromoRepository, validate *validator.Validate, redis *redis.Client) ProductService {
 	return &productService{
 		ProductRepo:        productRepo,
 		ProductVariantRepo: variantRepo,
 		ProductPromoRepo:   promoRepo,
 		Validate:           validate,
+		Redis:              redis,
 	}
 }
 
@@ -42,12 +48,12 @@ func (s *productService) Create(req request.ProductCreate) error {
 		return err
 	}
 
-	// Upload image base64 jika ada
+	// Upload gambar produk utama
 	var imageURL *string
-	if *req.Image != "" {
+	if req.Image != nil && *req.Image != "" {
 		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
 		if err != nil {
-			return err
+			return fmt.Errorf("gagal upload gambar produk: %w", err)
 		}
 		imageURL = &url
 	}
@@ -66,33 +72,36 @@ func (s *productService) Create(req request.ProductCreate) error {
 		Name:              req.Name,
 		Description:       req.Description,
 		Image:             imageURL,
-		BasePrice:         basePrice,
+		BasePrice:         helper.Float64Ptr(basePrice),
 		SKU:               helper.StringPtr(sku),
-		Stock:             stock,
+		Stock:             helper.IntPtr(stock),
 		HasVariant:        len(req.Variants) > 0,
+		TaxId:             req.TaxId,
+		DiscountId:        req.DiscountId,
+		UnitId:            req.UnitId,
 		IsAvailable:       true,
 		IsActive:          true,
 	}
 
 	if product.HasVariant {
-		product.BasePrice = 0
-		product.Stock = 0
+		product.BasePrice = nil
+		product.Stock = nil
 		product.SKU = nil
 	}
 
 	if err := s.ProductRepo.Create(&product); err != nil {
-		return err
+		return fmt.Errorf("gagal menyimpan produk: %w", err)
 	}
 
 	// Simpan variant
 	for _, v := range req.Variants {
-		var imageURL string
-		if *v.Image != "" {
+		var imageURL *string
+		if v.Image != nil && *v.Image != "" {
 			url, err := helper.UploadBase64ToCloudinary(*v.Image, "variant")
 			if err != nil {
-				return err
+				return fmt.Errorf("gagal upload gambar variant '%s': %w", v.Name, err)
 			}
-			imageURL = url
+			imageURL = &url
 		}
 
 		skuVariant := v.SKU
@@ -104,16 +113,19 @@ func (s *productService) Create(req request.ProductCreate) error {
 			BusinessId:  req.BusinessId,
 			ProductId:   product.Id,
 			Name:        v.Name,
-			Image:       helper.StringPtr(imageURL),
+			Image:       imageURL,
 			BasePrice:   v.BasePrice,
 			SKU:         skuVariant,
 			Stock:       v.Stock,
+			TaxId:       v.TaxId,
+			DiscountId:  v.DiscountId,
+			UnitId:      v.UnitId,
 			IsAvailable: true,
 			IsActive:    true,
 		}
 
 		if err := s.ProductVariantRepo.Create(&variant); err != nil {
-			return err
+			return fmt.Errorf("gagal menyimpan variant '%s': %w", v.Name, err)
 		}
 	}
 
@@ -128,7 +140,7 @@ func (s *productService) Create(req request.ProductCreate) error {
 			})
 		}
 		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
-			return err
+			return fmt.Errorf("gagal menyimpan relasi promo: %w", err)
 		}
 	}
 
@@ -168,12 +180,12 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 
 	// jika punya variant, kosongkan harga dan stock di induk
 	if hasVariants {
-		product.BasePrice = 0
-		product.Stock = 0
+		product.BasePrice = nil
+		product.Stock = nil
 		product.SKU = nil
 	} else {
-		product.BasePrice = basePrice
-		product.Stock = stock
+		product.BasePrice = helper.Float64Ptr(basePrice)
+		product.Stock = helper.IntPtr(stock)
 		product.SKU = helper.StringPtr(sku)
 	}
 
@@ -214,6 +226,30 @@ func (s *productService) FindById(id int) (response.ProductResponse, error) {
 }
 
 func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf(
+		"product:list:%d:%d:%d:%s:%s:%s",
+		businessId,
+		pagination.Page,
+		pagination.Limit,
+		pagination.SortBy,
+		pagination.OrderBy,
+		pagination.Search,
+	)
+
+	// Coba ambil dari cache
+	cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var cached struct {
+			Products []response.ProductResponse `json:"products"`
+			Total    int64                      `json:"total"`
+		}
+		if err := json.Unmarshal([]byte(cachedData), &cached); err == nil {
+			return cached.Products, cached.Total, nil
+		}
+	}
+
+	// Ambil dari DB
 	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -222,6 +258,18 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 	var result []response.ProductResponse
 	for _, product := range products {
 		result = append(result, mapProductToResponse(product))
+	}
+
+	// Simpan ke cache
+	cacheBody := struct {
+		Products []response.ProductResponse `json:"products"`
+		Total    int64                      `json:"total"`
+	}{
+		Products: result,
+		Total:    total,
+	}
+	if jsonData, err := json.Marshal(cacheBody); err == nil {
+		s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
 	}
 
 	return result, total, nil
@@ -300,9 +348,9 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		Name:            product.Name,
 		Description:     product.Description,
 		Image:           product.Image,
-		BasePrice:       product.BasePrice,
+		BasePrice:       *product.BasePrice,
 		SKU:             *product.SKU,
-		Stock:           product.Stock,
+		Stock:           *product.Stock,
 		IsAvailable:     product.IsAvailable,
 		IsActive:        product.IsActive,
 		HasVariant:      product.HasVariant,

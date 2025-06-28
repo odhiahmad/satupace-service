@@ -92,7 +92,6 @@ type ProductVariantUpdate struct {
 	Name       string   `json:"name" validate:"required"`
 	Image      *string  `json:"image" validate:"required"`
 	BasePrice  *float64 `json:"base_price" validate:"required"`
-	FinalPrice *float64 `json:"final_price,omitempty"`
 	SKU        string   `json:"sku,omitempty"`
 	Stock      int      `json:"stock,omitempty"`
 	TrackStock *bool    `json:"track_stock,omitempty"`

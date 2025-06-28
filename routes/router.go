@@ -8,6 +8,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/middleware"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/odhiahmad/kasirku-service/service"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -42,7 +43,7 @@ var (
 	paymentMethodService   service.PaymentMethodService   = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
 	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, validate)
-	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate)
+	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate, &redis.Client{})
 	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
 	taxService             service.TaxService             = service.NewTaxService(taxRepository, validate)
 	productUnitService     service.ProductUnitService     = service.NewProductUnitService(productUnitRepository)

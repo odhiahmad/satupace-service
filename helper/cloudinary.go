@@ -32,6 +32,6 @@ func UploadBase64ToCloudinary(base64Str string, folder string) (string, error) {
 		return "", fmt.Errorf("upload cloudinary gagal: %w", err)
 	}
 
-	log.Printf("✅ Upload base64 sukses: %s", uploadResp.SecureURL)
+	log.Printf("✅ Upload Cloudinary berhasil: %s", uploadResp.SecureURL)
 	return uploadResp.SecureURL, nil
 }
