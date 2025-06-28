@@ -34,13 +34,13 @@ func NewBusinessBranchController(businessBranchService service.BusinessBranchSer
 func (c *businessBranchController) Create(ctx *gin.Context) {
 	var input request.BusinessBranchCreate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
 	res, err := c.businessBranchService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat cabang bisnis", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat cabang bisnis", "CREATE_FAILED", "service", err.Error(), nil))
 		return
 	}
 
@@ -50,13 +50,13 @@ func (c *businessBranchController) Create(ctx *gin.Context) {
 func (c *businessBranchController) Update(ctx *gin.Context) {
 	var input request.BusinessBranchUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
 	res, err := c.businessBranchService.Update(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah cabang bisnis", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah cabang bisnis", "UPDATE_FAILED", "service", err.Error(), nil))
 		return
 	}
 
@@ -66,13 +66,13 @@ func (c *businessBranchController) Update(ctx *gin.Context) {
 func (c *businessBranchController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
 	err = c.businessBranchService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus cabang bisnis", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus cabang bisnis", "DELETE_FAILED", "service", err.Error(), nil))
 		return
 	}
 
@@ -82,13 +82,13 @@ func (c *businessBranchController) Delete(ctx *gin.Context) {
 func (c *businessBranchController) FindById(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
 	res, err := c.businessBranchService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Cabang bisnis tidak ditemukan", err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Cabang bisnis tidak ditemukan", "NOT_FOUND", "id", err.Error(), nil))
 		return
 	}
 
@@ -99,18 +99,17 @@ func (c *businessBranchController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+			"Parameter business_id wajib diisi", "MISSING_PARAM", "business_id", "parameter business_id tidak ditemukan", nil))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter business_id tidak valid", "INVALID_PARAM", "business_id", err.Error(), nil))
 		return
 	}
 
-	// Ambil dan parsing parameter pagination
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "id")
@@ -120,18 +119,17 @@ func (c *businessBranchController) FindWithPagination(ctx *gin.Context) {
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter page tidak valid", "INVALID_PARAM", "page", err.Error(), nil))
 		return
 	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter limit tidak valid", "INVALID_PARAM", "limit", err.Error(), nil))
 		return
 	}
 
-	// Susun struct pagination
 	pagination := request.Pagination{
 		Page:    page,
 		Limit:   limit,
@@ -140,15 +138,13 @@ func (c *businessBranchController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	// Ambil data dari service
 	businessBranches, total, err := c.businessBranchService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data cabang bisnis", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data cabang bisnis", "FETCH_FAILED", "service", err.Error(), nil))
 		return
 	}
 
-	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
 		Page:      page,
 		Limit:     limit,
@@ -157,7 +153,6 @@ func (c *businessBranchController) FindWithPagination(ctx *gin.Context) {
 		SortOrder: orderBy,
 	}
 
-	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Berhasil mengambil data cabang bisnis",

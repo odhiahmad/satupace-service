@@ -36,23 +36,21 @@ func (c *productCategoryController) Create(ctx *gin.Context) {
 	var req request.ProductCategoryCreate
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal bind data", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	// Validasi BusinessId tidak boleh kosong (0)
 	if req.BusinessId == 0 {
-		res := helper.BuildErrorResponse("Gagal membuat kategori", "BusinessId tidak boleh kosong", helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Business ID tidak boleh kosong", "MISSING_BUSINESS_ID", "business_id", "BusinessId wajib diisi", nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	// Lanjut ke service
 	err = c.productCategoryService.Create(req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat kategori", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		res := helper.BuildErrorResponse("Gagal membuat kategori", "CREATE_FAILED", "internal", err.Error(), nil)
+		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
@@ -65,19 +63,19 @@ func (c *productCategoryController) Update(ctx *gin.Context) {
 	var req request.ProductCategoryUpdate
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal bind data", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	err = c.productCategoryService.Update(req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal update kategori", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		res := helper.BuildErrorResponse("Gagal mengubah kategori", "UPDATE_FAILED", "internal", err.Error(), nil)
+		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
-	res := helper.BuildResponse(true, "Berhasil update kategori produk", helper.EmptyObj{})
+	res := helper.BuildResponse(true, "Berhasil mengubah kategori produk", helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, res)
 }
 
@@ -86,14 +84,14 @@ func (c *productCategoryController) FindById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	data, err := c.productCategoryService.FindById(id)
 	if err != nil {
-		res := helper.BuildErrorResponse("Kategori tidak ditemukan", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Kategori tidak ditemukan", "NOT_FOUND", "id", err.Error(), nil)
 		ctx.JSON(http.StatusNotFound, res)
 		return
 	}
@@ -106,7 +104,7 @@ func (c *productCategoryController) FindById(ctx *gin.Context) {
 func (c *productCategoryController) FindAll(ctx *gin.Context) {
 	data, err := c.productCategoryService.FindAll()
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal mengambil data", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Gagal mengambil data kategori", "FETCH_FAILED", "internal", err.Error(), nil)
 		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
@@ -115,18 +113,19 @@ func (c *productCategoryController) FindAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// FindByBusinessId
 func (c *productCategoryController) FindByBusinessId(ctx *gin.Context) {
 	businessIdStr := ctx.Param("id")
 	businessId, err := strconv.Atoi(businessIdStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("Business ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Business ID tidak valid", "INVALID_BUSINESS_ID", "id", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	data, err := c.productCategoryService.FindByBusinessId(businessId)
 	if err != nil {
-		res := helper.BuildErrorResponse("Kategori tidak ditemukan", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("Kategori tidak ditemukan", "NOT_FOUND", "business_id", err.Error(), nil)
 		ctx.JSON(http.StatusNotFound, res)
 		return
 	}
@@ -140,15 +139,15 @@ func (c *productCategoryController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	err = c.productCategoryService.Delete(id)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal menghapus kategori", err.Error(), helper.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
+		res := helper.BuildErrorResponse("Gagal menghapus kategori", "DELETE_FAILED", "internal", err.Error(), nil)
+		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 

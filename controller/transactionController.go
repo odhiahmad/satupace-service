@@ -34,13 +34,13 @@ func NewTransactionController(transactionService service.TransactionService, jwt
 func (c *transactionController) Create(ctx *gin.Context) {
 	var input request.TransactionCreateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
 	transaction, err := c.transactionService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat transaksi", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
 		return
 	}
 
@@ -50,19 +50,19 @@ func (c *transactionController) Create(ctx *gin.Context) {
 func (c *transactionController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
 	var input request.TransactionUpdateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
 	transaction, err := c.transactionService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah transaksi", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
 		return
 	}
 
@@ -72,19 +72,19 @@ func (c *transactionController) Update(ctx *gin.Context) {
 func (c *transactionController) AddOrUpdateItem(ctx *gin.Context) {
 	transactionId, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || transactionId <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID transaksi tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID transaksi tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
 	var input request.TransactionItemCreate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input item tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input item tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
 	transaction, err := c.transactionService.AddOrUpdateItem(transactionId, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menambahkan item", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menambahkan item", "INTERNAL_ERROR", "transaction_item", err.Error(), nil))
 		return
 	}
 
@@ -94,13 +94,13 @@ func (c *transactionController) AddOrUpdateItem(ctx *gin.Context) {
 func (c *transactionController) FindById(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
 	res, err := c.transactionService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Transaksi tidak ditemukan", err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Transaksi tidak ditemukan", "NOT_FOUND", "transaction", err.Error(), nil))
 		return
 	}
 
@@ -110,19 +110,16 @@ func (c *transactionController) FindById(ctx *gin.Context) {
 func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter business_id wajib diisi", "BAD_REQUEST", "business_id", "business_id query param is required", nil))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter business_id tidak valid", "BAD_REQUEST", "business_id", err.Error(), nil))
 		return
 	}
 
-	// Ambil parameter pagination & sorting
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "id")
@@ -131,15 +128,13 @@ func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter page tidak valid", "BAD_REQUEST", "page", err.Error(), nil))
 		return
 	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter limit tidak valid", "BAD_REQUEST", "limit", err.Error(), nil))
 		return
 	}
 
@@ -153,8 +148,7 @@ func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 
 	transactions, total, err := c.transactionService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data transaksi", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
 		return
 	}
 

@@ -37,95 +37,98 @@ func NewProductController(productService service.ProductService, jwtService serv
 func (c *productController) Create(ctx *gin.Context) {
 	var req request.ProductCreate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind data produk", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	if err := c.productService.Create(req); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal membuat produk", "CREATE_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Product created successfully"})
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Produk berhasil dibuat", helper.EmptyObj{}))
 }
 
-// UPDATE PRODUCT
 func (c *productController) Update(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	var req request.ProductUpdate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind data update", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	result, err := c.productService.Update(id, req)
-
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah produk", "UPDATE_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah transaksi", result))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Produk berhasil diubah", result))
 }
 
-// DELETE PRODUCT
 func (c *productController) Delete(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	if err := c.productService.Delete(id); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal menghapus produk", "DELETE_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Produk berhasil dihapus", helper.EmptyObj{}))
 }
 
-// FIND PRODUCT BY ID
 func (c *productController) FindById(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	product, err := c.productService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse(
+			"Produk tidak ditemukan", "NOT_FOUND", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, product)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Produk ditemukan", product))
 }
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {
-	// Ambil parameter business_id
 	businessIdStr := ctx.Query("business_id")
 	if businessIdStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+			"Parameter business_id wajib diisi", "MISSING_PARAM", "business_id", "parameter tidak ditemukan", helper.EmptyObj{}))
 		return
 	}
 
 	businessId, err := strconv.Atoi(businessIdStr)
 	if err != nil || businessId <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Business ID tidak valid", err.Error(), helper.EmptyObj{}))
+			"Business ID tidak valid", "INVALID_PARAM", "business_id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Ambil parameter pagination
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "id")
@@ -135,18 +138,17 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter page tidak valid", "INVALID_PARAM", "page", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Susun pagination struct
 	pagination := request.Pagination{
 		Page:    page,
 		Limit:   limit,
@@ -155,15 +157,13 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	// Ambil data dari service
 	products, total, err := c.productService.FindWithPagination(businessId, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data produk", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
 		Page:      page,
 		Limit:     limit,
@@ -172,7 +172,6 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 		SortOrder: orderBy,
 	}
 
-	// Kirim response akhir
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Data produk berhasil diambil",
@@ -184,7 +183,8 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 func (c *productController) SetActive(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
@@ -193,39 +193,43 @@ func (c *productController) SetActive(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind body", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	err = c.productService.SetActive(id, body.IsActive)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := c.productService.SetActive(id, body.IsActive); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status aktif produk", "UPDATE_ERROR", "is_active", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Product active status updated"})
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status aktif produk berhasil diubah", helper.EmptyObj{}))
 }
 
 func (c *productController) SetAvailable(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	var body struct {
 		IsAvailable bool `json:"is_available"`
 	}
+
 	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind body", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	err = c.productService.SetAvailable(id, body.IsAvailable)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := c.productService.SetAvailable(id, body.IsAvailable); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status ketersediaan produk", "UPDATE_ERROR", "is_available", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Product availability status updated"})
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status ketersediaan produk berhasil diubah", helper.EmptyObj{}))
 }

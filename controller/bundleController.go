@@ -35,13 +35,25 @@ func NewBundleController(bundleService service.BundleService, jwtService service
 func (c *bundleController) Create(ctx *gin.Context) {
 	var req request.BundleCreate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Gagal memproses data", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Gagal memproses data",
+			"VALIDATION_ERROR",
+			"request_body",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	if err := c.bundleService.CreateBundle(req); err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat bundle", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Gagal membuat bundle",
+			"BUNDLE_CREATE_FAILED",
+			"",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -50,25 +62,42 @@ func (c *bundleController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, res)
 }
 
-// Update Bundle
 func (c *bundleController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	var req request.BundleUpdate
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Gagal memproses data", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Gagal memproses data",
+			"VALIDATION_ERROR",
+			"request_body",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	if err := c.bundleService.UpdateBundle(id, req); err != nil {
-		res := helper.BuildErrorResponse("Gagal memperbarui bundle", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Gagal memperbarui bundle",
+			"BUNDLE_UPDATE_FAILED",
+			"",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -77,19 +106,30 @@ func (c *bundleController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-// Find By ID
 func (c *bundleController) FindById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	bundle, err := c.bundleService.FindById(id)
 	if err != nil {
-		res := helper.BuildErrorResponse("Bundle tidak ditemukan", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Bundle tidak ditemukan",
+			"BUNDLE_NOT_FOUND",
+			"id",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusNotFound, res)
 		return
 	}
@@ -98,18 +138,29 @@ func (c *bundleController) FindById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-// Delete Bundle
 func (c *bundleController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
 	if err := c.bundleService.Delete(id); err != nil {
-		res := helper.BuildErrorResponse("Gagal menghapus bundle", err.Error(), helper.EmptyObj{})
+		res := helper.BuildErrorResponse(
+			"Gagal menghapus bundle",
+			"BUNDLE_DELETE_FAILED",
+			"",
+			err.Error(),
+			nil,
+		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -122,18 +173,27 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+			"Parameter business_id wajib diisi",
+			"REQUIRED_QUERY_PARAM",
+			"business_id",
+			"Parameter business_id tidak boleh kosong",
+			nil,
+		))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter business_id tidak valid",
+			"INVALID_QUERY_PARAM",
+			"business_id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "created_at")
 	orderBy := ctx.DefaultQuery("orderBy", "desc")
@@ -142,11 +202,15 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter limit tidak valid",
+			"INVALID_QUERY_PARAM",
+			"limit",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Susun struct pagination
 	pagination := request.Pagination{
 		Limit:   limit,
 		SortBy:  sortBy,
@@ -154,24 +218,26 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	// Ambil data dari service
 	bundles, total, err := c.bundleService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data bundle", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data bundle",
+			"BUNDLE_FETCH_FAILED",
+			"",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
-		Page:      pagination.Page, // jika kamu pakai offset-based
+		Page:      pagination.Page,
 		Limit:     pagination.Limit,
 		Total:     total,
 		OrderBy:   pagination.SortBy,
 		SortOrder: pagination.OrderBy,
 	}
 
-	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Data bundle berhasil diambil",

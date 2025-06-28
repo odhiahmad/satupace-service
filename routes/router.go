@@ -112,11 +112,11 @@ func SetupRouter() *gin.Engine {
 
 	paymentMethodRoutes := r.Group("payment-method")
 	{
-		paymentMethodRoutes.POST("", paymentMethodController.CreatePaymentMethod)
-		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.UpdatePaymentMethod)
-		paymentMethodRoutes.GET("", paymentMethodController.FindPaymentMethodAll)
-		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindPaymentMethodById)
-		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.DeletePaymentMethod)
+		paymentMethodRoutes.POST("", paymentMethodController.Create)
+		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.Update)
+		paymentMethodRoutes.GET("", paymentMethodController.FindAll)
+		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindById)
+		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.Delete)
 	}
 
 	productCategoryRoutes := r.Group("product-category", middleware.AuthorizeJWT(jwtService))

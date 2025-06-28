@@ -2,6 +2,19 @@ package helper
 
 import "github.com/odhiahmad/kasirku-service/data/response"
 
+type DetailedError struct {
+	Code    string `json:"code"`
+	Field   string `json:"field,omitempty"` // opsional
+	Details string `json:"details"`
+}
+
+type ResponseError struct {
+	Status  bool           `json:"status"`
+	Message string         `json:"message"`
+	Error   *DetailedError `json:"error,omitempty"`
+	Data    interface{}    `json:"data,omitempty"`
+}
+
 // Response is used for static shape of JSON return
 type Response struct {
 	Status  bool        `json:"status"`
@@ -47,29 +60,19 @@ func BuildResponsePagination(status bool, message string, data interface{}, pagi
 	}
 }
 
-// BuildErrorResponse creates an error response with error detail
-func BuildErrorResponse(message string, err interface{}, data interface{}) Response {
-	var errDetail interface{}
-
-	switch e := err.(type) {
-	case string:
-		errDetail = []string{e}
-	case error:
-		errDetail = []string{e.Error()}
-	case []string:
-		errDetail = e
-	default:
-		errDetail = []string{"unexpected error format"}
-	}
-
+func BuildErrorResponse(message string, code string, field string, details string, data interface{}) ResponseError {
 	if data == nil {
 		data = EmptyObj{}
 	}
 
-	return Response{
+	return ResponseError{
 		Status:  false,
 		Message: message,
-		Errors:  errDetail,
-		Data:    data,
+		Error: &DetailedError{
+			Code:    code,
+			Field:   field,
+			Details: details,
+		},
+		Data: data,
 	}
 }

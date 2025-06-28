@@ -15,18 +15,29 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			response := helper.BuildErrorResponse("Unauthorized", "No valid Bearer token found", nil)
+			response := helper.BuildErrorResponse(
+				"Unauthorized",
+				"UNAUTHORIZED",
+				"Authorization",
+				"No valid Bearer token found",
+				nil,
+			)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
 			return
 		}
 
-		// Ambil token-nya setelah "Bearer "
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwtService.ValidateToken(tokenString)
 		if err != nil || !token.Valid {
 			log.Println("JWT error:", err)
-			response := helper.BuildErrorResponse("Unauthorized", "Invalid token", nil)
+			response := helper.BuildErrorResponse(
+				"Unauthorized",
+				"INVALID_TOKEN",
+				"Authorization",
+				err.Error(),
+				nil,
+			)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response)
 			return
 		}

@@ -31,13 +31,13 @@ func NewTaxController(taxService service.TaxService, jwtService service.JWTServi
 func (c *taxController) Create(ctx *gin.Context) {
 	var input request.TaxCreate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
 	}
 
 	res, err := c.taxService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat tax", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat tax", "internal_error", "tax", err.Error(), nil))
 		return
 	}
 
@@ -47,27 +47,25 @@ func (c *taxController) Create(ctx *gin.Context) {
 func (c *taxController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	if idStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id wajib diisi", "missing id", helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
 
 	var input request.TaxUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
 	}
 
 	res, err := c.taxService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah tax", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah tax", "internal_error", "tax", err.Error(), nil))
 		return
 	}
 
@@ -77,13 +75,13 @@ func (c *taxController) Update(ctx *gin.Context) {
 func (c *taxController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
 
 	err = c.taxService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus tax", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus tax", "internal_error", "tax", err.Error(), nil))
 		return
 	}
 
@@ -93,13 +91,13 @@ func (c *taxController) Delete(ctx *gin.Context) {
 func (c *taxController) FindById(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
 
 	res, err := c.taxService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Tax tidak ditemukan", err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Tax tidak ditemukan", "not_found", "id", err.Error(), nil))
 		return
 	}
 
@@ -109,19 +107,16 @@ func (c *taxController) FindById(ctx *gin.Context) {
 func (c *taxController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter business_id wajib diisi", "missing_parameter", "business_id", "parameter business_id kosong", nil))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter business_id tidak valid", "invalid_parameter", "business_id", err.Error(), nil))
 		return
 	}
 
-	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "created_at")
 	orderBy := ctx.DefaultQuery("orderBy", "desc")
@@ -129,12 +124,10 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter limit tidak valid", "invalid_parameter", "limit", err.Error(), nil))
 		return
 	}
 
-	// Susun struct pagination
 	pagination := request.Pagination{
 		Limit:   limit,
 		SortBy:  sortBy,
@@ -142,24 +135,20 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	// Ambil data dari service
 	taxes, total, err := c.taxService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data tax", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data tax", "internal_error", "tax", err.Error(), nil))
 		return
 	}
 
-	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
-		Page:      1, // Default 1 jika tidak ada page
+		Page:      1,
 		Limit:     pagination.Limit,
 		Total:     total,
 		OrderBy:   pagination.SortBy,
 		SortOrder: pagination.OrderBy,
 	}
 
-	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Data tax berhasil diambil",

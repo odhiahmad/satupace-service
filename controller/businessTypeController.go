@@ -34,7 +34,13 @@ func (c *businessTypeController) CreateBusinessType(ctx *gin.Context) {
 	var businessTypeCreate request.BusinessTypeCreate
 	err := ctx.ShouldBind(&businessTypeCreate)
 	if err != nil {
-		response := helper.BuildErrorResponse("Failed to process request", err.Error(), helper.EmptyObj{})
+		response := helper.BuildErrorResponse(
+			"Failed to process request",
+			"INVALID_REQUEST",
+			"body",
+			err.Error(),
+			helper.EmptyObj{},
+		)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -42,29 +48,42 @@ func (c *businessTypeController) CreateBusinessType(ctx *gin.Context) {
 	c.businessTypeService.CreateBusinessType(businessTypeCreate)
 	response := helper.BuildResponse(true, "!OK", nil)
 	ctx.JSON(http.StatusCreated, response)
-
 }
 
 func (c *businessTypeController) UpdateBusinessType(ctx *gin.Context) {
-	businessTypeUpdate := request.BusinessTypeUpdate{}
+	var businessTypeUpdate request.BusinessTypeUpdate
 	err := ctx.ShouldBind(&businessTypeUpdate)
 	if err != nil {
-		response := helper.BuildErrorResponse("Failed to process request", err.Error(), helper.EmptyObj{})
+		response := helper.BuildErrorResponse(
+			"Failed to process request",
+			"INVALID_REQUEST",
+			"body",
+			err.Error(),
+			helper.EmptyObj{},
+		)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	businessTypeId := ctx.Param("businessTypeId")
-
 	id, err := strconv.Atoi(businessTypeId)
-	helper.ErrorPanic(err)
+	if err != nil {
+		response := helper.BuildErrorResponse(
+			"Invalid ID parameter",
+			"INVALID_ID",
+			"businessTypeId",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
 	businessTypeUpdate.Id = id
 
 	c.businessTypeService.UpdateBusinessType(businessTypeUpdate)
 
 	response := helper.BuildResponse(true, "!OK", nil)
 	ctx.JSON(http.StatusCreated, response)
-
 }
 
 func (c *businessTypeController) FindBusinessTypeAll(ctx *gin.Context) {
@@ -76,10 +95,19 @@ func (c *businessTypeController) FindBusinessTypeAll(ctx *gin.Context) {
 func (c *businessTypeController) FindBusinessTypeById(ctx *gin.Context) {
 	businessTypeId := ctx.Param("businessTypeId")
 	id, err := strconv.Atoi(businessTypeId)
-	helper.ErrorPanic(err)
+	if err != nil {
+		response := helper.BuildErrorResponse(
+			"Invalid ID parameter",
+			"INVALID_ID",
+			"businessTypeId",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
 
 	businessTypeResponse := c.businessTypeService.FindById(id)
-
 	response := helper.BuildResponse(true, "!OK", businessTypeResponse)
 	ctx.JSON(http.StatusOK, response)
 }
@@ -87,7 +115,17 @@ func (c *businessTypeController) FindBusinessTypeById(ctx *gin.Context) {
 func (c *businessTypeController) DeleteBusinessType(ctx *gin.Context) {
 	businessTypeId := ctx.Param("businessTypeId")
 	id, err := strconv.Atoi(businessTypeId)
-	helper.ErrorPanic(err)
+	if err != nil {
+		response := helper.BuildErrorResponse(
+			"Invalid ID parameter",
+			"INVALID_ID",
+			"businessTypeId",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
 
 	c.businessTypeService.Delete(id)
 

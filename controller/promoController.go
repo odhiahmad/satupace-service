@@ -31,13 +31,25 @@ func NewPromoController(promoService service.PromoService, jwtService service.JW
 func (c *promoController) Create(ctx *gin.Context) {
 	var input request.PromoCreate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid",
+			"BAD_REQUEST",
+			"body",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	res, err := c.promoService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat promo", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal membuat promo",
+			"CREATE_FAILED",
+			"promo",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -48,26 +60,48 @@ func (c *promoController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id wajib diisi", "missing id", helper.EmptyObj{}))
+			"Parameter id wajib diisi",
+			"MISSING_ID",
+			"id",
+			"id diperlukan",
+			nil,
+		))
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter id tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	var input request.PromoUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid",
+			"BAD_REQUEST",
+			"body",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	res, err := c.promoService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah promo", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah promo",
+			"UPDATE_FAILED",
+			"promo",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -77,13 +111,25 @@ func (c *promoController) Update(ctx *gin.Context) {
 func (c *promoController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	err = c.promoService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus promo", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal menghapus promo",
+			"DELETE_FAILED",
+			"promo",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -93,13 +139,25 @@ func (c *promoController) Delete(ctx *gin.Context) {
 func (c *promoController) FindById(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	res, err := c.promoService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Promo tidak ditemukan", err.Error(), nil))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse(
+			"Promo tidak ditemukan",
+			"NOT_FOUND",
+			"id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -110,18 +168,27 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "missing business_id", helper.EmptyObj{}))
+			"Parameter business_id wajib diisi",
+			"MISSING_BUSINESS_ID",
+			"business_id",
+			"business_id diperlukan",
+			nil,
+		))
 		return
 	}
 
 	businessID, err := strconv.Atoi(businessIDStr)
 	if err != nil || businessID <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter business_id tidak valid",
+			"INVALID_BUSINESS_ID",
+			"business_id",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Ambil dan parsing query parameter pagination
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sortBy", "created_at")
 	orderBy := ctx.DefaultQuery("orderBy", "desc")
@@ -130,11 +197,15 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", err.Error(), helper.EmptyObj{}))
+			"Parameter limit tidak valid",
+			"INVALID_LIMIT",
+			"limit",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Susun struct pagination
 	pagination := request.Pagination{
 		Limit:   limit,
 		SortBy:  sortBy,
@@ -142,24 +213,26 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	// Ambil data dari service
 	promos, total, err := c.promoService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data promo", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data promo",
+			"FETCH_FAILED",
+			"promo",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	// Susun metadata pagination
 	paginationMeta := response.PaginatedResponse{
-		Page:      pagination.Page, // kamu bisa isi Page = 1 jika tidak pakai offset-based
+		Page:      pagination.Page,
 		Limit:     pagination.Limit,
 		Total:     total,
 		OrderBy:   pagination.SortBy,
 		SortOrder: pagination.OrderBy,
 	}
 
-	// Kirim response
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Data promo berhasil diambil",
