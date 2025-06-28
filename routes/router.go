@@ -14,6 +14,7 @@ import (
 
 var (
 	// Initialize the validator
+	redisClient               *redis.Client                        = config.SetupRedisClient()
 	validate                  *validator.Validate                  = validator.New()
 	db                        *gorm.DB                             = config.SetupDatabaseConnection()
 	userRepository            repository.UserRepository            = repository.NewUserRepository(db)
@@ -29,7 +30,7 @@ var (
 	taxRepository             repository.TaxRepository             = repository.NewTaxRepository(db)
 	productPromoRepository    repository.ProductPromoRepository    = repository.NewProductPromoRepository(db)
 	discountRepository        repository.DiscountRepository        = repository.NewDiscountRepository(db)
-	productUnitRepository     repository.ProductUnitRepository     = repository.NewProductUnitRepository(db)
+	unitRepository            repository.UnitRepository            = repository.NewUnitRepository(db)
 	transactionRepository     repository.TransactionRepository     = repository.NewTransactionRepository(db)
 	promoRepository           repository.PromoRepository           = repository.NewPromoRepository(db)
 	businessBranchRepository  repository.BusinessBranchRepository  = repository.NewBusinessBranchRepository(db)
@@ -43,10 +44,10 @@ var (
 	paymentMethodService   service.PaymentMethodService   = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
 	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, validate)
-	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate, &redis.Client{})
+	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate, redisClient)
 	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
 	taxService             service.TaxService             = service.NewTaxService(taxRepository, validate)
-	productUnitService     service.ProductUnitService     = service.NewProductUnitService(productUnitRepository)
+	unitService            service.UnitService            = service.NewUnitService(unitRepository)
 	transactionService     service.TransactionService     = service.NewTransactionService(db, transactionRepository, validate)
 	promoService           service.PromoService           = service.NewPromoService(promoRepository, productPromoRepository, validate)
 	discountService        service.DiscountService        = service.NewDiscountService(discountRepository, validate)
@@ -64,7 +65,7 @@ var (
 	productController         controller.ProductController         = controller.NewProductController(productService, jwtService)
 	bundleController          controller.BundleController          = controller.NewBundleController(bundleService, jwtService)
 	taxController             controller.TaxController             = controller.NewTaxController(taxService, jwtService)
-	productUnitController     controller.ProductUnitController     = controller.NewProductUnitController(productUnitService, jwtService)
+	productUnitController     controller.UnitController            = controller.NewUnitController(unitService, jwtService)
 	transactionController     controller.TransactionController     = controller.NewTransactionController(transactionService, jwtService)
 	promoController           controller.PromoController           = controller.NewPromoController(promoService, jwtService)
 	discountController        controller.DiscountController        = controller.NewDiscountController(discountService, jwtService)

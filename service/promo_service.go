@@ -55,22 +55,6 @@ func (s *promoService) Create(req request.PromoCreate) (entity.Promo, error) {
 		return entity.Promo{}, err
 	}
 
-	// Simpan product promos jika bukan global
-	if !req.IsGlobal && len(req.ProductIds) > 0 {
-		var productPromos []entity.ProductPromo
-		for _, pid := range req.ProductIds {
-			productPromos = append(productPromos, entity.ProductPromo{
-				PromoId:     createdPromo.Id,
-				ProductId:   pid,
-				BusinessId:  req.BusinessId,
-				MinQuantity: req.MinQuantity,
-			})
-		}
-		if err := s.productPromoRepo.CreateMany(productPromos); err != nil {
-			return entity.Promo{}, err
-		}
-	}
-
 	// Simpan required products (many-to-many)
 	if len(req.RequiredProductIds) > 0 {
 		var requiredProducts []entity.Product
@@ -125,25 +109,6 @@ func (s *promoService) Update(id int, req request.PromoUpdate) (entity.Promo, er
 	// Ganti isi tabel relasi many2many: promo_required_products
 	if err := s.repo.ReplaceRequiredProducts(updatedPromo.Id, requiredProducts); err != nil {
 		return entity.Promo{}, err
-	}
-
-	// Hapus ProductPromo lama
-	_ = s.productPromoRepo.DeleteByPromoId(id)
-
-	// Simpan ulang ProductPromo jika bukan global
-	if !req.IsGlobal && len(req.ProductIds) > 0 {
-		var productPromos []entity.ProductPromo
-		for _, pid := range req.ProductIds {
-			productPromos = append(productPromos, entity.ProductPromo{
-				PromoId:     updatedPromo.Id,
-				ProductId:   pid,
-				BusinessId:  updatedPromo.BusinessId,
-				MinQuantity: req.MinQuantity,
-			})
-		}
-		if err := s.productPromoRepo.CreateMany(productPromos); err != nil {
-			return entity.Promo{}, err
-		}
 	}
 
 	return updatedPromo, nil

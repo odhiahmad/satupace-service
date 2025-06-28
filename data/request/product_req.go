@@ -58,14 +58,14 @@ type ProductPromoUpdate struct {
 	MinQuantity int `json:"min_quantity"`
 }
 
-type ProductUnitCreate struct {
+type UnitCreate struct {
 	BusinessId int     `json:"business_id" validate:"required"`
 	Name       string  `json:"name" validate:"required"`
 	Alias      string  `json:"alias"`
 	Multiplier float64 `json:"multiplier" validate:"required,gte=1"`
 }
 
-type ProductUnitUpdate struct {
+type UnitUpdate struct {
 	Id         int     `json:"id" validate:"required"`
 	BusinessId int     `json:"business_id" validate:"required"`
 	Name       string  `json:"name" validate:"required"`

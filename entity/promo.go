@@ -10,7 +10,7 @@ type Promo struct {
 	Description      string         `gorm:"type:text" json:"description"`
 	Type             string         `gorm:"type:varchar(20);not null" json:"type"` // "percentage", "fixed"
 	Amount           float64        `gorm:"not null" json:"amount"`
-	RequiredProducts []Product      `gorm:"many2many:promo_required_products;" json:"required_products"`
+	RequiredProducts []Product      `gorm:"many2many:promo_required_products;joinForeignKey:PromoId;joinReferences:ProductId"`
 	MinQuantity      int            `json:"min_quantity"`
 	ProductPromos    []ProductPromo `gorm:"foreignKey:PromoId" json:"product_promos"`
 	StartDate        time.Time      `gorm:"not null" json:"start_date"`

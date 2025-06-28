@@ -10,7 +10,6 @@ type PromoResponse struct {
 	Type          string                 `json:"type"` // "percentage", "fixed"
 	Amount        float64                `json:"amount"`
 	MinQuantity   int                    `json:"min_quantity"`
-	IsPercent     bool                   `json:"is_percent"`
 	IsGlobal      bool                   `json:"is_global"`
 	StartDate     time.Time              `json:"start_date"`
 	EndDate       time.Time              `json:"end_date"`

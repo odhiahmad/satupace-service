@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -89,62 +90,81 @@ func (s *productService) Create(req request.ProductCreate) error {
 		product.SKU = nil
 	}
 
-	if err := s.ProductRepo.Create(&product); err != nil {
-		return fmt.Errorf("gagal menyimpan produk: %w", err)
-	}
+	// Mulai transaksi
+	return s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
+		// Simpan product utama
+		if err := txRepo.Create(&product); err != nil {
+			return fmt.Errorf("gagal menyimpan produk: %w", err)
+		}
 
-	// Simpan variant
-	for _, v := range req.Variants {
-		var imageURL *string
-		if v.Image != nil && *v.Image != "" {
-			url, err := helper.UploadBase64ToCloudinary(*v.Image, "variant")
-			if err != nil {
-				return fmt.Errorf("gagal upload gambar variant '%s': %w", v.Name, err)
+		// Simpan variant dan promosinya
+		for _, v := range req.Variants {
+			var variantImageURL *string
+			if v.Image != nil && *v.Image != "" {
+				url, err := helper.UploadBase64ToCloudinary(*v.Image, "variant")
+				if err != nil {
+					return fmt.Errorf("gagal upload gambar variant '%s': %w", v.Name, err)
+				}
+				variantImageURL = &url
 			}
-			imageURL = &url
+
+			skuVariant := v.SKU
+			if skuVariant == "" {
+				skuVariant = helper.GenerateSKU(v.Name)
+			}
+
+			variant := entity.ProductVariant{
+				BusinessId:  req.BusinessId,
+				ProductId:   product.Id,
+				Name:        v.Name,
+				Image:       variantImageURL,
+				BasePrice:   v.BasePrice,
+				SKU:         skuVariant,
+				Stock:       v.Stock,
+				TaxId:       v.TaxId,
+				DiscountId:  v.DiscountId,
+				UnitId:      v.UnitId,
+				IsAvailable: true,
+				IsActive:    true,
+			}
+
+			if err := s.ProductVariantRepo.CreateWithTx(txRepo, &variant); err != nil {
+				return fmt.Errorf("gagal menyimpan variant '%s': %w", v.Name, err)
+			}
+
+			// Simpan relasi promo untuk variant
+			if len(v.PromoIds) > 0 {
+				var promos []entity.ProductPromo
+				for _, promoId := range v.PromoIds {
+					promos = append(promos, entity.ProductPromo{
+						BusinessId:       req.BusinessId,
+						ProductVariantId: &variant.Id,
+						PromoId:          promoId,
+					})
+				}
+				if err := s.ProductPromoRepo.CreateManyWithTx(txRepo, promos); err != nil {
+					return fmt.Errorf("gagal menyimpan relasi promo untuk variant '%s': %w", v.Name, err)
+				}
+			}
 		}
 
-		skuVariant := v.SKU
-		if skuVariant == "" {
-			skuVariant = helper.GenerateSKU(fmt.Sprintf("%s-%s", req.Name, v.Name))
+		// Simpan relasi promo untuk produk utama
+		if len(req.PromoIds) > 0 {
+			var promos []entity.ProductPromo
+			for _, promoId := range req.PromoIds {
+				promos = append(promos, entity.ProductPromo{
+					BusinessId: req.BusinessId,
+					ProductId:  &product.Id,
+					PromoId:    promoId,
+				})
+			}
+			if err := s.ProductPromoRepo.CreateManyWithTx(txRepo, promos); err != nil {
+				return fmt.Errorf("gagal menyimpan relasi promo untuk produk: %w", err)
+			}
 		}
 
-		variant := entity.ProductVariant{
-			BusinessId:  req.BusinessId,
-			ProductId:   product.Id,
-			Name:        v.Name,
-			Image:       imageURL,
-			BasePrice:   v.BasePrice,
-			SKU:         skuVariant,
-			Stock:       v.Stock,
-			TaxId:       v.TaxId,
-			DiscountId:  v.DiscountId,
-			UnitId:      v.UnitId,
-			IsAvailable: true,
-			IsActive:    true,
-		}
-
-		if err := s.ProductVariantRepo.Create(&variant); err != nil {
-			return fmt.Errorf("gagal menyimpan variant '%s': %w", v.Name, err)
-		}
-	}
-
-	// Simpan relasi promo
-	if len(req.PromoIds) > 0 {
-		var promos []entity.ProductPromo
-		for _, promoId := range req.PromoIds {
-			promos = append(promos, entity.ProductPromo{
-				BusinessId: req.BusinessId,
-				ProductId:  product.Id,
-				PromoId:    promoId,
-			})
-		}
-		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
-			return fmt.Errorf("gagal menyimpan relasi promo: %w", err)
-		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Product, error) {
@@ -155,6 +175,15 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return nil, err
+	}
+
+	var imageURL *string
+	if req.Image != nil && *req.Image != "" {
+		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
+		if err != nil {
+			return nil, fmt.Errorf("gagal upload gambar produk: %w", err)
+		}
+		imageURL = &url
 	}
 
 	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
@@ -170,7 +199,7 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 	product.ProductCategoryId = categoryId
 	product.Name = req.Name
 	product.Description = req.Description
-	product.Image = req.Image
+	product.Image = imageURL
 	product.HasVariant = hasVariants
 	product.IsAvailable = true
 	product.IsActive = true
@@ -194,17 +223,19 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 		return nil, err
 	}
 
+	_ = s.ProductPromoRepo.DeleteByProductId(product.Id)
+
 	if len(req.PromoIds) > 0 {
 		var promos []entity.ProductPromo
 		for _, promoId := range req.PromoIds {
 			promos = append(promos, entity.ProductPromo{
 				BusinessId: product.BusinessId,
-				ProductId:  product.Id,
+				ProductId:  &product.Id,
 				PromoId:    promoId,
 			})
 		}
 		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("gagal menyimpan relasi promo baru: %w", err)
 		}
 	}
 
@@ -217,16 +248,55 @@ func (s *productService) Delete(id int) error {
 	return s.ProductRepo.Delete(id)
 }
 
+func (s *productService) SetActive(id int, isActive bool) error {
+	return s.ProductRepo.SetActive(id, isActive)
+}
+
+func (s *productService) SetAvailable(id int, isAvailable bool) error {
+	return s.ProductRepo.SetAvailable(id, isAvailable)
+}
+
 func (s *productService) FindById(id int) (response.ProductResponse, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("product:%d", id)
+
+	// 🔍 Coba ambil dari cache Redis
+	if s.Redis != nil {
+		cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var cachedProduct response.ProductResponse
+			if err := json.Unmarshal([]byte(cachedData), &cachedProduct); err == nil {
+				log.Println("✅ Product found in Redis cache")
+				return cachedProduct, nil
+			}
+		}
+	}
+
+	// 🗄 Ambil dari DB jika tidak ditemukan atau gagal decode cache
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return response.ProductResponse{}, err
 	}
-	return mapProductToResponse(product), nil
+
+	res := mapProductToResponse(product)
+
+	// 💾 Simpan ke Redis
+	if s.Redis != nil {
+		if jsonData, err := json.Marshal(res); err == nil {
+			err = s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute).Err()
+			if err != nil {
+				log.Println("❗️ Failed to cache product:", err)
+			}
+		}
+	}
+
+	return res, nil
 }
 
 func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
 	ctx := context.Background()
+	pong, err := s.Redis.Ping(ctx).Result()
+	log.Println("🔗 Redis ping:", pong, err)
 	cacheKey := fmt.Sprintf(
 		"product:list:%d:%d:%d:%s:%s:%s",
 		businessId,
@@ -237,19 +307,21 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 		pagination.Search,
 	)
 
-	// Coba ambil dari cache
-	cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var cached struct {
-			Products []response.ProductResponse `json:"products"`
-			Total    int64                      `json:"total"`
-		}
-		if err := json.Unmarshal([]byte(cachedData), &cached); err == nil {
-			return cached.Products, cached.Total, nil
+	// Coba ambil dari cache Redis
+	if s.Redis != nil {
+		cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var cached struct {
+				Products []response.ProductResponse `json:"products"`
+				Total    int64                      `json:"total"`
+			}
+			if err := json.Unmarshal([]byte(cachedData), &cached); err == nil {
+				return cached.Products, cached.Total, nil
+			}
 		}
 	}
 
-	// Ambil dari DB
+	// Ambil dari DB jika tidak ada atau gagal cache
 	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -260,27 +332,21 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 		result = append(result, mapProductToResponse(product))
 	}
 
-	// Simpan ke cache
-	cacheBody := struct {
-		Products []response.ProductResponse `json:"products"`
-		Total    int64                      `json:"total"`
-	}{
-		Products: result,
-		Total:    total,
-	}
-	if jsonData, err := json.Marshal(cacheBody); err == nil {
-		s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
+	// Simpan ke cache Redis
+	if s.Redis != nil {
+		cacheBody := struct {
+			Products []response.ProductResponse `json:"products"`
+			Total    int64                      `json:"total"`
+		}{
+			Products: result,
+			Total:    total,
+		}
+		if jsonData, err := json.Marshal(cacheBody); err == nil {
+			s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
+		}
 	}
 
 	return result, total, nil
-}
-
-func (s *productService) SetActive(id int, isActive bool) error {
-	return s.ProductRepo.SetActive(id, isActive)
-}
-
-func (s *productService) SetAvailable(id int, isAvailable bool) error {
-	return s.ProductRepo.SetAvailable(id, isAvailable)
 }
 
 func mapProductToResponse(product entity.Product) response.ProductResponse {
@@ -297,10 +363,23 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 	var promos []response.ProductPromoResponse
 	for _, promo := range product.ProductPromos {
 		if promo.Promo.Id != 0 {
+			var requiredProducts []response.RequiredProductData
+			for _, p := range promo.Promo.RequiredProducts {
+				requiredProducts = append(requiredProducts, response.RequiredProductData{
+					Id:   p.Id,
+					Name: p.Name,
+				})
+			}
+
 			promos = append(promos, response.ProductPromoResponse{
-				PromoId:     promo.PromoId,
-				ProductId:   promo.ProductId,
-				MinQuantity: promo.MinQuantity,
+				Name:             promo.Promo.Name,
+				Description:      helper.StringPtr(promo.Promo.Description),
+				Amount:           promo.Promo.Amount,
+				Type:             promo.Promo.Type,
+				MinQuantity:      promo.Promo.MinQuantity,
+				StartDate:        promo.Promo.StartDate,
+				EndDate:          promo.Promo.EndDate,
+				RequiredProducts: requiredProducts,
 			})
 		}
 	}
@@ -348,9 +427,9 @@ func mapProductToResponse(product entity.Product) response.ProductResponse {
 		Name:            product.Name,
 		Description:     product.Description,
 		Image:           product.Image,
-		BasePrice:       *product.BasePrice,
-		SKU:             *product.SKU,
-		Stock:           *product.Stock,
+		BasePrice:       helper.Float64OrDefault(product.BasePrice, 0.0),
+		SKU:             helper.StringOrDefault(product.SKU, ""),
+		Stock:           helper.IntOrDefault(product.Stock, 1),
 		IsAvailable:     product.IsAvailable,
 		IsActive:        product.IsActive,
 		HasVariant:      product.HasVariant,

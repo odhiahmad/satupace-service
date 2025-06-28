@@ -8,7 +8,7 @@ import (
 )
 
 type ProductPromoService interface {
-	CreateMany(productId int, businessId int, promos []request.ProductPromoCreate) error
+	CreateMany(productId int, productVariantId int, businessId int, promos []request.ProductPromoCreate) error
 	DeleteByProductId(productId int) error
 }
 
@@ -24,7 +24,7 @@ func NewProductPromoService(repo repository.ProductPromoRepository) ProductPromo
 	}
 }
 
-func (s *productPromoService) CreateMany(productId int, businessId int, promos []request.ProductPromoCreate) error {
+func (s *productPromoService) CreateMany(productId int, productVariantId int, businessId int, promos []request.ProductPromoCreate) error {
 	var productPromos []entity.ProductPromo
 
 	for _, p := range promos {
@@ -32,10 +32,11 @@ func (s *productPromoService) CreateMany(productId int, businessId int, promos [
 			return err
 		}
 		productPromos = append(productPromos, entity.ProductPromo{
-			ProductId:   productId,
-			PromoId:     p.PromoId,
-			BusinessId:  businessId,
-			MinQuantity: p.MinQuantity,
+			ProductId:        &productId,
+			ProductVariantId: &productVariantId,
+			PromoId:          p.PromoId,
+			BusinessId:       businessId,
+			MinQuantity:      p.MinQuantity,
 		})
 	}
 

@@ -9,68 +9,68 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductUnitRepository interface {
-	Create(productUnit entity.ProductUnit) (entity.ProductUnit, error)
-	Update(productUnit entity.ProductUnit) (entity.ProductUnit, error)
+type UnitRepository interface {
+	Create(unit entity.Unit) (entity.Unit, error)
+	Update(unit entity.Unit) (entity.Unit, error)
 	Delete(id int) error
-	FindById(id int) (entity.ProductUnit, error)
-	FindActiveGlobalProductUnit(businessId int, now time.Time) (*entity.ProductUnit, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.ProductUnit, int64, error)
+	FindById(id int) (entity.Unit, error)
+	FindActiveGlobalUnit(businessId int, now time.Time) (*entity.Unit, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
 }
 
-type productUnitRepo struct {
+type unitRepo struct {
 	db *gorm.DB
 }
 
-func NewProductUnitRepository(db *gorm.DB) ProductUnitRepository {
-	return &productUnitRepo{db: db}
+func NewUnitRepository(db *gorm.DB) UnitRepository {
+	return &unitRepo{db: db}
 }
 
-func (r *productUnitRepo) Create(productUnit entity.ProductUnit) (entity.ProductUnit, error) {
-	err := r.db.Create(&productUnit).Error
-	return productUnit, err
+func (r *unitRepo) Create(unit entity.Unit) (entity.Unit, error) {
+	err := r.db.Create(&unit).Error
+	return unit, err
 }
 
-func (r *productUnitRepo) Update(productUnit entity.ProductUnit) (entity.ProductUnit, error) {
-	err := r.db.Save(&productUnit).Error
-	return productUnit, err
+func (r *unitRepo) Update(unit entity.Unit) (entity.Unit, error) {
+	err := r.db.Save(&unit).Error
+	return unit, err
 }
 
-func (r *productUnitRepo) Delete(id int) error {
-	return r.db.Delete(&entity.ProductUnit{}, id).Error
+func (r *unitRepo) Delete(id int) error {
+	return r.db.Delete(&entity.Unit{}, id).Error
 }
 
-func (r *productUnitRepo) FindById(id int) (entity.ProductUnit, error) {
-	var productUnit entity.ProductUnit
-	err := r.db.Preload("Products").First(&productUnit, id).Error
-	return productUnit, err
+func (r *unitRepo) FindById(id int) (entity.Unit, error) {
+	var unit entity.Unit
+	err := r.db.Preload("Products").First(&unit, id).Error
+	return unit, err
 }
 
-func (r *productUnitRepo) FindByBusinessId(businessId int) ([]entity.ProductUnit, error) {
-	var productUnits []entity.ProductUnit
-	err := r.db.Where("business_id = ?", businessId).Preload("Products").Find(&productUnits).Error
-	return productUnits, err
+func (r *unitRepo) FindByBusinessId(businessId int) ([]entity.Unit, error) {
+	var units []entity.Unit
+	err := r.db.Where("business_id = ?", businessId).Preload("Products").Find(&units).Error
+	return units, err
 }
 
-func (r *productUnitRepo) FindActiveGlobalProductUnit(businessId int, now time.Time) (*entity.ProductUnit, error) {
-	var productUnit entity.ProductUnit
+func (r *unitRepo) FindActiveGlobalUnit(businessId int, now time.Time) (*entity.Unit, error) {
+	var unit entity.Unit
 	err := r.db.
 		Where("business_id = ? AND is_global = ? AND start_at <= ? AND end_at >= ?", businessId, true, now, now).
 		Order("start_at DESC").
-		First(&productUnit).Error
+		First(&unit).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return &productUnit, nil
+	return &unit, nil
 }
 
-func (r *productUnitRepo) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.ProductUnit, int64, error) {
-	var productUnits []entity.ProductUnit
+func (r *unitRepo) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error) {
+	var units []entity.Unit
 	var total int64
 
 	// Base query dengan preload relasi
-	baseQuery := r.db.Model(&entity.ProductUnit{}).
+	baseQuery := r.db.Model(&entity.Unit{}).
 		Where("business_id = ?", businessId).
 		Preload("Products")
 
@@ -89,10 +89,10 @@ func (r *productUnitRepo) FindWithPagination(businessId int, pagination request.
 	p := helper.Paginate(pagination)
 
 	// Jalankan paginasi
-	_, _, err := p.Paginate(baseQuery, &productUnits)
+	_, _, err := p.Paginate(baseQuery, &units)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return productUnits, total, nil
+	return units, total, nil
 }

@@ -16,10 +16,15 @@ type ProductRepository interface {
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
 	SetHasVariant(productId int, hasVariant bool) error
+	WithTransaction(fn func(r ProductRepository) error) error
 }
 
 type productRepository struct {
 	db *gorm.DB
+}
+
+func (r *productRepository) DB() *gorm.DB {
+	return r.db
 }
 
 func NewProductRepository(db *gorm.DB) ProductRepository {
@@ -40,14 +45,18 @@ func (r *productRepository) Delete(id int) error {
 	result := r.db.Where("id = ?", id).Delete(&product)
 	return result.Error
 }
+
 func (r *productRepository) FindById(id int) (entity.Product, error) {
 	var product entity.Product
 	err := r.db.
 		Preload("Variants").
+		Preload("ProductCategory").
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
+		Preload("ProductPromos").
 		Preload("ProductPromos.Promo").
+		Preload("ProductPromos.Promo.RequiredProducts").
 		First(&product, id).Error
 	return product, err
 }
@@ -57,8 +66,16 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Product{}).Preload("Variants").Preload("ProductCategory").Preload("Tax").Preload("Discount").
-		Preload("Unit").Where("business_id = ?", businessId)
+	baseQuery := r.db.Model(&entity.Product{}).
+		Preload("Variants").
+		Preload("ProductCategory").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
+		Preload("ProductPromos").
+		Preload("ProductPromos.Promo").
+		Preload("ProductPromos.Promo.RequiredProducts").
+		Where("business_id = ?", businessId)
 
 	// Search filter
 	if pagination.Search != "" {
@@ -99,4 +116,11 @@ func (r *productRepository) SetHasVariant(productId int, hasVariant bool) error 
 	return r.db.Model(&entity.Product{}).
 		Where("id = ?", productId).
 		Update("has_variant", hasVariant).Error
+}
+
+func (r *productRepository) WithTransaction(fn func(r ProductRepository) error) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		txRepo := &productRepository{db: tx}
+		return fn(txRepo)
+	})
 }

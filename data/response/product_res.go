@@ -1,5 +1,7 @@
 package response
 
+import "time"
+
 type ProductResponse struct {
 	Id              int                      `json:"id"`
 	Name            string                   `json:"nama"`
@@ -27,10 +29,20 @@ type ProductCategoryResponse struct {
 }
 
 type ProductPromoResponse struct {
-	ProductId   int    `json:"product_id"`
-	ProductName string `json:"product_name"` // optional, untuk tampilkan nama
-	PromoId     int    `json:"promo_id"`
-	MinQuantity int    `json:"min_quantity"`
+	Name             string                `json:"promo_name"`
+	Description      *string               `json:"promo_description,omitempty"`
+	Amount           float64               `json:"promo_amount"`
+	Type             string                `json:"promo_type"`
+	MinQuantity      int                   `json:"promo_min_quantity"`
+	IsGlobal         bool                  `json:"promo_is_global"`
+	StartDate        time.Time             `json:"promo_start_date"`
+	EndDate          time.Time             `json:"promo_end_date"`
+	RequiredProducts []RequiredProductData `json:"required_products"`
+}
+
+type RequiredProductData struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type ProductUnitResponse struct {

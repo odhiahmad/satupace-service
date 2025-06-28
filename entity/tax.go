@@ -11,7 +11,6 @@ type Tax struct {
 	Amount     float64   `gorm:"not null" json:"amount"`
 	IsGlobal   bool      `gorm:"default:false" json:"is_global"` // true = untuk semua produk
 	IsActive   bool      `gorm:"default:true" json:"is_active"`
-	Products   []Product `gorm:"many2many:tax_relations;" json:"products"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

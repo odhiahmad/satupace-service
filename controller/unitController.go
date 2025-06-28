@@ -11,7 +11,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/service"
 )
 
-type ProductUnitController interface {
+type UnitController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	Delete(ctx *gin.Context)
@@ -19,17 +19,17 @@ type ProductUnitController interface {
 	FindWithPagination(ctx *gin.Context)
 }
 
-type productUnitController struct {
-	service    service.ProductUnitService
+type unitController struct {
+	service    service.UnitService
 	jwtService service.JWTService
 }
 
-func NewProductUnitController(s service.ProductUnitService, jwtService service.JWTService) ProductUnitController {
-	return &productUnitController{service: s, jwtService: jwtService}
+func NewUnitController(s service.UnitService, jwtService service.JWTService) UnitController {
+	return &unitController{service: s, jwtService: jwtService}
 }
 
-func (c *productUnitController) Create(ctx *gin.Context) {
-	var input request.ProductUnitCreate
+func (c *unitController) Create(ctx *gin.Context) {
+	var input request.UnitCreate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
@@ -46,8 +46,8 @@ func (c *productUnitController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat satuan produk", res))
 }
 
-func (c *productUnitController) Update(ctx *gin.Context) {
-	var input request.ProductUnitUpdate
+func (c *unitController) Update(ctx *gin.Context) {
+	var input request.UnitUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
@@ -64,7 +64,7 @@ func (c *productUnitController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah satuan produk", res))
 }
 
-func (c *productUnitController) Delete(ctx *gin.Context) {
+func (c *unitController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -82,7 +82,7 @@ func (c *productUnitController) Delete(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus satuan produk", helper.EmptyObj{}))
 }
 
-func (c *productUnitController) FindById(ctx *gin.Context) {
+func (c *unitController) FindById(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -100,7 +100,7 @@ func (c *productUnitController) FindById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil satuan produk", res))
 }
 
-func (c *productUnitController) FindWithPagination(ctx *gin.Context) {
+func (c *unitController) FindWithPagination(ctx *gin.Context) {
 	businessIDStr := ctx.Query("business_id")
 	if businessIDStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -143,7 +143,7 @@ func (c *productUnitController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	productUnits, total, err := c.service.FindWithPagination(businessID, pagination)
+	units, total, err := c.service.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengambil data satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
@@ -161,7 +161,7 @@ func (c *productUnitController) FindWithPagination(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
 		"Berhasil mengambil data satuan produk",
-		productUnits,
+		units,
 		paginationMeta,
 	))
 }

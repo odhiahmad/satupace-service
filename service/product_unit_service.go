@@ -7,47 +7,47 @@ import (
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
-type ProductUnitService interface {
-	Create(req request.ProductUnitCreate) (entity.ProductUnit, error)
-	Update(req request.ProductUnitUpdate) (entity.ProductUnit, error)
+type UnitService interface {
+	Create(req request.UnitCreate) (entity.Unit, error)
+	Update(req request.UnitUpdate) (entity.Unit, error)
 	Delete(id int) error
-	FindById(id int) (entity.ProductUnit, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.ProductUnit, int64, error)
+	FindById(id int) (entity.Unit, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
 }
 
-type productUnitService struct {
-	repo     repository.ProductUnitRepository
+type unitService struct {
+	repo     repository.UnitRepository
 	validate *validator.Validate
 }
 
-func NewProductUnitService(repo repository.ProductUnitRepository) ProductUnitService {
-	return &productUnitService{
+func NewUnitService(repo repository.UnitRepository) UnitService {
+	return &unitService{
 		repo:     repo,
 		validate: validator.New(),
 	}
 }
 
-func (s *productUnitService) Create(req request.ProductUnitCreate) (entity.ProductUnit, error) {
+func (s *unitService) Create(req request.UnitCreate) (entity.Unit, error) {
 	if err := s.validate.Struct(req); err != nil {
-		return entity.ProductUnit{}, err
+		return entity.Unit{}, err
 	}
 
-	productUnit := entity.ProductUnit{
+	unit := entity.Unit{
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
 		Alias:      req.Alias,
 		Multiplier: req.Multiplier,
 	}
 
-	return s.repo.Create(productUnit)
+	return s.repo.Create(unit)
 }
 
-func (s *productUnitService) Update(req request.ProductUnitUpdate) (entity.ProductUnit, error) {
+func (s *unitService) Update(req request.UnitUpdate) (entity.Unit, error) {
 	if err := s.validate.Struct(req); err != nil {
-		return entity.ProductUnit{}, err
+		return entity.Unit{}, err
 	}
 
-	productUnit := entity.ProductUnit{
+	unit := entity.Unit{
 		Id:         req.Id,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
@@ -55,17 +55,17 @@ func (s *productUnitService) Update(req request.ProductUnitUpdate) (entity.Produ
 		Multiplier: req.Multiplier,
 	}
 
-	return s.repo.Update(productUnit)
+	return s.repo.Update(unit)
 }
 
-func (s *productUnitService) Delete(id int) error {
+func (s *unitService) Delete(id int) error {
 	return s.repo.Delete(id)
 }
 
-func (s *productUnitService) FindById(id int) (entity.ProductUnit, error) {
+func (s *unitService) FindById(id int) (entity.Unit, error) {
 	return s.repo.FindById(id)
 }
 
-func (s *productUnitService) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.ProductUnit, int64, error) {
+func (s *unitService) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error) {
 	return s.repo.FindWithPagination(businessId, pagination)
 }

@@ -19,8 +19,8 @@ type ProductVariant struct {
 	TaxId         *int           `gorm:"index" json:"tax_id"`
 	Tax           *Tax           `gorm:"foreignKey:TaxId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"tax"`
 	UnitId        *int           `gorm:"index" json:"unit_id"`
-	Unit          *ProductUnit   `gorm:"foreignKey:UnitId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"unit"`
-	ProductPromos []ProductPromo `gorm:"foreignKey:ProductId" json:"product_promos"`
+	Unit          *Unit          `gorm:"foreignKey:UnitId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"unit"`
+	ProductPromos []ProductPromo `gorm:"foreignKey:ProductVariantId" json:"product_promos"`
 	IsAvailable   bool           `gorm:"default:true" json:"is_available"`
 	IsActive      bool           `gorm:"default:true" json:"is_active"`
 	CreatedAt     time.Time      `json:"created_at"`

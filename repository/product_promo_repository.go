@@ -11,6 +11,7 @@ type ProductPromoRepository interface {
 	DeleteByPromoId(promoId int) error
 	FindByProductId(productId int) ([]entity.ProductPromo, error)
 	FindByPromoId(promoId int) ([]entity.ProductPromo, error)
+	CreateManyWithTx(txRepo ProductRepository, promos []entity.ProductPromo) error
 }
 
 type productPromoRepository struct {
@@ -43,4 +44,9 @@ func (r *productPromoRepository) FindByPromoId(promoId int) ([]entity.ProductPro
 	var result []entity.ProductPromo
 	err := r.db.Preload("Product").Where("promo_id = ?", promoId).Find(&result).Error
 	return result, err
+}
+
+func (r *productPromoRepository) CreateManyWithTx(txRepo ProductRepository, promos []entity.ProductPromo) error {
+	tx := txRepo.(*productRepository).DB()
+	return tx.Create(&promos).Error
 }

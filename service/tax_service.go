@@ -43,13 +43,6 @@ func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
 		IsGlobal:   req.IsGlobal,
 	}
 
-	// jika bukan global dan ada produk terkait
-	if !req.IsGlobal && len(req.ProductIds) > 0 {
-		for _, pid := range req.ProductIds {
-			tax.Products = append(tax.Products, entity.Product{Id: pid})
-		}
-	}
-
 	return s.repo.Create(tax)
 }
 
@@ -66,12 +59,6 @@ func (s *taxService) Update(id int, req request.TaxUpdate) (entity.Tax, error) {
 		Type:     typeVal,
 		Amount:   req.Amount,
 		IsGlobal: req.IsGlobal,
-	}
-
-	if !req.IsGlobal && len(req.ProductIds) > 0 {
-		for _, pid := range req.ProductIds {
-			tax.Products = append(tax.Products, entity.Product{Id: pid})
-		}
 	}
 
 	return s.repo.Update(tax)
