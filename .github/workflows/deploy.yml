@@ -15,7 +15,7 @@ jobs:
       - name: Connect & deploy via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: 202.10.44.218
+          host: ${{ secrets.VM_HOST }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
@@ -24,5 +24,5 @@ jobs:
             # Install dependency Golang
             go mod tidy
             # Build ulang
-            go build -o app main.go
+            go build -o kasirku main.go
             pm2 restart kasirku-service || pm2 start ./kasirku --name kasirku-service

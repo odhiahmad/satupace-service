@@ -42,22 +42,30 @@ func (s *productService) Create(req request.ProductCreate) error {
 		return err
 	}
 
+	// Upload image base64 jika ada
+	var imageURL *string
+	if *req.Image != "" {
+		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
+		if err != nil {
+			return err
+		}
+		imageURL = &url
+	}
+
 	categoryId := helper.IntOrDefault(req.ProductCategoryId, 0)
 	basePrice := helper.Float64OrDefault(req.BasePrice, 0.0)
 	stock := helper.IntOrDefault(req.Stock, 0)
 	sku := helper.StringOrDefault(req.SKU, "")
-
 	if sku == "" {
 		sku = helper.GenerateSKU(req.Name)
 	}
 
-	// Siapkan entity produk dasar
 	product := entity.Product{
 		BusinessId:        req.BusinessId,
 		ProductCategoryId: categoryId,
 		Name:              req.Name,
 		Description:       req.Description,
-		Image:             req.Image,
+		Image:             imageURL,
 		BasePrice:         basePrice,
 		SKU:               helper.StringPtr(sku),
 		Stock:             stock,
@@ -66,20 +74,27 @@ func (s *productService) Create(req request.ProductCreate) error {
 		IsActive:          true,
 	}
 
-	// Jika memiliki variant, basePrice & stock diset 0 di produk induk
-	if len(req.Variants) > 0 {
+	if product.HasVariant {
 		product.BasePrice = 0
 		product.Stock = 0
-		product.SKU = helper.StringPtr("") // opsional: kosongkan SKU induk jika hanya varian yang dijual
+		product.SKU = nil
 	}
 
-	// Simpan produk
 	if err := s.ProductRepo.Create(&product); err != nil {
 		return err
 	}
 
-	// Simpan varian jika ada
+	// Simpan variant
 	for _, v := range req.Variants {
+		var imageURL string
+		if *v.Image != "" {
+			url, err := helper.UploadBase64ToCloudinary(*v.Image, "variant")
+			if err != nil {
+				return err
+			}
+			imageURL = url
+		}
+
 		skuVariant := v.SKU
 		if skuVariant == "" {
 			skuVariant = helper.GenerateSKU(fmt.Sprintf("%s-%s", req.Name, v.Name))
@@ -89,7 +104,7 @@ func (s *productService) Create(req request.ProductCreate) error {
 			BusinessId:  req.BusinessId,
 			ProductId:   product.Id,
 			Name:        v.Name,
-			Image:       v.Image,
+			Image:       helper.StringPtr(imageURL),
 			BasePrice:   v.BasePrice,
 			SKU:         skuVariant,
 			Stock:       v.Stock,
@@ -102,18 +117,17 @@ func (s *productService) Create(req request.ProductCreate) error {
 		}
 	}
 
-	// Simpan relasi promo jika ada
+	// Simpan relasi promo
 	if len(req.PromoIds) > 0 {
-		var productPromos []entity.ProductPromo
+		var promos []entity.ProductPromo
 		for _, promoId := range req.PromoIds {
-			productPromos = append(productPromos, entity.ProductPromo{
+			promos = append(promos, entity.ProductPromo{
 				BusinessId: req.BusinessId,
 				ProductId:  product.Id,
 				PromoId:    promoId,
 			})
 		}
-
-		if err := s.ProductPromoRepo.CreateMany(productPromos); err != nil {
+		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
 			return err
 		}
 	}
