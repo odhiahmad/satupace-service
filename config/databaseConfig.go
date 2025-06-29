@@ -13,8 +13,12 @@ import (
 
 // SetupDatabaseConnection menginisialisasi koneksi ke database PostgreSQL.
 func SetupDatabaseConnection() *gorm.DB {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Peringatan: .env file tidak ditemukan, menggunakan env bawaan sistem.")
+	appEnv := os.Getenv("APP_ENV") // development | release | staging
+
+	if appEnv != "release" {
+		if err := godotenv.Load(); err != nil {
+			log.Println("Peringatan: .env file tidak ditemukan, menggunakan env bawaan sistem.")
+		}
 	}
 
 	dbUser := os.Getenv("DB_USER")
@@ -25,7 +29,7 @@ func SetupDatabaseConnection() *gorm.DB {
 
 	// Validasi env
 	if dbUser == "" || dbPass == "" || dbHost == "" || dbName == "" || dbPort == "" {
-		log.Fatal("Environment variable database tidak lengkap")
+		log.Fatal("❌ Environment variable database tidak lengkap")
 	}
 
 	// Format DSN
@@ -34,13 +38,12 @@ func SetupDatabaseConnection() *gorm.DB {
 		dbHost, dbUser, dbPass, dbName, dbPort,
 	)
 
-	// Buka koneksi DB
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Gagal terhubung ke database: %v", err)
+		log.Fatalf("❌ Gagal terhubung ke database: %v", err)
 	}
 
-	// ENUM PostgreSQL manual
+	// ENUM setup, bisa kamu pindahkan ke migration terpisah jika production
 	if err := db.Exec(`
 		DO $$
 		BEGIN
@@ -49,36 +52,40 @@ func SetupDatabaseConnection() *gorm.DB {
 			END IF;
 		END$$;
 	`).Error; err != nil {
-		log.Fatalf("Gagal membuat ENUM 'discount_type': %v", err)
+		log.Fatalf("❌ Gagal membuat ENUM 'discount_type': %v", err)
 	}
 
-	// AutoMigrate seluruh entitas
-	if err := db.AutoMigrate(
-		&entity.UserBusiness{},
-		&entity.User{},
-		&entity.Business{},
-		&entity.BusinessBranch{},
-		&entity.BusinessType{},
-		&entity.Role{},
-		&entity.Customer{},
-		&entity.Product{},
-		&entity.ProductAttribute{},
-		&entity.ProductVariant{},
-		&entity.ProductCategory{},
-		&entity.Transaction{},
-		&entity.TransactionItem{},
-		&entity.TransactionItemAttribute{},
-		&entity.PaymentMethod{},
-		&entity.Bundle{},
-		&entity.BundleItem{},
-		&entity.Tax{},
-		&entity.Unit{},
-		&entity.ProductPromo{},
-		&entity.Promo{},
-		&entity.Discount{},
-		&entity.PromoRequiredProduct{},
-	); err != nil {
-		log.Fatalf("AutoMigrate gagal: %v", err)
+	// AutoMigrate hanya saat development (opsional)
+	if appEnv != "release" {
+		if err := db.AutoMigrate(
+			&entity.UserBusiness{},
+			&entity.User{},
+			&entity.Business{},
+			&entity.BusinessBranch{},
+			&entity.BusinessType{},
+			&entity.Role{},
+			&entity.Customer{},
+			&entity.Product{},
+			&entity.ProductAttribute{},
+			&entity.ProductVariant{},
+			&entity.ProductCategory{},
+			&entity.Transaction{},
+			&entity.TransactionItem{},
+			&entity.TransactionItemAttribute{},
+			&entity.PaymentMethod{},
+			&entity.Bundle{},
+			&entity.BundleItem{},
+			&entity.Tax{},
+			&entity.Unit{},
+			&entity.ProductPromo{},
+			&entity.Promo{},
+			&entity.Discount{},
+			&entity.PromoRequiredProduct{},
+		); err != nil {
+			log.Fatalf("❌ AutoMigrate gagal: %v", err)
+		}
+	} else {
+		log.Println("ℹ️ Production mode terdeteksi, AutoMigrate dilewati.")
 	}
 
 	return db

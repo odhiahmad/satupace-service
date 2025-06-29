@@ -2,5 +2,5 @@ package response
 
 type RoleResponse struct {
 	Id   int    `json:"id"`
-	Nama string `json:"nama"`
+	Name string `json:"name"`
 }

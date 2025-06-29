@@ -99,7 +99,5 @@ func MapToBusinessBranchResponse(branch entity.BusinessBranch) response.Business
 		PostalCode:  helper.StringValue(branch.PostalCode),
 		IsMain:      branch.IsMain,
 		IsActive:    branch.IsActive,
-		CreatedAt:   branch.CreatedAt,
-		UpdatedAt:   branch.UpdatedAt,
 	}
 }

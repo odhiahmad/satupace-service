@@ -87,9 +87,7 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 		return
 	}
 
-	token := c.jwtService.GenerateToken(user.Id)
-	user.Token = token
-
+	// Tidak perlu generate token lagi, sudah di dalam service
 	response := helper.BuildResponse(true, "Berhasil login", user)
 	ctx.JSON(http.StatusOK, response)
 }

@@ -1,7 +1,5 @@
 package response
 
-import "time"
-
 type TransactionItemAttributeResponse struct {
 	Id                 int     `json:"id"`
 	ProductAttributeId int     `json:"product_attribute_id"`
@@ -38,6 +36,4 @@ type TransactionResponse struct {
 	Notes           *string                   `json:"notes"`
 	AmountReceived  *float64                  `json:"amount_received"`
 	Change          *float64                  `json:"change"`
-	CreatedAt       time.Time                 `json:"created_at"`
-	UpdatedAt       time.Time                 `json:"updated_at"`
 }

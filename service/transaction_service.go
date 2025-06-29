@@ -233,7 +233,5 @@ func ToTransactionResponse(trx entity.Transaction) response.TransactionResponse 
 		Notes:           trx.Notes,
 		AmountReceived:  trx.AmountReceived,
 		Change:          trx.Change,
-		CreatedAt:       trx.CreatedAt,
-		UpdatedAt:       trx.UpdatedAt,
 	}
 }

@@ -37,7 +37,7 @@ var (
 	businessRepository        repository.BusinessRepository        = repository.NewBusinessRepository(db)
 
 	jwtService             service.JWTService             = service.NewJwtService()
-	authService            service.AuthService            = service.NewAuthService(userRepository, userBusinessRepository)
+	authService            service.AuthService            = service.NewAuthService(userRepository, userBusinessRepository, jwtService)
 	userService            service.UserService            = service.NewUserService(userRepository, validate)
 	roleService            service.RoleService            = service.NewRoleService(roleRepository, validate)
 	businessTypeService    service.BusinessTypeService    = service.NewBusinessTypeService(businessTypeRepository, validate)

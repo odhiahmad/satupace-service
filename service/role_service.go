@@ -58,7 +58,7 @@ func (service *RoleRepository) FindById(roleId int) response.RoleResponse {
 
 	tagResponse := response.RoleResponse{
 		Id:   roleData.Id,
-		Nama: roleData.Name,
+		Name: roleData.Name,
 	}
 	return tagResponse
 }
@@ -70,7 +70,7 @@ func (t *RoleRepository) FindAll() []response.RoleResponse {
 	for _, value := range result {
 		tag := response.RoleResponse{
 			Id:   value.Id,
-			Nama: value.Name,
+			Name: value.Name,
 		}
 		tags = append(tags, tag)
 	}

@@ -116,8 +116,6 @@ func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
 			PostalCode:  helper.StringValue(branch.PostalCode),
 			IsMain:      branch.IsMain,
 			IsActive:    branch.IsActive,
-			CreatedAt:   branch.CreatedAt,
-			UpdatedAt:   branch.UpdatedAt,
 		})
 	}
 
@@ -129,7 +127,5 @@ func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
 		Image:          b.Image,
 		IsActive:       b.IsActive,
 		Branches:       branches,
-		CreatedAt:      b.CreatedAt,
-		UpdatedAt:      b.UpdatedAt,
 	}
 }
