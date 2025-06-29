@@ -29,14 +29,11 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-func redirectHTTP(w http.ResponseWriter, req *http.Request) {
-	http.Redirect(w, req, "https://"+req.Host+req.URL.String(), http.StatusMovedPermanently)
-}
-
 func main() {
-	// Load .env jika ada
+	// Load .env file
 	_ = godotenv.Load(".env")
 
+	// Get environment variables
 	mode := os.Getenv("GIN_MODE")
 	if mode == "" {
 		mode = "release"
@@ -50,56 +47,31 @@ func main() {
 	// Set Gin mode
 	if mode == "debug" {
 		gin.SetMode(gin.DebugMode)
+		log.Println("🛠 GIN_MODE=debug")
 	} else {
 		gin.SetMode(gin.ReleaseMode)
+		log.Println("🚀 GIN_MODE=release")
 	}
 
-	// Setup router
+	// Setup router and middleware
 	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
 
-	// Debug mode (HTTP)
-	if mode == "debug" {
-		server := &http.Server{
-			Addr:    ":" + port,
-			Handler: r,
-		}
-
-		go func() {
-			log.Printf("🚀 Server running in DEBUG mode on port %s\n", port)
-			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("❌ Failed to start debug server: %v", err)
-			}
-		}()
-
-		// Wait for interrupt (graceful shutdown)
-		gracefulShutdown(server)
-		return
-	}
-
-	// Release mode (HTTPS)
-	go func() {
-		// Redirect HTTP to HTTPS
-		log.Println("🌐 Redirect HTTP (80) → HTTPS (443)")
-		if err := http.ListenAndServe(":80", http.HandlerFunc(redirectHTTP)); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Failed to start redirect server: %v", err)
-		}
-	}()
-
-	// Jalankan server HTTPS
+	// Setup HTTP server
 	server := &http.Server{
-		Addr:    ":443",
+		Addr:    ":" + port,
 		Handler: r,
 	}
 
+	// Start server
 	go func() {
-		log.Println("🌐 Running HTTP server on port 80")
+		log.Printf("✅ Server running on port %s...\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Failed to start HTTP server: %v", err)
+			log.Fatalf("❌ Failed to start server: %v", err)
 		}
 	}()
 
-	// Graceful shutdown untuk release juga
+	// Wait for interrupt signal
 	gracefulShutdown(server)
 }
 
