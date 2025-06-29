@@ -74,21 +74,22 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 		return
 	}
 
-	authResult := c.authService.VerifyCredentialBusiness(loginDTO.Identifier, loginDTO.Password)
-	if user, ok := authResult.(entity.UserBusiness); ok {
-		token := c.jwtService.GenerateToken(user.Id)
-		user.Token = token
-		response := helper.BuildResponse(true, "Berhasil login", user)
-		ctx.JSON(http.StatusOK, response)
+	user, err := c.authService.VerifyCredentialBusiness(loginDTO.Identifier, loginDTO.Password)
+	if err != nil {
+		response := helper.BuildErrorResponse(
+			"Login gagal",
+			"AUTH_INVALID_CREDENTIALS",
+			"identifier",
+			"Email/Nomor HP atau password tidak valid",
+			nil,
+		)
+		ctx.JSON(http.StatusUnauthorized, response)
 		return
 	}
 
-	response := helper.BuildErrorResponse(
-		"Login gagal",
-		"AUTH_INVALID_CREDENTIALS",
-		"identifier",
-		"Email/Nomor HP atau password tidak valid",
-		nil,
-	)
-	ctx.JSON(http.StatusUnauthorized, response)
+	token := c.jwtService.GenerateToken(user.Id)
+	user.Token = token
+
+	response := helper.BuildResponse(true, "Berhasil login", user)
+	ctx.JSON(http.StatusOK, response)
 }

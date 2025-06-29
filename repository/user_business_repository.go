@@ -80,12 +80,18 @@ func (t *UserBusinessConnection) VerifyCredentialBusiness(email string, password
 
 func (t *UserBusinessConnection) FindByEmailOrPhone(identifier string) (entity.UserBusiness, error) {
 	var user entity.UserBusiness
-	res := t.Db.Where("email = ? OR phone_number = ?", identifier, identifier).
-		Preload("Role").Preload("Business.BusinessType").
-		First(&user)
 
-	if res.Error != nil {
-		return user, res.Error
+	err := t.Db.
+		Preload("Role").
+		Preload("Business").
+		Preload("Business.BusinessType").
+		Preload("Branch").
+		Where("email = ? OR phone_number = ?", identifier, identifier).
+		First(&user).Error
+
+	if err != nil {
+		return entity.UserBusiness{}, err
 	}
+
 	return user, nil
 }

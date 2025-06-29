@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -10,7 +11,7 @@ import (
 
 type AuthService interface {
 	VerifyCredential(email string, password string) interface{}
-	VerifyCredentialBusiness(identifier string, password string) interface{}
+	VerifyCredentialBusiness(identifier string, password string) (*entity.UserBusiness, error)
 }
 
 type authService struct {
@@ -37,16 +38,17 @@ func (service *authService) VerifyCredential(email string, password string) inte
 	return false
 }
 
-func (service *authService) VerifyCredentialBusiness(identifier string, password string) interface{} {
+func (service *authService) VerifyCredentialBusiness(identifier string, password string) (*entity.UserBusiness, error) {
 	user, err := service.userBusinessRepository.FindByEmailOrPhone(identifier)
 	if err != nil {
-		return false
+		return nil, err
 	}
 
-	if comparePassword(user.Password, []byte(password)) {
-		return user
+	if !comparePassword(user.Password, []byte(password)) {
+		return nil, fmt.Errorf("invalid credentials")
 	}
-	return false
+
+	return &user, nil
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {
