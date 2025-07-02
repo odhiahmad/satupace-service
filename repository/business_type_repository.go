@@ -17,33 +17,33 @@ type BusinessTypeRepository interface {
 	Delete(businessTypeId int)
 }
 
-type BusinessTypeConnection struct {
-	Db *gorm.DB
+type businessTypeConnection struct {
+	db *gorm.DB
 }
 
-func NewBusinessTypeRepository(Db *gorm.DB) BusinessTypeRepository {
-	return &BusinessTypeConnection{Db: Db}
+func NewBusinessTypeRepository(db *gorm.DB) BusinessTypeRepository {
+	return &businessTypeConnection{db: db}
 }
 
-func (t *BusinessTypeConnection) InsertBusinessType(businessType entity.BusinessType) {
-	result := t.Db.Create(&businessType)
+func (conn *businessTypeConnection) InsertBusinessType(businessType entity.BusinessType) {
+	result := conn.db.Create(&businessType)
 
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *BusinessTypeConnection) UpdateBusinessType(businessType entity.BusinessType) {
+func (conn *businessTypeConnection) UpdateBusinessType(businessType entity.BusinessType) {
 	var updateBusinessType = request.BusinessTypeUpdate{
 		Id:   businessType.Id,
 		Name: businessType.Name,
 	}
 
-	result := t.Db.Model(&businessType).Updates(updateBusinessType)
+	result := conn.db.Model(&businessType).Updates(updateBusinessType)
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *BusinessTypeConnection) FindById(businessTypeId int) (businessTypes entity.BusinessType, err error) {
+func (conn *businessTypeConnection) FindById(businessTypeId int) (businessTypes entity.BusinessType, err error) {
 	var businessType entity.BusinessType
-	result := t.Db.Find(&businessType, businessTypeId)
+	result := conn.db.Find(&businessType, businessTypeId)
 	if result != nil {
 		return businessType, nil
 	} else {
@@ -51,15 +51,15 @@ func (t *BusinessTypeConnection) FindById(businessTypeId int) (businessTypes ent
 	}
 }
 
-func (t *BusinessTypeConnection) FindAll() []entity.BusinessType {
+func (conn *businessTypeConnection) FindAll() []entity.BusinessType {
 	var businessType []entity.BusinessType
-	result := t.Db.Find(&businessType)
+	result := conn.db.Find(&businessType)
 	helper.ErrorPanic(result.Error)
 	return businessType
 }
 
-func (t *BusinessTypeConnection) Delete(businessTypeId int) {
+func (conn *businessTypeConnection) Delete(businessTypeId int) {
 	var businessTypes entity.BusinessType
-	result := t.Db.Where("id = ?", businessTypeId).Delete(&businessTypes)
+	result := conn.db.Where("id = ?", businessTypeId).Delete(&businessTypes)
 	helper.ErrorPanic(result.Error)
 }

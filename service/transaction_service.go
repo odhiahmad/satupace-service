@@ -77,7 +77,7 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		return nil, err
 	}
 
-	return helper.ToTransactionResponse(savedTx), nil
+	return helper.MapTransactionResponse(savedTx), nil
 }
 
 // UPDATE
@@ -111,7 +111,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 	}
 
 	// Kembalikan response
-	return helper.ToTransactionResponse(savedTx), nil
+	return helper.MapTransactionResponse(savedTx), nil
 }
 
 func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.TransactionItemCreate) (*response.TransactionResponse, error) {
@@ -188,7 +188,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		return nil, err
 	}
 
-	return helper.ToTransactionResponse(savedTx), nil
+	return helper.MapTransactionResponse(savedTx), nil
 }
 
 // FINDBYID
@@ -198,7 +198,7 @@ func (s *transactionService) FindById(id int) (*response.TransactionResponse, er
 		return nil, err
 	}
 
-	return helper.ToTransactionResponse(&transaction), nil
+	return helper.MapTransactionResponse(&transaction), nil
 }
 
 // FINDWITHPAGINATION
@@ -210,7 +210,7 @@ func (s *transactionService) FindWithPagination(businessId int, pagination reque
 
 	var responses []*response.TransactionResponse
 	for _, trx := range transactions {
-		responses = append(responses, helper.ToTransactionResponse(&trx)) // kalau trx adalah entity.Transaction
+		responses = append(responses, helper.MapTransactionResponse(&trx)) // kalau trx adalah entity.Transaction
 	}
 
 	return responses, total, nil

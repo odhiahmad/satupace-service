@@ -20,60 +20,60 @@ type BundleRepository interface {
 	SetIsActive(id int, isActive bool) error
 }
 
-type BundleConnection struct {
-	Db *gorm.DB
+type bundleConnection struct {
+	db *gorm.DB
 }
 
-func NewBundleRepository(Db *gorm.DB) BundleRepository {
-	return &BundleConnection{Db: Db}
+func NewBundleRepository(db *gorm.DB) BundleRepository {
+	return &bundleConnection{db: db}
 }
 
-func (r *BundleConnection) InsertBundle(bundle *entity.Bundle) error {
-	result := r.Db.Create(bundle)
+func (conn *bundleConnection) InsertBundle(bundle *entity.Bundle) error {
+	result := conn.db.Create(bundle)
 	return result.Error
 }
 
-func (r *BundleConnection) UpdateBundle(bundle *entity.Bundle) error {
-	result := r.Db.Save(bundle)
+func (conn *bundleConnection) UpdateBundle(bundle *entity.Bundle) error {
+	result := conn.db.Save(bundle)
 	return result.Error
 }
 
-func (r *BundleConnection) FindById(bundleId int) (entity.Bundle, error) {
+func (conn *bundleConnection) FindById(bundleId int) (entity.Bundle, error) {
 	var bundle entity.Bundle
-	result := r.Db.Preload("Items.Product").First(&bundle, bundleId)
+	result := conn.db.Preload("Items.Product").First(&bundle, bundleId)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return bundle, errors.New("bundle product not found")
 	}
 	return bundle, result.Error
 }
 
-func (r *BundleConnection) Delete(bundleId int) error {
-	if err := r.DeleteItemsByBundleId(bundleId); err != nil {
+func (conn *bundleConnection) Delete(bundleId int) error {
+	if err := conn.DeleteItemsByBundleId(bundleId); err != nil {
 		return err
 	}
-	result := r.Db.Delete(&entity.Bundle{}, bundleId)
+	result := conn.db.Delete(&entity.Bundle{}, bundleId)
 	return result.Error
 }
 
-func (r *BundleConnection) InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error {
+func (conn *bundleConnection) InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error {
 	for i := range items {
 		items[i].BundleId = bundleId
 	}
-	result := r.Db.Create(&items)
+	result := conn.db.Create(&items)
 	return result.Error
 }
 
-func (r *BundleConnection) DeleteItemsByBundleId(bundleId int) error {
-	result := r.Db.Where("bundle_id = ?", bundleId).Delete(&entity.BundleItem{})
+func (conn *bundleConnection) DeleteItemsByBundleId(bundleId int) error {
+	result := conn.db.Where("bundle_id = ?", bundleId).Delete(&entity.BundleItem{})
 	return result.Error
 }
 
-func (r *BundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
+func (conn *bundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
 	var bundles []entity.Bundle
 	var total int64
 
 	// Base query untuk count
-	baseQuery := r.Db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
+	baseQuery := conn.db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
 
 	// Apply search filter
 	if pagination.Search != "" {
@@ -98,8 +98,8 @@ func (r *BundleConnection) FindWithPagination(businessId int, pagination request
 	return bundles, total, nil
 }
 
-func (r *BundleConnection) SetIsActive(id int, isActive bool) error {
-	return r.Db.Model(&entity.Bundle{}).
+func (conn *bundleConnection) SetIsActive(id int, isActive bool) error {
+	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
 		Update("is_active", isActive).Error
 }

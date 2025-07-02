@@ -15,40 +15,40 @@ type BusinessBranchRepository interface {
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.BusinessBranch, int64, error)
 }
 
-type businessBranchRepository struct {
+type businessBranchConnection struct {
 	db *gorm.DB
 }
 
 func NewBusinessBranchRepository(db *gorm.DB) BusinessBranchRepository {
-	return &businessBranchRepository{db}
+	return &businessBranchConnection{db}
 }
 
-func (r *businessBranchRepository) Create(businessBranch entity.BusinessBranch) (entity.BusinessBranch, error) {
-	err := r.db.Create(&businessBranch).Error
+func (conn *businessBranchConnection) Create(businessBranch entity.BusinessBranch) (entity.BusinessBranch, error) {
+	err := conn.db.Create(&businessBranch).Error
 	return businessBranch, err
 }
 
-func (r *businessBranchRepository) Update(businessBranch entity.BusinessBranch) (entity.BusinessBranch, error) {
-	err := r.db.Updates(&businessBranch).Error
+func (conn *businessBranchConnection) Update(businessBranch entity.BusinessBranch) (entity.BusinessBranch, error) {
+	err := conn.db.Updates(&businessBranch).Error
 	return businessBranch, err
 }
 
-func (r *businessBranchRepository) Delete(businessBranch entity.BusinessBranch) error {
-	return r.db.Delete(&businessBranch).Error
+func (conn *businessBranchConnection) Delete(businessBranch entity.BusinessBranch) error {
+	return conn.db.Delete(&businessBranch).Error
 }
 
-func (r *businessBranchRepository) FindById(id int) (entity.BusinessBranch, error) {
+func (conn *businessBranchConnection) FindById(id int) (entity.BusinessBranch, error) {
 	var branch entity.BusinessBranch
-	err := r.db.First(&branch, id).Error
+	err := conn.db.First(&branch, id).Error
 	return branch, err
 }
 
-func (r *businessBranchRepository) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.BusinessBranch, int64, error) {
+func (conn *businessBranchConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.BusinessBranch, int64, error) {
 	var bundles []entity.BusinessBranch
 	var total int64
 
 	// Base query untuk count
-	baseQuery := r.db.Model(&entity.Bundle{}).Where("business_id = ?", businessId)
+	baseQuery := conn.db.Model(&entity.Bundle{}).Where("business_id = ?", businessId)
 
 	// Apply search filter
 	if pagination.Search != "" {

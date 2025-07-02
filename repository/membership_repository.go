@@ -14,24 +14,24 @@ type MembershipRepository interface {
 	FindAll() []entity.Membership
 }
 
-type MembershipConnection struct {
-	Db *gorm.DB
+type membershipConnection struct {
+	db *gorm.DB
 }
 
-func NewMembershipRepository(Db *gorm.DB) MembershipRepository {
-	return &MembershipConnection{Db: Db}
+func NewMembershipRepository(db *gorm.DB) MembershipRepository {
+	return &membershipConnection{db: db}
 }
 
-func (t *MembershipConnection) CreateMembership(membership entity.Membership) (entity.Membership, error) {
-	result := t.Db.Create(&membership)
+func (conn *membershipConnection) CreateMembership(membership entity.Membership) (entity.Membership, error) {
+	result := conn.db.Create(&membership)
 	helper.ErrorPanic(result.Error)
 
 	return membership, result.Error
 }
 
-func (t *MembershipConnection) FindById(membershipId int) (memberships entity.Membership, err error) {
+func (conn *membershipConnection) FindById(membershipId int) (memberships entity.Membership, err error) {
 	var membership entity.Membership
-	result := t.Db.Find(&membership, membershipId)
+	result := conn.db.Find(&membership, membershipId)
 	if result != nil {
 		return membership, nil
 	} else {
@@ -39,9 +39,9 @@ func (t *MembershipConnection) FindById(membershipId int) (memberships entity.Me
 	}
 }
 
-func (t *MembershipConnection) FindAll() []entity.Membership {
+func (conn *membershipConnection) FindAll() []entity.Membership {
 	var membership []entity.Membership
-	result := t.Db.Find(&membership)
+	result := conn.db.Find(&membership)
 	helper.ErrorPanic(result.Error)
 	return membership
 }

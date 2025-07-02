@@ -5,7 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func ToAuthResponse(user *entity.UserBusiness, token string) *response.AuthResponse {
+func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResponse {
 	role := response.RoleResponse{
 		Id:   user.Role.Id,
 		Name: user.Role.Name,

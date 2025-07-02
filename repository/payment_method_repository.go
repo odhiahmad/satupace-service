@@ -15,27 +15,27 @@ type PaymentMethodRepository interface {
 	Delete(id int) error
 }
 
-type paymentMethodRepo struct {
+type paymentMethodConnection struct {
 	db *gorm.DB
 }
 
 func NewPaymentMethodRepository(db *gorm.DB) PaymentMethodRepository {
-	return &paymentMethodRepo{db: db}
+	return &paymentMethodConnection{db: db}
 }
 
-func (r *paymentMethodRepo) InsertPaymentMethod(paymentMethod entity.PaymentMethod) (entity.PaymentMethod, error) {
-	err := r.db.Create(&paymentMethod).Error
+func (conn *paymentMethodConnection) InsertPaymentMethod(paymentMethod entity.PaymentMethod) (entity.PaymentMethod, error) {
+	err := conn.db.Create(&paymentMethod).Error
 	return paymentMethod, err
 }
 
-func (r *paymentMethodRepo) UpdatePaymentMethod(paymentMethod entity.PaymentMethod) (entity.PaymentMethod, error) {
-	err := r.db.Save(&paymentMethod).Error
+func (conn *paymentMethodConnection) UpdatePaymentMethod(paymentMethod entity.PaymentMethod) (entity.PaymentMethod, error) {
+	err := conn.db.Save(&paymentMethod).Error
 	return paymentMethod, err
 }
 
-func (r *paymentMethodRepo) FindById(id int) (entity.PaymentMethod, error) {
+func (conn *paymentMethodConnection) FindById(id int) (entity.PaymentMethod, error) {
 	var paymentMethod entity.PaymentMethod
-	err := r.db.First(&paymentMethod, id).Error
+	err := conn.db.First(&paymentMethod, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.PaymentMethod{}, errors.New("payment method not found")
@@ -45,12 +45,12 @@ func (r *paymentMethodRepo) FindById(id int) (entity.PaymentMethod, error) {
 	return paymentMethod, nil
 }
 
-func (r *paymentMethodRepo) FindAll() ([]entity.PaymentMethod, error) {
+func (conn *paymentMethodConnection) FindAll() ([]entity.PaymentMethod, error) {
 	var paymentMethods []entity.PaymentMethod
-	err := r.db.Find(&paymentMethods).Error
+	err := conn.db.Find(&paymentMethods).Error
 	return paymentMethods, err
 }
 
-func (r *paymentMethodRepo) Delete(id int) error {
-	return r.db.Delete(&entity.PaymentMethod{}, id).Error
+func (conn *paymentMethodConnection) Delete(id int) error {
+	return conn.db.Delete(&entity.PaymentMethod{}, id).Error
 }

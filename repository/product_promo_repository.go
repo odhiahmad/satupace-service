@@ -14,39 +14,39 @@ type ProductPromoRepository interface {
 	CreateManyWithTx(txRepo ProductRepository, promos []entity.ProductPromo) error
 }
 
-type productPromoRepository struct {
+type productPromoConnection struct {
 	db *gorm.DB
 }
 
 func NewProductPromoRepository(db *gorm.DB) ProductPromoRepository {
-	return &productPromoRepository{db}
+	return &productPromoConnection{db}
 }
 
-func (r *productPromoRepository) CreateMany(promos []entity.ProductPromo) error {
-	return r.db.Create(&promos).Error
+func (conn *productPromoConnection) CreateMany(promos []entity.ProductPromo) error {
+	return conn.db.Create(&promos).Error
 }
 
-func (r *productPromoRepository) DeleteByProductId(productId int) error {
-	return r.db.Where("product_id = ?", productId).Delete(&entity.ProductPromo{}).Error
+func (conn *productPromoConnection) DeleteByProductId(productId int) error {
+	return conn.db.Where("product_id = ?", productId).Delete(&entity.ProductPromo{}).Error
 }
 
-func (r *productPromoRepository) DeleteByPromoId(promoId int) error {
-	return r.db.Where("promo_id = ?", promoId).Delete(&entity.ProductPromo{}).Error
+func (conn *productPromoConnection) DeleteByPromoId(promoId int) error {
+	return conn.db.Where("promo_id = ?", promoId).Delete(&entity.ProductPromo{}).Error
 }
 
-func (r *productPromoRepository) FindByProductId(productId int) ([]entity.ProductPromo, error) {
+func (conn *productPromoConnection) FindByProductId(productId int) ([]entity.ProductPromo, error) {
 	var result []entity.ProductPromo
-	err := r.db.Preload("Promo").Where("product_id = ?", productId).Find(&result).Error
+	err := conn.db.Preload("Promo").Where("product_id = ?", productId).Find(&result).Error
 	return result, err
 }
 
-func (r *productPromoRepository) FindByPromoId(promoId int) ([]entity.ProductPromo, error) {
+func (conn *productPromoConnection) FindByPromoId(promoId int) ([]entity.ProductPromo, error) {
 	var result []entity.ProductPromo
-	err := r.db.Preload("Product").Where("promo_id = ?", promoId).Find(&result).Error
+	err := conn.db.Preload("Product").Where("promo_id = ?", promoId).Find(&result).Error
 	return result, err
 }
 
-func (r *productPromoRepository) CreateManyWithTx(txRepo ProductRepository, promos []entity.ProductPromo) error {
-	tx := txRepo.(*productRepository).DB()
+func (conn *productPromoConnection) CreateManyWithTx(txRepo ProductRepository, promos []entity.ProductPromo) error {
+	tx := txRepo.(*productConnection).DB()
 	return tx.Create(&promos).Error
 }

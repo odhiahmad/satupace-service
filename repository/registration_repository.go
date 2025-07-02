@@ -13,32 +13,32 @@ type RegistrationRepository interface {
 	IsEmailExists(email string) (bool, error)
 }
 
-// registrationRepository adalah implementasi dari RegistrationRepository.
-type registrationRepository struct {
+// registrationConnection adalah implementasi dari RegistrationRepository.
+type registrationConnection struct {
 	db *gorm.DB
 }
 
 // NewRegistrationRepository membuat instance baru dari RegistrationRepository.
 func NewRegistrationRepository(db *gorm.DB) RegistrationRepository {
-	return &registrationRepository{db: db}
+	return &registrationConnection{db: db}
 }
 
 // CreateBusiness menyimpan data bisnis berdasarkan input dari registrasi.
-func (r *registrationRepository) CreateBusiness(business entity.Business) (entity.Business, error) {
-	if err := r.db.Create(&business).Error; err != nil {
+func (conn *registrationConnection) CreateBusiness(business entity.Business) (entity.Business, error) {
+	if err := conn.db.Create(&business).Error; err != nil {
 		return business, err
 	}
 	return business, nil
 }
 
 // CreateUser menyimpan data user bisnis ke database.
-func (r *registrationRepository) CreateUser(user entity.UserBusiness) (entity.UserBusiness, error) {
-	if err := r.db.Create(&user).Error; err != nil {
+func (conn *registrationConnection) CreateUser(user entity.UserBusiness) (entity.UserBusiness, error) {
+	if err := conn.db.Create(&user).Error; err != nil {
 		return entity.UserBusiness{}, err
 	}
 
 	var savedUser entity.UserBusiness
-	if err := r.db.
+	if err := conn.db.
 		Preload("Role").
 		Preload("Business").
 		Preload("Branch").
@@ -49,14 +49,14 @@ func (r *registrationRepository) CreateUser(user entity.UserBusiness) (entity.Us
 	return savedUser, nil
 }
 
-func (r *registrationRepository) CreateMainBranch(branch *entity.BusinessBranch) error {
-	return r.db.Create(branch).Error
+func (conn *registrationConnection) CreateMainBranch(branch *entity.BusinessBranch) error {
+	return conn.db.Create(branch).Error
 }
 
 // IsEmailExists mengecek apakah email sudah digunakan.
-func (r *registrationRepository) IsEmailExists(email string) (bool, error) {
+func (conn *registrationConnection) IsEmailExists(email string) (bool, error) {
 	var user entity.UserBusiness
-	err := r.db.Where("email = ?", email).First(&user).Error
+	err := conn.db.Where("email = ?", email).First(&user).Error
 
 	switch {
 	case err == nil:

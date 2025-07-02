@@ -119,7 +119,7 @@ func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
 	if err != nil {
 		return response.BundleResponse{}, err
 	}
-	return helper.ToBundleToResponse(bundle), nil
+	return helper.MapBundleToResponse(bundle), nil
 }
 
 func (s *bundleService) Delete(id int) error {
@@ -138,7 +138,7 @@ func (s *bundleService) FindWithPagination(businessId int, pagination request.Pa
 
 	var result []response.BundleResponse
 	for _, bundleItem := range bundles {
-		result = append(result, helper.ToBundleToResponse(bundleItem))
+		result = append(result, helper.MapBundleToResponse(bundleItem))
 	}
 
 	return result, total, nil

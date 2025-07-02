@@ -17,33 +17,33 @@ type RoleRepository interface {
 	Delete(roleId int)
 }
 
-type RoleConnection struct {
+type roleConnection struct {
 	Db *gorm.DB
 }
 
 func NewRoleRepository(Db *gorm.DB) RoleRepository {
-	return &RoleConnection{Db: Db}
+	return &roleConnection{Db: Db}
 }
 
-func (t *RoleConnection) InsertRole(role entity.Role) {
-	result := t.Db.Create(&role)
+func (conn *roleConnection) InsertRole(role entity.Role) {
+	result := conn.Db.Create(&role)
 
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *RoleConnection) UpdateRole(role entity.Role) {
+func (conn *roleConnection) UpdateRole(role entity.Role) {
 	var updateRole = request.RoleUpdate{
 		Id:   role.Id,
 		Name: role.Name,
 	}
 
-	result := t.Db.Model(&role).Updates(updateRole)
+	result := conn.Db.Model(&role).Updates(updateRole)
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *RoleConnection) FindById(roleId int) (roles entity.Role, err error) {
+func (conn *roleConnection) FindById(roleId int) (roles entity.Role, err error) {
 	var role entity.Role
-	result := t.Db.Find(&role, roleId)
+	result := conn.Db.Find(&role, roleId)
 	if result != nil {
 		return role, nil
 	} else {
@@ -51,15 +51,15 @@ func (t *RoleConnection) FindById(roleId int) (roles entity.Role, err error) {
 	}
 }
 
-func (t *RoleConnection) FindAll() []entity.Role {
+func (conn *roleConnection) FindAll() []entity.Role {
 	var role []entity.Role
-	result := t.Db.Find(&role)
+	result := conn.Db.Find(&role)
 	helper.ErrorPanic(result.Error)
 	return role
 }
 
-func (t *RoleConnection) Delete(roleId int) {
+func (conn *roleConnection) Delete(roleId int) {
 	var roles entity.Role
-	result := t.Db.Where("id = ?", roleId).Delete(&roles)
+	result := conn.Db.Where("id = ?", roleId).Delete(&roles)
 	helper.ErrorPanic(result.Error)
 }

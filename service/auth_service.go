@@ -68,7 +68,7 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 
 	// Token dan response
 	token := service.jwtService.GenerateToken(user.Id)
-	res := helper.ToAuthResponse(&user, token)
+	res := helper.MapAuthResponse(&user, token)
 
 	return res, nil
 }

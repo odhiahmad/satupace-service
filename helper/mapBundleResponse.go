@@ -5,7 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func ToBundleToResponse(p entity.Bundle) response.BundleResponse {
+func MapBundleToResponse(p entity.Bundle) response.BundleResponse {
 	var items []response.BundleItemResponse
 	for _, i := range p.Items {
 		product := i.Product

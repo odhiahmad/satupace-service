@@ -19,56 +19,56 @@ type PromoRepository interface {
 	Exists(id int) (bool, error)
 }
 
-type promoRepository struct {
+type promoConnection struct {
 	db *gorm.DB
 }
 
 func NewPromoRepository(db *gorm.DB) PromoRepository {
-	return &promoRepository{db}
+	return &promoConnection{db}
 }
 
-func (r *promoRepository) Create(promo entity.Promo) (entity.Promo, error) {
-	err := r.db.
+func (conn *promoConnection) Create(promo entity.Promo) (entity.Promo, error) {
+	err := conn.db.
 		Session(&gorm.Session{FullSaveAssociations: true}).
 		Create(&promo).Error
 	return promo, err
 }
 
-func (r *promoRepository) Update(promo entity.Promo) (entity.Promo, error) {
-	err := r.db.Session(&gorm.Session{
+func (conn *promoConnection) Update(promo entity.Promo) (entity.Promo, error) {
+	err := conn.db.Session(&gorm.Session{
 		FullSaveAssociations: true,
 	}).Select("*").Updates(&promo).Error
 	return promo, err
 }
 
-func (r *promoRepository) Delete(promo entity.Promo) error {
+func (conn *promoConnection) Delete(promo entity.Promo) error {
 	// Hapus relasi required_products juga (opsional, untuk bersih)
-	_ = r.db.Model(&promo).Association("RequiredProducts").Clear()
-	return r.db.Delete(&promo).Error
+	_ = conn.db.Model(&promo).Association("RequiredProducts").Clear()
+	return conn.db.Delete(&promo).Error
 }
 
-func (r *promoRepository) AppendRequiredProducts(promo *entity.Promo, products []entity.Product) error {
-	return r.db.Model(promo).Association("RequiredProducts").Append(&products)
+func (conn *promoConnection) AppendRequiredProducts(promo *entity.Promo, products []entity.Product) error {
+	return conn.db.Model(promo).Association("RequiredProducts").Append(&products)
 }
 
-func (r *promoRepository) FindById(id int) (entity.Promo, error) {
+func (conn *promoConnection) FindById(id int) (entity.Promo, error) {
 	var promo entity.Promo
-	err := r.db.
+	err := conn.db.
 		Preload("RequiredProducts"). // ⬅️ Tambahkan preload untuk required
 		First(&promo, id).Error
 	return promo, err
 }
 
-func (r *promoRepository) ReplaceRequiredProducts(promoId int, products []entity.Product) error {
+func (conn *promoConnection) ReplaceRequiredProducts(promoId int, products []entity.Product) error {
 	promo := entity.Promo{Id: promoId}
-	return r.db.Model(&promo).Association("RequiredProducts").Replace(products)
+	return conn.db.Model(&promo).Association("RequiredProducts").Replace(products)
 }
 
-func (r *promoRepository) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Promo, int64, error) {
+func (conn *promoConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Promo, int64, error) {
 	var promos []entity.Promo
 	var total int64
 
-	baseQuery := r.db.Model(&entity.Promo{}).
+	baseQuery := conn.db.Model(&entity.Promo{}).
 		Preload("RequiredProducts").
 		Where("business_id = ?", businessId)
 
@@ -90,12 +90,12 @@ func (r *promoRepository) FindWithPagination(businessId int, pagination request.
 	return promos, total, nil
 }
 
-func (r *promoRepository) SetIsActive(id int, active bool) error {
-	return r.db.Model(&entity.Promo{}).Where("id = ?", id).Update("is_active", active).Error
+func (conn *promoConnection) SetIsActive(id int, active bool) error {
+	return conn.db.Model(&entity.Promo{}).Where("id = ?", id).Update("is_active", active).Error
 }
 
-func (r *promoRepository) Exists(id int) (bool, error) {
+func (conn *promoConnection) Exists(id int) (bool, error) {
 	var count int64
-	err := r.db.Model(&entity.Promo{}).Where("id = ?", id).Count(&count).Error
+	err := conn.db.Model(&entity.Promo{}).Where("id = ?", id).Count(&count).Error
 	return count > 0, err
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func ToMembershipResponse(m entity.Membership) response.MembershipResponse {
+func MapMembershipResponse(m entity.Membership) response.MembershipResponse {
 	return response.MembershipResponse{
 		Id:        m.Id,
 		UserId:    m.UserId,

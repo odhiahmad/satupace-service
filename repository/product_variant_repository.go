@@ -29,11 +29,11 @@ func NewProductVariantRepository(db *gorm.DB) ProductVariantRepository {
 	return &ProductVariantConnection{db: db}
 }
 
-func (r *ProductVariantConnection) Create(variant *entity.ProductVariant) error {
-	return r.db.Create(variant).Error
+func (conn *ProductVariantConnection) Create(variant *entity.ProductVariant) error {
+	return conn.db.Create(variant).Error
 }
 
-func (r *ProductVariantConnection) Update(variant *entity.ProductVariant) error {
+func (conn *ProductVariantConnection) Update(variant *entity.ProductVariant) error {
 	if variant.Id == 0 {
 		return errors.New("variant ID is required for update")
 	}
@@ -50,54 +50,54 @@ func (r *ProductVariantConnection) Update(variant *entity.ProductVariant) error 
 		"is_active":   variant.IsActive,
 	}
 
-	return r.db.Model(&variant).Where("id = ?", variant.Id).Updates(updateData).Error
+	return conn.db.Model(&variant).Where("id = ?", variant.Id).Updates(updateData).Error
 }
 
-func (r *ProductVariantConnection) Delete(id int) error {
-	return r.db.Delete(&entity.ProductVariant{}, id).Error
+func (conn *ProductVariantConnection) Delete(id int) error {
+	return conn.db.Delete(&entity.ProductVariant{}, id).Error
 }
 
-func (r *ProductVariantConnection) DeleteByProductId(productId int) error {
-	return r.db.Where("product_id = ?", productId).Delete(&entity.ProductVariant{}).Error
+func (conn *ProductVariantConnection) DeleteByProductId(productId int) error {
+	return conn.db.Where("product_id = ?", productId).Delete(&entity.ProductVariant{}).Error
 }
 
-func (r *ProductVariantConnection) FindById(id int) (entity.ProductVariant, error) {
+func (conn *ProductVariantConnection) FindById(id int) (entity.ProductVariant, error) {
 	var variant entity.ProductVariant
-	err := r.db.First(&variant, id).Error
+	err := conn.db.First(&variant, id).Error
 	return variant, err
 }
 
-func (r *ProductVariantConnection) FindByProductId(productId int) ([]entity.ProductVariant, error) {
+func (conn *ProductVariantConnection) FindByProductId(productId int) ([]entity.ProductVariant, error) {
 	var variants []entity.ProductVariant
-	err := r.db.Where("product_id = ?", productId).Find(&variants).Error
+	err := conn.db.Where("product_id = ?", productId).Find(&variants).Error
 	return variants, err
 }
 
-func (r *ProductVariantConnection) SetActive(id int, active bool) error {
-	return r.db.Model(&entity.ProductVariant{}).
+func (conn *ProductVariantConnection) SetActive(id int, active bool) error {
+	return conn.db.Model(&entity.ProductVariant{}).
 		Where("id = ?", id).
 		Update("is_active", active).Error
 }
 
-func (r *ProductVariantConnection) SetAvailable(id int, available bool) error {
-	return r.db.Model(&entity.ProductVariant{}).
+func (conn *ProductVariantConnection) SetAvailable(id int, available bool) error {
+	return conn.db.Model(&entity.ProductVariant{}).
 		Where("id = ?", id).
 		Update("is_available", available).Error
 }
 
-func (r *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
+func (conn *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
 	var count int64
-	err := r.db.Model(&entity.ProductVariant{}).Where("sku = ?", sku).Count(&count).Error
+	err := conn.db.Model(&entity.ProductVariant{}).Where("sku = ?", sku).Count(&count).Error
 	return count > 0, err
 }
 
-func (r *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error {
-	tx := txRepo.(*productRepository).db
+func (conn *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error {
+	tx := txRepo.(*productConnection).db
 	return tx.Create(variant).Error
 }
 
-func (r *ProductVariantConnection) CountByProductId(productId int) (int64, error) {
+func (conn *ProductVariantConnection) CountByProductId(productId int) (int64, error) {
 	var count int64
-	err := r.db.Model(&entity.ProductVariant{}).Where("product_id = ?", productId).Count(&count).Error
+	err := conn.db.Model(&entity.ProductVariant{}).Where("product_id = ?", productId).Count(&count).Error
 	return count, err
 }

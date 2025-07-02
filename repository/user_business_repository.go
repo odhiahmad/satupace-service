@@ -18,24 +18,24 @@ type UserBusinessRepository interface {
 	FindByEmailOrPhone(identifier string) (entity.UserBusiness, error)
 }
 
-type UserBusinessConnection struct {
-	Db *gorm.DB
+type userBusinessConnection struct {
+	db *gorm.DB
 }
 
-func NewUserBusinessRepository(Db *gorm.DB) UserBusinessRepository {
-	return &UserBusinessConnection{Db: Db}
+func NewUserBusinessRepository(db *gorm.DB) UserBusinessRepository {
+	return &userBusinessConnection{db: db}
 }
 
-func (t *UserBusinessConnection) InsertUserBusiness(user entity.UserBusiness) (entity.UserBusiness, error) {
-	result := t.Db.Create(&user)
+func (conn *userBusinessConnection) InsertUserBusiness(user entity.UserBusiness) (entity.UserBusiness, error) {
+	result := conn.db.Create(&user)
 	helper.ErrorPanic(result.Error)
 
 	return user, result.Error
 }
 
-func (t *UserBusinessConnection) FindById(userBusinessId int) (userBusinesss entity.UserBusiness, err error) {
+func (conn *userBusinessConnection) FindById(userBusinessId int) (userBusinesss entity.UserBusiness, err error) {
 	var userBusiness entity.UserBusiness
-	result := t.Db.Find(&userBusiness, userBusinessId)
+	result := conn.db.Find(&userBusiness, userBusinessId)
 	if result != nil {
 		return userBusiness, nil
 	} else {
@@ -43,22 +43,22 @@ func (t *UserBusinessConnection) FindById(userBusinessId int) (userBusinesss ent
 	}
 }
 
-func (t *UserBusinessConnection) FindAll() []entity.UserBusiness {
+func (conn *userBusinessConnection) FindAll() []entity.UserBusiness {
 	var userBusiness []entity.UserBusiness
-	result := t.Db.Find(&userBusiness)
+	result := conn.db.Find(&userBusiness)
 	helper.ErrorPanic(result.Error)
 	return userBusiness
 }
 
-func (t *UserBusinessConnection) Delete(userBusinessId int) {
+func (conn *userBusinessConnection) Delete(userBusinessId int) {
 	var userBusinesss entity.UserBusiness
-	result := t.Db.Where("id = ?", userBusinessId).Delete(&userBusinesss)
+	result := conn.db.Where("id = ?", userBusinessId).Delete(&userBusinesss)
 	helper.ErrorPanic(result.Error)
 }
 
-func (t *UserBusinessConnection) IsDuplicateEmail(email string) bool {
+func (conn *userBusinessConnection) IsDuplicateEmail(email string) bool {
 	var userBusiness entity.UserBusiness
-	err := t.Db.Where("email = ?", email).Take(&userBusiness).Error
+	err := conn.db.Where("email = ?", email).Take(&userBusiness).Error
 
 	// Perbaikan logika
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,19 +69,19 @@ func (t *UserBusinessConnection) IsDuplicateEmail(email string) bool {
 	return err == nil
 }
 
-func (t *UserBusinessConnection) VerifyCredentialBusiness(email string, password string) interface{} {
+func (conn *userBusinessConnection) VerifyCredentialBusiness(email string, password string) interface{} {
 	var user entity.UserBusiness
-	res := t.Db.Where("email = ?", email).Preload("Role").Preload("Business.BusinessType").Take(&user)
+	res := conn.db.Where("email = ?", email).Preload("Role").Preload("Business.BusinessType").Take(&user)
 	if res.Error == nil {
 		return user
 	}
 	return nil
 }
 
-func (t *UserBusinessConnection) FindByEmailOrPhone(identifier string) (entity.UserBusiness, error) {
+func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entity.UserBusiness, error) {
 	var user entity.UserBusiness
 
-	err := t.Db.
+	err := conn.db.
 		Preload("Role").
 		Preload("Business").
 		Preload("Business.BusinessType").

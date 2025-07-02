@@ -5,7 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func ToUserBusinessResponse(user entity.UserBusiness) *response.UserBusinessResponse {
+func MapUserBusinessResponse(user entity.UserBusiness) *response.UserBusinessResponse {
 	var memberships []response.MembershipResponse
 	for _, m := range user.Memberships {
 		memberships = append(memberships, response.MembershipResponse{

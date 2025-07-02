@@ -112,7 +112,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 	}
 
 	// 5. Kembalikan response user
-	return *helper.ToUserBusinessResponse(savedUser), nil
+	return *helper.MapUserBusinessResponse(savedUser), nil
 }
 
 func (s *registrationService) IsDuplicateEmail(email string) (bool, error) {

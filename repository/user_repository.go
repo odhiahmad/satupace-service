@@ -14,53 +14,53 @@ type UserRepository interface {
 	InsertRegistration(business entity.User)
 }
 
-type UserConnection struct {
-	Db *gorm.DB
+type userConnection struct {
+	db *gorm.DB
 }
 
-func NewUserRepository(Db *gorm.DB) UserRepository {
-	return &UserConnection{Db: Db}
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &userConnection{db: db}
 }
 
-func (t *UserConnection) InsertUser(user entity.User) entity.User {
+func (conn *userConnection) InsertUser(user entity.User) entity.User {
 	user.Password = helper.HashAndSalt([]byte(user.Password))
-	t.Db.Save(&user)
+	conn.db.Save(&user)
 
 	return user
 }
 
-func (t *UserConnection) UpdateUser(user entity.User) entity.User {
+func (conn *userConnection) UpdateUser(user entity.User) entity.User {
 
 	if user.Password != "" {
 		user.Password = helper.HashAndSalt([]byte(user.Password))
 	} else {
 		var tempUser entity.User
-		t.Db.Find(&tempUser, user.Email)
+		conn.db.Find(&tempUser, user.Email)
 		user.Password = tempUser.Password
 	}
 
-	t.Db.Save(&user)
+	conn.db.Save(&user)
 
 	return user
 }
 
-func (t *UserConnection) VerifyCredential(email string, password string) interface{} {
+func (conn *userConnection) VerifyCredential(email string, password string) interface{} {
 	var user entity.User
-	res := t.Db.Where("email = ?", email).Preload("Business").Take(&user)
+	res := conn.db.Where("email = ?", email).Preload("Business").Take(&user)
 	if res.Error == nil {
 		return user
 	}
 	return nil
 }
 
-func (t *UserConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
+func (conn *userConnection) IsDuplicateEmail(email string) (tx *gorm.DB) {
 	var user entity.User
-	return t.Db.Where("email = ?", email).Take(&user)
+	return conn.db.Where("email = ?", email).Take(&user)
 }
 
-func (t *UserConnection) InsertRegistration(user entity.User) {
+func (conn *userConnection) InsertRegistration(user entity.User) {
 	user.Password = helper.HashAndSalt([]byte(user.Password))
-	result := t.Db.Create(&user)
+	result := conn.db.Create(&user)
 
 	helper.ErrorPanic(result.Error)
 }

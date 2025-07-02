@@ -19,46 +19,46 @@ type DiscountRepository interface {
 	SetIsActive(id int, isActive bool) error
 }
 
-type discountRepo struct {
+type discountConnection struct {
 	db *gorm.DB
 }
 
 func NewDiscountRepository(db *gorm.DB) DiscountRepository {
-	return &discountRepo{db: db}
+	return &discountConnection{db: db}
 }
 
-func (r *discountRepo) Create(discount entity.Discount) (entity.Discount, error) {
-	err := r.db.Create(&discount).Error
+func (conn *discountConnection) Create(discount entity.Discount) (entity.Discount, error) {
+	err := conn.db.Create(&discount).Error
 	return discount, err
 }
 
-func (r *discountRepo) Update(discount entity.Discount) (entity.Discount, error) {
-	err := r.db.Model(&entity.Discount{}).Where("id = ?", discount.Id).Updates(discount).Error
+func (conn *discountConnection) Update(discount entity.Discount) (entity.Discount, error) {
+	err := conn.db.Model(&entity.Discount{}).Where("id = ?", discount.Id).Updates(discount).Error
 	if err != nil {
 		return entity.Discount{}, err
 	}
 	return discount, nil
 }
 
-func (r *discountRepo) Delete(id int) error {
-	return r.db.Delete(&entity.Discount{}, id).Error
+func (conn *discountConnection) Delete(id int) error {
+	return conn.db.Delete(&entity.Discount{}, id).Error
 }
 
-func (r *discountRepo) FindById(id int) (entity.Discount, error) {
+func (conn *discountConnection) FindById(id int) (entity.Discount, error) {
 	var discount entity.Discount
-	err := r.db.First(&discount, id).Error
+	err := conn.db.First(&discount, id).Error
 	return discount, err
 }
 
-func (r *discountRepo) FindByBusinessId(businessId int) ([]entity.Discount, error) {
+func (conn *discountConnection) FindByBusinessId(businessId int) ([]entity.Discount, error) {
 	var discounts []entity.Discount
-	err := r.db.Where("business_id = ?", businessId).Find(&discounts).Error
+	err := conn.db.Where("business_id = ?", businessId).Find(&discounts).Error
 	return discounts, err
 }
 
-func (r *discountRepo) FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error) {
+func (conn *discountConnection) FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error) {
 	var discount entity.Discount
-	err := r.db.
+	err := conn.db.
 		Where("business_id = ? AND is_global = ? AND start_at <= ? AND end_at >= ?", businessId, true, now, now).
 		Order("start_at DESC").
 		First(&discount).Error
@@ -69,12 +69,12 @@ func (r *discountRepo) FindActiveGlobalDiscount(businessId int, now time.Time) (
 	return &discount, nil
 }
 
-func (r *discountRepo) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error) {
+func (conn *discountConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error) {
 	var discounts []entity.Discount
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Discount{}).
+	baseQuery := conn.db.Model(&entity.Discount{}).
 		Where("business_id = ?", businessId)
 
 	// Search
@@ -100,8 +100,8 @@ func (r *discountRepo) FindWithPagination(businessId int, pagination request.Pag
 	return discounts, total, nil
 }
 
-func (r *discountRepo) SetIsActive(id int, isActive bool) error {
-	return r.db.Model(&entity.Discount{}).
+func (conn *discountConnection) SetIsActive(id int, isActive bool) error {
+	return conn.db.Model(&entity.Discount{}).
 		Where("id = ?", id).
 		Update("is_active", isActive).Error
 }

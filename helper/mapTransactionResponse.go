@@ -5,7 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func ToTransactionResponse(trx *entity.Transaction) *response.TransactionResponse {
+func MapTransactionResponse(trx *entity.Transaction) *response.TransactionResponse {
 	var itemResponses []response.TransactionItemResponse
 
 	for _, item := range trx.Items {
@@ -22,7 +22,7 @@ func ToTransactionResponse(trx *entity.Transaction) *response.TransactionRespons
 		// Map product (jika ada)
 		var productResponses []response.ProductResponse
 		if item.Product != nil {
-			productResponses = append(productResponses, ToProductToResponse(*item.Product))
+			productResponses = append(productResponses, MapProductToResponse(*item.Product))
 		}
 
 		// Map item

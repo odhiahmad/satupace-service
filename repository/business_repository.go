@@ -15,45 +15,45 @@ type BusinessRepository interface {
 	FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error)
 }
 
-type businessRepository struct {
+type businessConnection struct {
 	db *gorm.DB
 }
 
 func NewBusinessRepository(db *gorm.DB) BusinessRepository {
-	return &businessRepository{db}
+	return &businessConnection{db}
 }
 
 // Create inserts a new business entity into the database.
-func (r *businessRepository) Create(business entity.Business) (entity.Business, error) {
-	err := r.db.Create(&business).Error
+func (conn *businessConnection) Create(business entity.Business) (entity.Business, error) {
+	err := conn.db.Create(&business).Error
 	return business, err
 }
 
 // Update modifies an existing business entity.
-func (r *businessRepository) Update(business entity.Business) (entity.Business, error) {
-	err := r.db.Save(&business).Error // Gunakan Save agar seluruh field diperbarui
+func (conn *businessConnection) Update(business entity.Business) (entity.Business, error) {
+	err := conn.db.Save(&business).Error // Gunakan Save agar seluruh field diperbarui
 	return business, err
 }
 
 // Delete removes a business entity.
-func (r *businessRepository) Delete(business entity.Business) error {
-	return r.db.Delete(&business).Error
+func (conn *businessConnection) Delete(business entity.Business) error {
+	return conn.db.Delete(&business).Error
 }
 
 // FindById retrieves a business entity by its ID, with branches and business type preloaded.
-func (r *businessRepository) FindById(id int) (entity.Business, error) {
+func (conn *businessConnection) FindById(id int) (entity.Business, error) {
 	var business entity.Business
-	err := r.db.Preload("Branches").Preload("BusinessType").First(&business, id).Error
+	err := conn.db.Preload("Branches").Preload("BusinessType").First(&business, id).Error
 	return business, err
 }
 
 // FindWithPagination retrieves paginated business data, with optional search.
-func (r *businessRepository) FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error) {
+func (conn *businessConnection) FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error) {
 	var businesses []entity.Business
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Business{}).
+	baseQuery := conn.db.Model(&entity.Business{}).
 		Preload("Branches").
 		Preload("BusinessType")
 

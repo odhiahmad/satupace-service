@@ -13,7 +13,7 @@ func SafeString(s *string) string {
 	return *s
 }
 
-func ToProductToResponse(product entity.Product) response.ProductResponse {
+func MapProductToResponse(product entity.Product) response.ProductResponse {
 	var promos []response.PromoResponse
 
 	for _, pp := range product.ProductPromos {

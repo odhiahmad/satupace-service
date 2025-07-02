@@ -21,17 +21,17 @@ type TransactionRepository interface {
 	UpdateItemFields(transactionId int, item entity.TransactionItem) error
 }
 
-type transactionRepository struct {
+type transactionConnection struct {
 	db *gorm.DB
 }
 
 func NewTransactionRepository(db *gorm.DB) TransactionRepository {
-	return &transactionRepository{db}
+	return &transactionConnection{db}
 }
 
 // CREATE
-func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity.Transaction, error) {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+func (conn *transactionConnection) Create(transaction *entity.Transaction) (*entity.Transaction, error) {
+	err := conn.db.Transaction(func(tx *gorm.DB) error {
 		items := transaction.Items
 		transaction.Items = nil
 
@@ -69,7 +69,7 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 	}
 
 	var result entity.Transaction
-	if err := r.db.
+	if err := conn.db.
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
@@ -91,8 +91,8 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 }
 
 // UPDATE
-func (r *transactionRepository) Update(transaction *entity.Transaction) (*entity.Transaction, error) {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+func (conn *transactionConnection) Update(transaction *entity.Transaction) (*entity.Transaction, error) {
+	err := conn.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(transaction).Error; err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (r *transactionRepository) Update(transaction *entity.Transaction) (*entity
 
 	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
 	var result entity.Transaction
-	if err := r.db.
+	if err := conn.db.
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
@@ -151,9 +151,9 @@ func (r *transactionRepository) Update(transaction *entity.Transaction) (*entity
 	return &result, nil
 }
 
-func (r *transactionRepository) UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error) {
+func (conn *transactionConnection) UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error) {
 	var existing entity.Transaction
-	if err := r.db.First(&existing, transaction.Id).Error; err != nil {
+	if err := conn.db.First(&existing, transaction.Id).Error; err != nil {
 		return nil, err
 	}
 
@@ -162,12 +162,12 @@ func (r *transactionRepository) UpdateTotals(transaction *entity.Transaction) (*
 	existing.Discount = transaction.Discount
 	existing.Promo = transaction.Promo
 
-	if err := r.db.Save(&existing).Error; err != nil {
+	if err := conn.db.Save(&existing).Error; err != nil {
 		return nil, err
 	}
 
 	// preload relasi jika diperlukan
-	if err := r.db.
+	if err := conn.db.
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
@@ -188,12 +188,12 @@ func (r *transactionRepository) UpdateTotals(transaction *entity.Transaction) (*
 	return &existing, nil
 }
 
-func (r *transactionRepository) UpdateItemFields(transactionId int, item entity.TransactionItem) error {
+func (conn *transactionConnection) UpdateItemFields(transactionId int, item entity.TransactionItem) error {
 	if item.ProductId == nil {
 		return fmt.Errorf("product_id kosong pada item")
 	}
 
-	return r.db.Model(&entity.TransactionItem{}).
+	return conn.db.Model(&entity.TransactionItem{}).
 		Where("transaction_id = ? AND product_id = ?", transactionId, *item.ProductId).
 		Updates(map[string]interface{}{
 			"quantity":   item.Quantity,
@@ -207,9 +207,9 @@ func (r *transactionRepository) UpdateItemFields(transactionId int, item entity.
 }
 
 // FINDBYID
-func (r *transactionRepository) FindById(id int) (entity.Transaction, error) {
+func (conn *transactionConnection) FindById(id int) (entity.Transaction, error) {
 	var transaction entity.Transaction
-	err := r.db.
+	err := conn.db.
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
@@ -229,12 +229,12 @@ func (r *transactionRepository) FindById(id int) (entity.Transaction, error) {
 }
 
 // FINDWITHPAGINATION
-func (r *transactionRepository) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error) {
+func (conn *transactionConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error) {
 	var transactions []entity.Transaction
 	var total int64
 
 	// Base query dengan preload relasi dan sorting
-	baseQuery := r.db.Model(&entity.Transaction{}).
+	baseQuery := conn.db.Model(&entity.Transaction{}).
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").
@@ -267,8 +267,8 @@ func (r *transactionRepository) FindWithPagination(businessId int, pagination re
 	return transactions, total, nil
 }
 
-func (r *transactionRepository) AddOrReplaceItem(transactionId int, item entity.TransactionItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (conn *transactionConnection) AddOrReplaceItem(transactionId int, item entity.TransactionItem) error {
+	return conn.db.Transaction(func(tx *gorm.DB) error {
 		var existing entity.TransactionItem
 
 		query := tx.Where("transaction_id = ?", transactionId)
@@ -361,10 +361,10 @@ func (r *transactionRepository) AddOrReplaceItem(transactionId int, item entity.
 	})
 }
 
-func (r *transactionRepository) FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error) {
+func (conn *transactionConnection) FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error) {
 	var items []entity.TransactionItem
 
-	err := r.db.
+	err := conn.db.
 		Preload("Customer").
 		Preload("PaymentMethod").
 		Preload("Items.Product").

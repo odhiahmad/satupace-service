@@ -1,11 +1,7 @@
 package service
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -231,71 +227,15 @@ func (s *productService) SetAvailable(id int, isAvailable bool) error {
 }
 
 func (s *productService) FindById(id int) (response.ProductResponse, error) {
-	// ctx := context.Background()
-	// cacheKey := fmt.Sprintf("product:%d", id)
-
-	// // 🔍 Coba ambil dari cache Redis
-	// if s.Redis != nil {
-	// 	cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
-	// 	if err == nil {
-	// 		var cachedProduct response.ProductResponse
-	// 		if err := json.Unmarshal([]byte(cachedData), &cachedProduct); err == nil {
-	// 			log.Println("✅ Product found in Redis cache")
-	// 			return cachedProduct, nil
-	// 		}
-	// 	}
-	// }
-
-	// 🗄 Ambil dari DB jika tidak ditemukan atau gagal decode cache
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return response.ProductResponse{}, err
 	}
-
-	res := helper.ToProductToResponse(product)
-
-	// // 💾 Simpan ke Redis
-	// if s.Redis != nil {
-	// 	if jsonData, err := json.Marshal(res); err == nil {
-	// 		err = s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute).Err()
-	// 		if err != nil {
-	// 			log.Println("❗️ Failed to cache product:", err)
-	// 		}
-	// 	}
-	// }
-
+	res := helper.MapProductToResponse(product)
 	return res, nil
 }
 
 func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
-	ctx := context.Background()
-	pong, err := s.Redis.Ping(ctx).Result()
-	log.Println("🔗 Redis ping:", pong, err)
-	cacheKey := fmt.Sprintf(
-		"product:list:%d:%d:%d:%s:%s:%s",
-		businessId,
-		pagination.Page,
-		pagination.Limit,
-		pagination.SortBy,
-		pagination.OrderBy,
-		pagination.Search,
-	)
-
-	// Coba ambil dari cache Redis
-	if s.Redis != nil {
-		cachedData, err := s.Redis.Get(ctx, cacheKey).Result()
-		if err == nil {
-			var cached struct {
-				Products []response.ProductResponse `json:"products"`
-				Total    int64                      `json:"total"`
-			}
-			if err := json.Unmarshal([]byte(cachedData), &cached); err == nil {
-				return cached.Products, cached.Total, nil
-			}
-		}
-	}
-
-	// Ambil dari DB jika tidak ada atau gagal cache
 	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -303,22 +243,7 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 
 	var result []response.ProductResponse
 	for _, product := range products {
-		result = append(result, helper.ToProductToResponse(product))
+		result = append(result, helper.MapProductToResponse(product))
 	}
-
-	// Simpan ke cache Redis
-	if s.Redis != nil {
-		cacheBody := struct {
-			Products []response.ProductResponse `json:"products"`
-			Total    int64                      `json:"total"`
-		}{
-			Products: result,
-			Total:    total,
-		}
-		if jsonData, err := json.Marshal(cacheBody); err == nil {
-			s.Redis.Set(ctx, cacheKey, jsonData, 5*time.Minute)
-		}
-	}
-
 	return result, total, nil
 }

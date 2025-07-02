@@ -19,26 +19,26 @@ type ProductRepository interface {
 	SetAvailable(id int, available bool) error
 	SetHasVariant(productId int) error
 	ResetVariantStateToFalse(productId int) error // ⬅️ Tambahkan ini
-	WithTransaction(fn func(r ProductRepository) error) error
+	WithTransaction(fn func(conn ProductRepository) error) error
 }
 
-type productRepository struct {
+type productConnection struct {
 	db *gorm.DB
 }
 
-func (r *productRepository) DB() *gorm.DB {
-	return r.db
+func (conn *productConnection) DB() *gorm.DB {
+	return conn.db
 }
 
 func NewProductRepository(db *gorm.DB) ProductRepository {
-	return &productRepository{db}
+	return &productConnection{db}
 }
 
-func (r *productRepository) Create(product *entity.Product) error {
-	return r.db.Create(product).Error // ✅ cukup satu pointer
+func (conn *productConnection) Create(product *entity.Product) error {
+	return conn.db.Create(product).Error // ✅ cukup satu pointer
 }
 
-func (r *productRepository) Update(product entity.Product) (entity.Product, error) {
+func (conn *productConnection) Update(product entity.Product) (entity.Product, error) {
 	// Kosongkan relasi agar GORM tidak abaikan update FK
 	product.Tax = nil
 	product.ProductPromos = nil
@@ -65,19 +65,19 @@ func (r *productRepository) Update(product entity.Product) (entity.Product, erro
 
 	log.Printf("Updating product with ID %d", product.Id)
 
-	err := r.db.Debug().Model(&product).Updates(updateData).Error
+	err := conn.db.Debug().Model(&product).Updates(updateData).Error
 	return product, err
 }
 
-func (r *productRepository) Delete(id int) error {
+func (conn *productConnection) Delete(id int) error {
 	var product entity.Product
-	result := r.db.Where("id = ?", id).Delete(&product)
+	result := conn.db.Where("id = ?", id).Delete(&product)
 	return result.Error
 }
 
-func (r *productRepository) FindById(id int) (entity.Product, error) {
+func (conn *productConnection) FindById(id int) (entity.Product, error) {
 	var product entity.Product
-	err := r.db.
+	err := conn.db.
 		Preload("Variants").
 		Preload("ProductCategory").
 		Preload("Tax").
@@ -90,12 +90,12 @@ func (r *productRepository) FindById(id int) (entity.Product, error) {
 	return product, err
 }
 
-func (r *productRepository) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
+func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
 	var bundles []entity.Product
 	var total int64
 
 	// Base query
-	baseQuery := r.db.Model(&entity.Product{}).
+	baseQuery := conn.db.Model(&entity.Product{}).
 		Preload("Variants").
 		Preload("ProductCategory").
 		Preload("Tax").
@@ -129,19 +129,19 @@ func (r *productRepository) FindWithPagination(businessId int, pagination reques
 	return bundles, total, nil
 }
 
-func (r *productRepository) SetActive(id int, active bool) error {
-	return r.db.Model(&entity.Product{}).
+func (conn *productConnection) SetActive(id int, active bool) error {
+	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", id).
 		Update("is_active", active).Error
 }
 
-func (r *productRepository) SetAvailable(id int, available bool) error {
-	return r.db.Model(&entity.Product{}).
+func (conn *productConnection) SetAvailable(id int, available bool) error {
+	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", id).
 		Update("is_available", available).Error
 }
 
-func (r *productRepository) SetHasVariant(productId int) error {
+func (conn *productConnection) SetHasVariant(productId int) error {
 
 	updateData := map[string]interface{}{
 		"has_variant": true,
@@ -152,26 +152,26 @@ func (r *productRepository) SetHasVariant(productId int) error {
 		"promo_id":    nil,
 	}
 
-	return r.db.Model(&entity.Product{}).
+	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", productId).
 		Updates(updateData).Error
 
 }
 
-func (r *productRepository) ResetVariantStateToFalse(productId int) error {
+func (conn *productConnection) ResetVariantStateToFalse(productId int) error {
 	updateData := map[string]interface{}{
 		"has_variant": false,
 		"track_stock": true,
 	}
 
-	return r.db.Model(&entity.Product{}).
+	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", productId).
 		Updates(updateData).Error
 }
 
-func (r *productRepository) WithTransaction(fn func(r ProductRepository) error) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		txRepo := &productRepository{db: tx}
+func (conn *productConnection) WithTransaction(fn func(conn ProductRepository) error) error {
+	return conn.db.Transaction(func(tx *gorm.DB) error {
+		txRepo := &productConnection{db: tx}
 		return fn(txRepo)
 	})
 }
