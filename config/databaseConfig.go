@@ -62,6 +62,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.User{},
 			&entity.BusinessType{},
 			&entity.Business{},
+			&entity.Membership{},
 			&entity.BusinessBranch{},
 			&entity.ProductCategory{},
 			&entity.Unit{},

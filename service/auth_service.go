@@ -1,11 +1,12 @@
 package service
 
 import (
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,58 +45,32 @@ func (service *authService) VerifyCredential(email string, password string) inte
 func (service *authService) VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error) {
 	user, err := service.userBusinessRepository.FindByEmailOrPhone(identifier)
 	if err != nil {
-		return nil, fmt.Errorf("pengguna tidak ditemukan: %w", err)
+		return nil, helper.ErrUserNotFound
 	}
 
 	if !comparePassword(user.Password, []byte(password)) {
-		return nil, fmt.Errorf("email / nomor HP atau password tidak valid")
+		return nil, helper.ErrInvalidPassword
 	}
 
-	token := service.jwtService.GenerateToken(user.Id)
-
-	role := response.RoleResponse{
-		Id:   user.Role.Id,
-		Name: user.Role.Name,
-	}
-
-	businessType := response.BusinessTypeResponse{
-		Id:   user.Business.BusinessType.Id,
-		Name: user.Business.BusinessType.Name,
-	}
-
-	business := response.BusinessResponse{
-		Id:             user.Business.Id,
-		Name:           user.Business.Name,
-		OwnerName:      user.Business.OwnerName,
-		BusinessTypeId: user.Business.BusinessTypeId,
-		Image:          user.Business.Image,
-		IsActive:       user.Business.IsActive,
-		Type:           businessType,
-	}
-
-	var branch *response.BusinessBranchResponse
-	if user.Branch != nil {
-		branch = &response.BusinessBranchResponse{
-			Id:          user.Branch.Id,
-			PhoneNumber: user.Branch.Phone,
+	// Cek membership aktif
+	now := time.Now()
+	hasActiveMembership := false
+	for _, m := range user.Memberships {
+		if m.IsActive && m.EndDate.After(now) {
+			hasActiveMembership = true
+			break
 		}
 	}
 
-	authRes := response.AuthResponse{
-		Id:          user.Id,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Token:       token,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-		Role:        role,
-		Business:    business,
-		Branch:      branch,
+	if !hasActiveMembership {
+		return nil, helper.ErrMembershipInactive
 	}
 
-	return &authRes, nil
+	// Token dan response
+	token := service.jwtService.GenerateToken(user.Id)
+	res := helper.ToAuthResponse(&user, token)
+
+	return res, nil
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {

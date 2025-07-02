@@ -40,7 +40,8 @@ func (c *registrationController) Register(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.registrationService.Register(req); err != nil {
+	userResponse, err := c.registrationService.Register(req)
+	if err != nil {
 		statusCode := http.StatusBadRequest
 		errorCode := "bad_request"
 		field := "email"
@@ -61,7 +62,8 @@ func (c *registrationController) Register(ctx *gin.Context) {
 		return
 	}
 
-	res := helper.BuildResponse(true, "Registrasi berhasil", helper.EmptyObj{})
+	// ✅ Kirim data user saat registrasi berhasil
+	res := helper.BuildResponse(true, "Registrasi berhasil", userResponse)
 	ctx.JSON(http.StatusCreated, res)
 }
 

@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"time"
-
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -14,7 +12,6 @@ type UnitRepository interface {
 	Update(unit entity.Unit) (entity.Unit, error)
 	Delete(id int) error
 	FindById(id int) (entity.Unit, error)
-	FindActiveGlobalUnit(businessId int, now time.Time) (*entity.Unit, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
 }
 
@@ -52,27 +49,13 @@ func (r *unitRepo) FindByBusinessId(businessId int) ([]entity.Unit, error) {
 	return units, err
 }
 
-func (r *unitRepo) FindActiveGlobalUnit(businessId int, now time.Time) (*entity.Unit, error) {
-	var unit entity.Unit
-	err := r.db.
-		Where("business_id = ? AND is_global = ? AND start_at <= ? AND end_at >= ?", businessId, true, now, now).
-		Order("start_at DESC").
-		First(&unit).Error
-
-	if err != nil {
-		return nil, err
-	}
-	return &unit, nil
-}
-
 func (r *unitRepo) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error) {
 	var units []entity.Unit
 	var total int64
 
 	// Base query dengan preload relasi
 	baseQuery := r.db.Model(&entity.Unit{}).
-		Where("business_id = ?", businessId).
-		Preload("Products")
+		Where("business_id = ?", businessId)
 
 	// Filter pencarian
 	if pagination.Search != "" {

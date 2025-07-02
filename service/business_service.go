@@ -5,7 +5,6 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -108,12 +107,12 @@ func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
 		branches = append(branches, response.BusinessBranchResponse{
 			Id:          branch.Id,
 			BusinessId:  branch.BusinessId,
-			PhoneNumber: helper.StringValue(branch.PhoneNumber),
-			Rating:      helper.StringValue(branch.Rating),
-			Provinsi:    helper.StringValue(branch.Provinsi),
-			Kota:        helper.StringValue(branch.Kota),
-			Kecamatan:   helper.StringValue(branch.Kecamatan),
-			PostalCode:  helper.StringValue(branch.PostalCode),
+			PhoneNumber: branch.PhoneNumber,
+			Rating:      branch.Rating,
+			Provinsi:    branch.Provinsi,
+			Kota:        branch.Kota,
+			Kecamatan:   branch.Kecamatan,
+			PostalCode:  branch.PostalCode,
 			IsMain:      branch.IsMain,
 			IsActive:    branch.IsActive,
 		})

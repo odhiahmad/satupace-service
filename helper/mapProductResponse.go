@@ -81,9 +81,9 @@ func ToProductToResponse(product entity.Product) response.ProductResponse {
 		}
 	}
 
-	var unitRes *response.ProductUnitResponse
+	var unitRes *response.UnitResponse
 	if product.Unit != nil {
-		unitRes = &response.ProductUnitResponse{
+		unitRes = &response.UnitResponse{
 			Id:         product.Unit.Id,
 			Name:       product.Unit.Name,
 			Alias:      product.Unit.Alias,

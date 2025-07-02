@@ -86,6 +86,7 @@ func (t *UserBusinessConnection) FindByEmailOrPhone(identifier string) (entity.U
 		Preload("Business").
 		Preload("Business.BusinessType").
 		Preload("Branch").
+		Preload("Memberships").
 		Where("email = ? OR phone_number = ?", identifier, identifier).
 		First(&user).Error
 

@@ -76,13 +76,43 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 
 	user, err := c.authService.VerifyCredentialBusiness(loginDTO.Identifier, loginDTO.Password)
 	if err != nil {
-		response := helper.BuildErrorResponse(
-			"Login gagal",
-			"AUTH_INVALID_CREDENTIALS",
-			"identifier",
-			"Email/Nomor HP atau password tidak valid",
-			nil,
-		)
+		var response helper.ResponseError
+
+		switch err {
+		case helper.ErrInvalidPassword:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_INVALID_PASSWORD",
+				"password",
+				"Password yang Anda masukkan salah",
+				nil,
+			)
+		case helper.ErrMembershipInactive:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_MEMBERSHIP_INACTIVE",
+				"membership",
+				"Membership Anda tidak aktif atau telah kedaluwarsa",
+				nil,
+			)
+		case helper.ErrUserNotFound:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_USER_NOT_FOUND",
+				"identifier",
+				"Email atau nomor HP tidak ditemukan",
+				nil,
+			)
+		default:
+			response = helper.BuildErrorResponse(
+				"Terjadi kesalahan",
+				"AUTH_UNKNOWN_ERROR",
+				"",
+				err.Error(),
+				nil,
+			)
+		}
+
 		ctx.JSON(http.StatusUnauthorized, response)
 		return
 	}

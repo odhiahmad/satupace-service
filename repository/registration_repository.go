@@ -8,7 +8,7 @@ import (
 // RegistrationRepository interface untuk registrasi bisnis dan user.
 type RegistrationRepository interface {
 	CreateBusiness(business entity.Business) (entity.Business, error)
-	CreateUser(user entity.UserBusiness) error
+	CreateUser(user entity.UserBusiness) (entity.UserBusiness, error)
 	CreateMainBranch(branch *entity.BusinessBranch) error
 	IsEmailExists(email string) (bool, error)
 }
@@ -32,8 +32,21 @@ func (r *registrationRepository) CreateBusiness(business entity.Business) (entit
 }
 
 // CreateUser menyimpan data user bisnis ke database.
-func (r *registrationRepository) CreateUser(user entity.UserBusiness) error {
-	return r.db.Create(&user).Error
+func (r *registrationRepository) CreateUser(user entity.UserBusiness) (entity.UserBusiness, error) {
+	if err := r.db.Create(&user).Error; err != nil {
+		return entity.UserBusiness{}, err
+	}
+
+	var savedUser entity.UserBusiness
+	if err := r.db.
+		Preload("Role").
+		Preload("Business").
+		Preload("Branch").
+		First(&savedUser, user.Id).Error; err != nil {
+		return entity.UserBusiness{}, err
+	}
+
+	return savedUser, nil
 }
 
 func (r *registrationRepository) CreateMainBranch(branch *entity.BusinessBranch) error {

@@ -19,7 +19,7 @@ type ProductResponse struct {
 	Tax             *TaxResponse             `json:"tax"`
 	Discount        *DiscountResponse        `json:"discount"`
 	Promos          []PromoResponse          `json:"promos"`
-	Unit            *ProductUnitResponse     `json:"unit"`
+	Unit            *UnitResponse            `json:"unit"`
 	CreatedAt       string                   `json:"created_at"` // Gunakan ISO8601 format saat mapping
 	UpdatedAt       string                   `json:"updated_at"`
 }
@@ -33,12 +33,4 @@ type ProductCategoryResponse struct {
 type RequiredProductData struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
-}
-
-type ProductUnitResponse struct {
-	Id         int     `json:"id"`
-	BusinessId int     `json:"business_id"`
-	Name       string  `json:"name"` // "Pcs", "Kg", dll
-	Alias      string  `json:"alias"`
-	Multiplier float64 `json:"multiplier" validate:"required,gte=1"`
 }

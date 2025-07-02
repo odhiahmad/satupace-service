@@ -14,4 +14,5 @@ type AuthResponse struct {
 	Role        RoleResponse            `json:"role"`
 	Business    BusinessResponse        `json:"business"`
 	Branch      *BusinessBranchResponse `json:"branch,omitempty"`
+	Memberships []MembershipResponse    `json:"memberships,omitempty"` // ✅ Tambahkan ini
 }
