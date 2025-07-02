@@ -17,6 +17,7 @@ type BundleRepository interface {
 	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
 	DeleteItemsByBundleId(bundleId int) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
+	SetIsActive(id int, isActive bool) error
 }
 
 type BundleConnection struct {
@@ -95,4 +96,10 @@ func (r *BundleConnection) FindWithPagination(businessId int, pagination request
 	}
 
 	return bundles, total, nil
+}
+
+func (r *BundleConnection) SetIsActive(id int, isActive bool) error {
+	return r.Db.Model(&entity.Bundle{}).
+		Where("id = ?", id).
+		Update("is_active", isActive).Error
 }

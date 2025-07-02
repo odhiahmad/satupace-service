@@ -24,11 +24,11 @@ var (
 	paymentMethodRepository   repository.PaymentMethodRepository   = repository.NewPaymentMethodRepository(db)
 	productCategoryRepository repository.ProductCategoryRepository = repository.NewProductCategoryRepository(db)
 	productRepository         repository.ProductRepository         = repository.NewProductRepository(db)
+	productPromoRepository    repository.ProductPromoRepository    = repository.NewProductPromoRepository(db)
 	productVariantRepository  repository.ProductVariantRepository  = repository.NewProductVariantRepository(db)
 	registrationRepository    repository.RegistrationRepository    = repository.NewRegistrationRepository(db)
 	bundleRepository          repository.BundleRepository          = repository.NewBundleRepository(db)
 	taxRepository             repository.TaxRepository             = repository.NewTaxRepository(db)
-	productPromoRepository    repository.ProductPromoRepository    = repository.NewProductPromoRepository(db)
 	discountRepository        repository.DiscountRepository        = repository.NewDiscountRepository(db)
 	unitRepository            repository.UnitRepository            = repository.NewUnitRepository(db)
 	transactionRepository     repository.TransactionRepository     = repository.NewTransactionRepository(db)
@@ -44,12 +44,12 @@ var (
 	paymentMethodService   service.PaymentMethodService   = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
 	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, validate)
-	productService         service.ProductService         = service.NewProductService(productRepository, productVariantRepository, productPromoRepository, validate, redisClient)
+	productService         service.ProductService         = service.NewProductService(productRepository, productPromoRepository, promoRepository, productVariantRepository, validate, redisClient)
 	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
 	taxService             service.TaxService             = service.NewTaxService(taxRepository, validate)
 	unitService            service.UnitService            = service.NewUnitService(unitRepository)
 	transactionService     service.TransactionService     = service.NewTransactionService(db, transactionRepository, validate)
-	promoService           service.PromoService           = service.NewPromoService(promoRepository, productPromoRepository, validate)
+	promoService           service.PromoService           = service.NewPromoService(promoRepository, validate)
 	discountService        service.DiscountService        = service.NewDiscountService(discountRepository, validate)
 	businessBranchService  service.BusinessBranchService  = service.NewBusinessBranchService(businessBranchRepository, validate)
 	businessService        service.BusinessService        = service.NewBusinessService(businessRepository, validate)
@@ -115,10 +115,10 @@ func SetupRouter() *gin.Engine {
 	paymentMethodRoutes := r.Group("payment-method")
 	{
 		paymentMethodRoutes.POST("", paymentMethodController.Create)
-		paymentMethodRoutes.PATCH("/:paymentMethodId", paymentMethodController.Update)
+		paymentMethodRoutes.PATCH("/:id", paymentMethodController.Update)
 		paymentMethodRoutes.GET("", paymentMethodController.FindAll)
-		paymentMethodRoutes.GET("/:paymentMethodId", paymentMethodController.FindById)
-		paymentMethodRoutes.DELETE("/:paymentMethodId", paymentMethodController.Delete)
+		paymentMethodRoutes.GET("/:id", paymentMethodController.FindById)
+		paymentMethodRoutes.DELETE("/:id", paymentMethodController.Delete)
 	}
 
 	productCategoryRoutes := r.Group("product-category", middleware.AuthorizeJWT(jwtService))
@@ -157,6 +157,7 @@ func SetupRouter() *gin.Engine {
 		bundleRoutes.GET("/:id", bundleController.FindById)
 		bundleRoutes.DELETE("/:id", bundleController.Delete)
 		bundleRoutes.GET("", bundleController.FindWithPagination)
+		bundleRoutes.PUT("/:id/active", bundleController.SetIsActive)
 	}
 
 	taxRoutes := r.Group("tax", middleware.AuthorizeJWT(jwtService))
@@ -182,10 +183,10 @@ func SetupRouter() *gin.Engine {
 	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService))
 	{
 		transactionRoutes.POST("", transactionController.Create)
-		transactionRoutes.PATCH("/:id", transactionController.Update)
+		transactionRoutes.PATCH("/:id/payment", transactionController.Payment)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
-		transactionRoutes.POST("/:id/items", transactionController.AddOrUpdateItem)
+		transactionRoutes.PATCH("/:id/items", transactionController.AddOrUpdateItem)
 	}
 
 	promoRoutes := r.Group("promo", middleware.AuthorizeJWT(jwtService))
@@ -195,6 +196,7 @@ func SetupRouter() *gin.Engine {
 		promoRoutes.GET("/:id", promoController.FindById)
 		promoRoutes.DELETE("/:id", promoController.Delete)
 		promoRoutes.GET("/business", promoController.FindWithPagination)
+		promoRoutes.PUT("/:id/active", promoController.SetIsActive)
 
 	}
 
@@ -205,6 +207,7 @@ func SetupRouter() *gin.Engine {
 		discountRoutes.GET("/:id", discountController.FindById)
 		discountRoutes.DELETE("/:id", discountController.Delete)
 		discountRoutes.GET("/business", discountController.FindWithPagination)
+		discountRoutes.PUT("/:id/active", discountController.SetIsActive)
 
 	}
 

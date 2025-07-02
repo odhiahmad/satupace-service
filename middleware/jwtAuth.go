@@ -42,13 +42,8 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 			return
 		}
 
-		// Simpan klaim ke context jika diperlukan
 		claims := token.Claims.(jwt.MapClaims)
-		log.Println("Claim[userId]:", claims["userId"])
-		log.Println("Claim[issuer]:", claims["issuer"])
-
-		// Simpan userId ke context jika ingin digunakan di handler
-		c.Set("userId", claims["userId"])
+		c.Set("user_id", claims["user_id"])
 		c.Next()
 	}
 }

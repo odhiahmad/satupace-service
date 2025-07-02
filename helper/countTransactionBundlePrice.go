@@ -1,21 +1,38 @@
 package helper
 
 import (
+	"log"
+
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
 type BundlePricing struct {
-	Price    float64
-	Discount float64
-	Promo    float64
+	Total     float64
+	BasePrice float64
+	Tax       float64
 }
 
-// HitungHargaBundle menghitung harga, diskon, dan promo dari bundle
 func HitungHargaBundle(bundle entity.Bundle, quantity int) (*BundlePricing, error) {
-	// Saat ini hanya menggunakan BasePrice, diskon dan promo belum diterapkan
+	// Hitung harga dasar berdasarkan harga satuan bundle dikali kuantitas
+	price := bundle.BasePrice * float64(quantity)
+	var totalTax float64
+
+	if bundle.Tax != nil && bundle.Tax.IsActive {
+		if bundle.Tax.IsPercentage {
+			totalTax = price * (bundle.Tax.Amount / 100.0)
+		} else {
+			totalTax = bundle.Tax.Amount * float64(quantity)
+		}
+		log.Printf("[HitungHargaBundle] Pajak dihitung: %.2f", totalTax)
+	} else {
+		log.Printf("[HitungHargaBundle] Tidak ada pajak aktif untuk bundle.")
+	}
+
+	total := price + totalTax
+
 	return &BundlePricing{
-		Price:    bundle.BasePrice,
-		Discount: 0,
-		Promo:    0,
+		Total:     total,
+		BasePrice: bundle.BasePrice,
+		Tax:       totalTax,
 	}, nil
 }

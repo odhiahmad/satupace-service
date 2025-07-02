@@ -15,8 +15,10 @@ type TransactionRepository interface {
 	Update(transaction *entity.Transaction) (*entity.Transaction, error)
 	FindById(id int) (entity.Transaction, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error)
-	AddOrUpdateItem(transactionId int, item entity.TransactionItem) (*entity.TransactionItem, error)
+	AddOrReplaceItem(transactionId int, item entity.TransactionItem) error
 	FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error)
+	UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error)
+	UpdateItemFields(transactionId int, item entity.TransactionItem) error
 }
 
 type transactionRepository struct {
@@ -68,12 +70,19 @@ func (r *transactionRepository) Create(transaction *entity.Transaction) (*entity
 
 	var result entity.Transaction
 	if err := r.db.
-		Preload("Items.Attributes").
-		Preload("Items.Product").
-		Preload("Items.ProductVariant").
 		Preload("Customer").
-		Preload("Business").
 		Preload("PaymentMethod").
+		Preload("Items.Product").
+		Preload("Items.Bundle").
+		Preload("Items.ProductAttribute").
+		Preload("Items.ProductVariant").
+		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
 		First(&result, transaction.Id).Error; err != nil {
 		return nil, err
 	}
@@ -122,17 +131,79 @@ func (r *transactionRepository) Update(transaction *entity.Transaction) (*entity
 	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
 	var result entity.Transaction
 	if err := r.db.
-		Preload("Items.Attributes").
-		Preload("Items.Product").
-		Preload("Items.ProductVariant").
 		Preload("Customer").
-		Preload("Business").
 		Preload("PaymentMethod").
+		Preload("Items.Product").
+		Preload("Items.Bundle").
+		Preload("Items.ProductAttribute").
+		Preload("Items.ProductVariant").
+		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
 		First(&result, transaction.Id).Error; err != nil {
 		return nil, err
 	}
 
 	return &result, nil
+}
+
+func (r *transactionRepository) UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error) {
+	var existing entity.Transaction
+	if err := r.db.First(&existing, transaction.Id).Error; err != nil {
+		return nil, err
+	}
+
+	existing.FinalPrice = transaction.FinalPrice
+	existing.BasePrice = transaction.BasePrice
+	existing.Discount = transaction.Discount
+	existing.Promo = transaction.Promo
+
+	if err := r.db.Save(&existing).Error; err != nil {
+		return nil, err
+	}
+
+	// preload relasi jika diperlukan
+	if err := r.db.
+		Preload("Customer").
+		Preload("PaymentMethod").
+		Preload("Items.Product").
+		Preload("Items.Bundle").
+		Preload("Items.ProductAttribute").
+		Preload("Items.ProductVariant").
+		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
+		First(&existing, existing.Id).Error; err != nil {
+		return nil, err
+	}
+
+	return &existing, nil
+}
+
+func (r *transactionRepository) UpdateItemFields(transactionId int, item entity.TransactionItem) error {
+	if item.ProductId == nil {
+		return fmt.Errorf("product_id kosong pada item")
+	}
+
+	return r.db.Model(&entity.TransactionItem{}).
+		Where("transaction_id = ? AND product_id = ?", transactionId, *item.ProductId).
+		Updates(map[string]interface{}{
+			"quantity":   item.Quantity,
+			"unit_price": item.UnitPrice,
+			"total":      item.Total,
+			"discount":   item.Discount,
+			"promo":      item.Promo,
+			"tax":        item.Tax,
+			"rating":     item.Rating,
+		}).Error
 }
 
 // FINDBYID
@@ -146,6 +217,12 @@ func (r *transactionRepository) FindById(id int) (entity.Transaction, error) {
 		Preload("Items.ProductAttribute").
 		Preload("Items.ProductVariant").
 		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
 		Where("id = ?", id).
 		First(&transaction).Error
 	return transaction, err
@@ -158,10 +235,20 @@ func (r *transactionRepository) FindWithPagination(businessId int, pagination re
 
 	// Base query dengan preload relasi dan sorting
 	baseQuery := r.db.Model(&entity.Transaction{}).
-		Where("business_id = ?", businessId).
 		Preload("Customer").
 		Preload("PaymentMethod").
-		Order("created_at desc")
+		Preload("Items.Product").
+		Preload("Items.Bundle").
+		Preload("Items.ProductAttribute").
+		Preload("Items.ProductVariant").
+		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
+		Where("business_id = ?", businessId)
 
 	// Hitung total data
 	if err := baseQuery.Count(&total).Error; err != nil {
@@ -180,76 +267,117 @@ func (r *transactionRepository) FindWithPagination(businessId int, pagination re
 	return transactions, total, nil
 }
 
-func (r *transactionRepository) AddOrUpdateItem(transactionId int, item entity.TransactionItem) (*entity.TransactionItem, error) {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+func (r *transactionRepository) AddOrReplaceItem(transactionId int, item entity.TransactionItem) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		var existing entity.TransactionItem
-		err := tx.Where("transaction_id = ? AND product_id = ?", transactionId, item.ProductId).First(&existing).Error
 
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		query := tx.Where("transaction_id = ?", transactionId)
+
+		if item.ProductId != nil {
+			query = query.Where("product_id = ?", item.ProductId)
+		} else {
+			query = query.Where("product_id IS NULL")
+		}
+
+		if item.BundleId != nil {
+			query = query.Where("bundle_id = ?", item.BundleId)
+		} else {
+			query = query.Where("bundle_id IS NULL")
+		}
+
+		if item.ProductVariantId != nil {
+			query = query.Where("product_variant_id = ?", item.ProductVariantId)
+		} else {
+			query = query.Where("product_variant_id IS NULL")
+		}
+
+		if item.ProductAttributeId != nil {
+			query = query.Where("product_attribute_id = ?", item.ProductAttributeId)
+		} else {
+			query = query.Where("product_attribute_id IS NULL")
+		}
+
+		err := query.First(&existing).Error
+
+		// Item belum ada → insert jika quantity > 0
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if item.Quantity > 0 {
+				item.TransactionId = transactionId
+				if err := tx.Create(&item).Error; err != nil {
+					return err
+				}
+				for i := range item.Attributes {
+					item.Attributes[i].TransactionItemId = item.Id
+					if err := tx.Create(&item.Attributes[i]).Error; err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		}
+
+		if err != nil {
+			return err // error selain record not found
+		}
+
+		// Item sudah ada
+		if item.Quantity <= 0 {
+			// Hapus jika quantity <= 0
+			if err := tx.Where("transaction_item_id = ?", existing.Id).
+				Delete(&entity.TransactionItemAttribute{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Delete(&existing).Error; err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// Update isi item
+		existing.Quantity = item.Quantity
+		existing.UnitPrice = item.UnitPrice
+		existing.Total = item.Total
+		existing.Discount = item.Discount
+		existing.Promo = item.Promo
+		existing.Tax = item.Tax
+		existing.Rating = item.Rating
+
+		// Hapus atribut lama
+		if err := tx.Where("transaction_item_id = ?", existing.Id).
+			Delete(&entity.TransactionItemAttribute{}).Error; err != nil {
 			return err
 		}
 
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Insert baru
-			item.TransactionId = transactionId
-			if err := tx.Create(&item).Error; err != nil {
+		// Tambah atribut baru
+		for i := range item.Attributes {
+			item.Attributes[i].TransactionItemId = existing.Id
+			if err := tx.Create(&item.Attributes[i]).Error; err != nil {
 				return err
-			}
-
-			for i := range item.Attributes {
-				item.Attributes[i].TransactionItemId = item.Id
-				if err := tx.Create(&item.Attributes[i]).Error; err != nil {
-					return err
-				}
-			}
-		} else {
-			// Update kuantitas dan subtotal
-			existing.Quantity += item.Quantity
-			existing.Price = item.Price // atau logic subtotal baru?
-			if err := tx.Save(&existing).Error; err != nil {
-				return err
-			}
-
-			// Hapus atribut lama
-			if err := tx.Where("transaction_item_id = ?", existing.Id).Delete(&entity.TransactionItemAttribute{}).Error; err != nil {
-				return err
-			}
-
-			// Tambahkan atribut baru
-			for i := range item.Attributes {
-				item.Attributes[i].TransactionItemId = existing.Id
-				if err := tx.Create(&item.Attributes[i]).Error; err != nil {
-					return err
-				}
 			}
 		}
 
-		return nil
+		// Simpan item yang diupdate
+		return tx.Save(&existing).Error
 	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// ✅ Reload data transaksi dengan relasi lengkap setelah berhasil disimpan
-	var result entity.TransactionItem
-	if err := r.db.
-		Preload("Attributes").
-		Preload("Product").
-		Preload("ProductVariant").
-		First(&result, transactionId).Error; err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-
 }
 
 func (r *transactionRepository) FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error) {
 	var items []entity.TransactionItem
 
 	err := r.db.
-		Preload("Attributes").
+		Preload("Customer").
+		Preload("PaymentMethod").
+		Preload("Items.Product").
+		Preload("Items.Bundle").
+		Preload("Items.ProductAttribute").
+		Preload("Items.ProductVariant").
+		Preload("Items.Attributes.ProductAttribute").
+		Preload("Items.Product.Tax").
+		Preload("Items.Product.Discount").
+		Preload("Items.Product.Unit").
+		Preload("Items.Product.ProductPromos").
+		Preload("Items.Product.ProductPromos.Promo").
+		Preload("Items.Product.ProductPromos.Promo.RequiredProducts").
 		Where("transaction_id = ?", transactionId).
 		Find(&items).Error
 

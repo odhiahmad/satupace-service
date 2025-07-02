@@ -17,6 +17,7 @@ type PromoController interface {
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
+	SetIsActive(ctx *gin.Context)
 }
 
 type promoController struct {
@@ -239,4 +240,50 @@ func (c *promoController) FindWithPagination(ctx *gin.Context) {
 		promos,
 		paginationMeta,
 	))
+}
+
+func (c *promoController) SetIsActive(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	var input request.IsActive
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid",
+			"INVALID_REQUEST",
+			"body",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	err = c.promoService.SetIsActive(id, input.IsActive)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status promo",
+			"UPDATE_STATUS_FAILED",
+			"internal",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	status := "dinonaktifkan"
+	if input.IsActive {
+		status = "diaktifkan"
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Promo berhasil "+status, nil))
 }

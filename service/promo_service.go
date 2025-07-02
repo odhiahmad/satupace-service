@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -14,19 +16,18 @@ type PromoService interface {
 	Delete(id int) error
 	FindById(id int) (entity.Promo, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Promo, int64, error)
+	SetIsActive(id int, active bool) error
 }
 
 type promoService struct {
-	repo             repository.PromoRepository
-	productPromoRepo repository.ProductPromoRepository
-	validate         *validator.Validate
+	repo     repository.PromoRepository
+	validate *validator.Validate
 }
 
-func NewPromoService(repo repository.PromoRepository, productPromoRepo repository.ProductPromoRepository, validate *validator.Validate) PromoService {
+func NewPromoService(repo repository.PromoRepository, validate *validator.Validate) PromoService {
 	return &promoService{
-		repo:             repo,
-		productPromoRepo: productPromoRepo,
-		validate:         validator.New(),
+		repo:     repo,
+		validate: validator.New(),
 	}
 }
 
@@ -35,18 +36,19 @@ func (s *promoService) Create(req request.PromoCreate) (entity.Promo, error) {
 		return entity.Promo{}, err
 	}
 
-	typeVal := helper.DeterminePromoType(req.Amount)
+	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
 	promo := entity.Promo{
-		BusinessId:  req.BusinessId,
-		Name:        req.Name,
-		Description: req.Description,
-		Type:        typeVal,
-		Amount:      req.Amount,
-		MinQuantity: req.MinQuantity,
-		StartDate:   req.StartDate,
-		EndDate:     req.EndDate,
-		IsActive:    req.IsActive,
+		BusinessId:   req.BusinessId,
+		Name:         req.Name,
+		Description:  req.Description,
+		Type:         req.Type,
+		IsPercentage: isPercentageVal,
+		Amount:       req.Amount,
+		MinQuantity:  req.MinQuantity,
+		StartDate:    req.StartDate,
+		EndDate:      req.EndDate,
+		IsActive:     req.IsActive,
 	}
 
 	// Simpan promo utama
@@ -82,13 +84,14 @@ func (s *promoService) Update(id int, req request.PromoUpdate) (entity.Promo, er
 	}
 
 	// Tentukan tipe promo dari amount
-	typeVal := helper.DeterminePromoType(req.Amount)
+	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
 	// Update field dasar
 	oldPromo.Name = req.Name
 	oldPromo.Description = req.Description
-	oldPromo.Type = typeVal
+	oldPromo.Type = req.Type
 	oldPromo.Amount = req.Amount
+	oldPromo.IsPercentage = isPercentageVal
 	oldPromo.MinQuantity = req.MinQuantity
 	oldPromo.StartDate = req.StartDate
 	oldPromo.EndDate = req.EndDate
@@ -120,8 +123,6 @@ func (s *promoService) Delete(id int) error {
 		return err
 	}
 
-	_ = s.productPromoRepo.DeleteByPromoId(id)
-
 	return s.repo.Delete(promo)
 }
 
@@ -131,4 +132,14 @@ func (s *promoService) FindById(id int) (entity.Promo, error) {
 
 func (s *promoService) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Promo, int64, error) {
 	return s.repo.FindWithPagination(businessId, pagination)
+}
+
+func (s *promoService) SetIsActive(id int, active bool) error {
+	// Validasi keberadaan promo
+	_, err := s.repo.FindById(id)
+	if err != nil {
+		return fmt.Errorf("promo tidak ditemukan: %w", err)
+	}
+
+	return s.repo.SetIsActive(id, active)
 }

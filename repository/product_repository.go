@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"log"
+
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -15,7 +17,8 @@ type ProductRepository interface {
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
-	SetHasVariant(productId int, hasVariant bool) error
+	SetHasVariant(productId int) error
+	ResetVariantStateToFalse(productId int) error // ⬅️ Tambahkan ini
 	WithTransaction(fn func(r ProductRepository) error) error
 }
 
@@ -36,7 +39,33 @@ func (r *productRepository) Create(product *entity.Product) error {
 }
 
 func (r *productRepository) Update(product entity.Product) (entity.Product, error) {
-	err := r.db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&product).Error
+	// Kosongkan relasi agar GORM tidak abaikan update FK
+	product.Tax = nil
+	product.ProductPromos = nil
+	product.Discount = nil
+	product.ProductCategory = nil
+	product.Unit = nil
+
+	updateData := map[string]interface{}{
+		"name":                product.Name,
+		"description":         product.Description,
+		"base_price":          product.BasePrice,
+		"sku":                 product.SKU,
+		"stock":               product.Stock,
+		"minimum_sales":       *product.MinimumSales,
+		"track_stock":         product.TrackStock,
+		"has_variant":         product.HasVariant,
+		"is_available":        product.IsAvailable,
+		"is_active":           product.IsActive,
+		"product_category_id": product.ProductCategoryId,
+		"tax_id":              product.TaxId,
+		"unit_id":             product.UnitId,
+		"discount_id":         product.DiscountId,
+	}
+
+	log.Printf("Updating product with ID %d", product.Id)
+
+	err := r.db.Debug().Model(&product).Updates(updateData).Error
 	return product, err
 }
 
@@ -112,10 +141,32 @@ func (r *productRepository) SetAvailable(id int, available bool) error {
 		Update("is_available", available).Error
 }
 
-func (r *productRepository) SetHasVariant(productId int, hasVariant bool) error {
+func (r *productRepository) SetHasVariant(productId int) error {
+
+	updateData := map[string]interface{}{
+		"has_variant": true,
+		"base_price":  nil,
+		"stock":       nil,
+		"track_stock": false,
+		"discount_id": nil,
+		"promo_id":    nil,
+	}
+
 	return r.db.Model(&entity.Product{}).
 		Where("id = ?", productId).
-		Update("has_variant", hasVariant).Error
+		Updates(updateData).Error
+
+}
+
+func (r *productRepository) ResetVariantStateToFalse(productId int) error {
+	updateData := map[string]interface{}{
+		"has_variant": false,
+		"track_stock": true,
+	}
+
+	return r.db.Model(&entity.Product{}).
+		Where("id = ?", productId).
+		Updates(updateData).Error
 }
 
 func (r *productRepository) WithTransaction(fn func(r ProductRepository) error) error {

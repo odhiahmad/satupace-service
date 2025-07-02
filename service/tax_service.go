@@ -33,14 +33,14 @@ func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
 		return entity.Tax{}, err
 	}
 
-	typeVal := helper.DeterminePromoType(req.Amount)
+	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
 	tax := entity.Tax{
-		BusinessId: req.BusinessId,
-		Name:       req.Name,
-		Type:       typeVal,
-		Amount:     req.Amount,
-		IsGlobal:   req.IsGlobal,
+		BusinessId:   req.BusinessId,
+		Name:         req.Name,
+		IsPercentage: isPercentageVal,
+		Amount:       req.Amount,
+		IsGlobal:     req.IsGlobal,
 	}
 
 	return s.repo.Create(tax)
@@ -51,14 +51,14 @@ func (s *taxService) Update(id int, req request.TaxUpdate) (entity.Tax, error) {
 		return entity.Tax{}, err
 	}
 
-	typeVal := helper.DeterminePromoType(req.Amount)
+	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
 	tax := entity.Tax{
-		Id:       id,
-		Name:     req.Name,
-		Type:     typeVal,
-		Amount:   req.Amount,
-		IsGlobal: req.IsGlobal,
+		Id:           id,
+		Name:         req.Name,
+		IsPercentage: isPercentageVal,
+		Amount:       req.Amount,
+		IsGlobal:     req.IsGlobal,
 	}
 
 	return s.repo.Update(tax)

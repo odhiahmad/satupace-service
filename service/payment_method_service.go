@@ -10,7 +10,7 @@ import (
 
 type PaymentMethodService interface {
 	CreatePaymentMethod(req request.PaymentMethodCreate) (entity.PaymentMethod, error)
-	UpdatePaymentMethod(req request.PaymentMethodUpdate) (entity.PaymentMethod, error)
+	UpdatePaymentMethod(id int, req request.PaymentMethodUpdate) (entity.PaymentMethod, error)
 	FindById(id int) (response.PaymentMethodResponse, error)
 	FindAll() ([]response.PaymentMethodResponse, error)
 	Delete(id int) error
@@ -40,12 +40,12 @@ func (s *paymentMethodService) CreatePaymentMethod(req request.PaymentMethodCrea
 	return s.repo.InsertPaymentMethod(method)
 }
 
-func (s *paymentMethodService) UpdatePaymentMethod(req request.PaymentMethodUpdate) (entity.PaymentMethod, error) {
+func (s *paymentMethodService) UpdatePaymentMethod(id int, req request.PaymentMethodUpdate) (entity.PaymentMethod, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.PaymentMethod{}, err
 	}
 
-	method, err := s.repo.FindById(req.Id)
+	method, err := s.repo.FindById(id)
 	if err != nil {
 		return entity.PaymentMethod{}, err
 	}

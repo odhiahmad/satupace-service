@@ -7,11 +7,8 @@ import (
 	"time"
 )
 
-func DeterminePromoType(amount float64) string {
-	if amount <= 1.0 {
-		return "percent"
-	}
-	return "fixed"
+func DeterminePromoType(amount float64) bool {
+	return amount <= 1.0
 }
 
 func GenerateSKU(name string) string {

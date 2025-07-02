@@ -11,8 +11,8 @@ type BundleCreate struct {
 	Description *string             `json:"description,omitempty"`
 	Image       *string             `json:"image" validate:"required"`
 	BasePrice   float64             `json:"base_price" validate:"required"`
-	Discount    float64             `json:"discount,omitempty"`
-	Promo       float64             `json:"promo,omitempty"`
+	Stock       int                 `json:"stock,omitempty"`
+	TaxId       *int                `json:"tax_id,omitempty"`
 	Items       []BundleItemRequest `json:"items" validate:"required,dive"`
 }
 
@@ -21,7 +21,9 @@ type BundleUpdate struct {
 	Name        string              `json:"name" validate:"required"`
 	Description *string             `json:"description,omitempty"`
 	Image       *string             `json:"image" validate:"required"`
+	Stock       int                 `json:"stock,omitempty"`
 	BasePrice   float64             `json:"base_price" validate:"required"`
+	TaxId       *int                `json:"tax_id,omitempty"`
 	Items       []BundleItemRequest `json:"items" validate:"required,dive"`
 	IsAvailable bool                `json:"is_available,omitempty"`
 	IsActive    bool                `json:"is_active,omitempty"`

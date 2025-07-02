@@ -5,6 +5,5 @@ type PaymentMethodCreate struct {
 }
 
 type PaymentMethodUpdate struct {
-	Id   int    `validate:"required"`
 	Name string `json:"name" validate:"required"`
 }

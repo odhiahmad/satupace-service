@@ -13,7 +13,7 @@ import (
 
 type TransactionController interface {
 	Create(ctx *gin.Context)
-	Update(ctx *gin.Context)
+	Payment(ctx *gin.Context)
 	AddOrUpdateItem(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
@@ -47,20 +47,20 @@ func (c *transactionController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat transaksi", transaction))
 }
 
-func (c *transactionController) Update(ctx *gin.Context) {
+func (c *transactionController) Payment(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
 
-	var input request.TransactionUpdateRequest
+	var input request.TransactionPaymentRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
-	transaction, err := c.transactionService.Update(id, input)
+	transaction, err := c.transactionService.Payment(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
 		return

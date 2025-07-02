@@ -16,6 +16,7 @@ type BundleController interface {
 	Update(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	Delete(ctx *gin.Context)
+	SetIsActive(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 }
 
@@ -167,6 +168,63 @@ func (c *bundleController) Delete(ctx *gin.Context) {
 
 	res := helper.BuildResponse(true, "Bundle berhasil dihapus", helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, res)
+}
+
+func (c *bundleController) SetIsActive(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id wajib diisi",
+			"MISSING_ID",
+			"id",
+			"Parameter 'id' tidak ditemukan dalam path",
+			helper.EmptyObj{},
+		))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			helper.EmptyObj{},
+		))
+		return
+	}
+
+	var input request.IsActive
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid",
+			"INVALID_REQUEST",
+			"body",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	err = c.bundleService.SetIsActive(id, input.IsActive)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status diskon",
+			"UPDATE_STATUS_FAILED",
+			"internal",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	statusMsg := "dinonaktifkan"
+	if input.IsActive {
+		statusMsg = "diaktifkan"
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Diskon berhasil "+statusMsg, nil))
 }
 
 func (c *bundleController) FindWithPagination(ctx *gin.Context) {

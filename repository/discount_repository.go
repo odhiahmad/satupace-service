@@ -16,6 +16,7 @@ type DiscountRepository interface {
 	FindById(id int) (entity.Discount, error)
 	FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error)
+	SetIsActive(id int, isActive bool) error
 }
 
 type discountRepo struct {
@@ -32,8 +33,11 @@ func (r *discountRepo) Create(discount entity.Discount) (entity.Discount, error)
 }
 
 func (r *discountRepo) Update(discount entity.Discount) (entity.Discount, error) {
-	err := r.db.Save(&discount).Error
-	return discount, err
+	err := r.db.Model(&entity.Discount{}).Where("id = ?", discount.Id).Updates(discount).Error
+	if err != nil {
+		return entity.Discount{}, err
+	}
+	return discount, nil
 }
 
 func (r *discountRepo) Delete(id int) error {
@@ -42,13 +46,13 @@ func (r *discountRepo) Delete(id int) error {
 
 func (r *discountRepo) FindById(id int) (entity.Discount, error) {
 	var discount entity.Discount
-	err := r.db.Preload("Products").First(&discount, id).Error
+	err := r.db.First(&discount, id).Error
 	return discount, err
 }
 
 func (r *discountRepo) FindByBusinessId(businessId int) ([]entity.Discount, error) {
 	var discounts []entity.Discount
-	err := r.db.Where("business_id = ?", businessId).Preload("Products").Find(&discounts).Error
+	err := r.db.Where("business_id = ?", businessId).Find(&discounts).Error
 	return discounts, err
 }
 
@@ -71,8 +75,7 @@ func (r *discountRepo) FindWithPagination(businessId int, pagination request.Pag
 
 	// Base query
 	baseQuery := r.db.Model(&entity.Discount{}).
-		Where("business_id = ?", businessId).
-		Preload("Products")
+		Where("business_id = ?", businessId)
 
 	// Search
 	if pagination.Search != "" {
@@ -95,4 +98,10 @@ func (r *discountRepo) FindWithPagination(businessId int, pagination request.Pag
 	}
 
 	return discounts, total, nil
+}
+
+func (r *discountRepo) SetIsActive(id int, isActive bool) error {
+	return r.db.Model(&entity.Discount{}).
+		Where("id = ?", id).
+		Update("is_active", isActive).Error
 }

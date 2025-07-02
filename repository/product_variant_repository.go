@@ -18,6 +18,7 @@ type ProductVariantRepository interface {
 	SetAvailable(id int, available bool) error
 	IsSKUExists(sku string) (bool, error)
 	CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error
+	CountByProductId(productId int) (int64, error)
 }
 
 type ProductVariantConnection struct {
@@ -33,11 +34,23 @@ func (r *ProductVariantConnection) Create(variant *entity.ProductVariant) error 
 }
 
 func (r *ProductVariantConnection) Update(variant *entity.ProductVariant) error {
-	// Pastikan ID ada
 	if variant.Id == 0 {
 		return errors.New("variant ID is required for update")
 	}
-	return r.db.Save(variant).Error
+
+	// Kosongkan relasi jika ada
+	variant.Product = nil
+
+	updateData := map[string]interface{}{
+		"name":        variant.Name,
+		"sku":         variant.SKU,
+		"base_price":  variant.BasePrice,
+		"stock":       variant.Stock,
+		"track_stock": variant.TrackStock,
+		"is_active":   variant.IsActive,
+	}
+
+	return r.db.Model(&variant).Where("id = ?", variant.Id).Updates(updateData).Error
 }
 
 func (r *ProductVariantConnection) Delete(id int) error {
@@ -81,4 +94,10 @@ func (r *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
 func (r *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error {
 	tx := txRepo.(*productRepository).db
 	return tx.Create(variant).Error
+}
+
+func (r *ProductVariantConnection) CountByProductId(productId int) (int64, error) {
+	var count int64
+	err := r.db.Model(&entity.ProductVariant{}).Where("product_id = ?", productId).Count(&count).Error
+	return count, err
 }

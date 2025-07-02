@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -14,6 +16,7 @@ type BundleService interface {
 	UpdateBundle(id int, req request.BundleUpdate) error
 	FindById(id int) (response.BundleResponse, error)
 	Delete(id int) error
+	SetIsActive(id int, active bool) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) // <- Tambahan
 }
 
@@ -34,12 +37,24 @@ func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 		return err
 	}
 
+	// Upload gambar produk utama
+	var imageURL *string
+	if req.Image != nil && *req.Image != "" {
+		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
+		if err != nil {
+			return fmt.Errorf("gagal upload gambar produk: %w", err)
+		}
+		imageURL = &url
+	}
+
 	bundle := entity.Bundle{
 		BusinessId:  req.BusinessId,
 		Name:        req.Name,
 		Description: req.Description,
-		Image:       req.Image,
+		Image:       imageURL,
 		BasePrice:   req.BasePrice,
+		Stock:       req.Stock,
+		TaxId:       req.TaxId,
 		IsAvailable: true,
 		IsActive:    true,
 	}
@@ -73,10 +88,11 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
 	bundle.BusinessId = req.BusinessId
 	bundle.Name = req.Name
 	bundle.Description = req.Description
-	bundle.Image = req.Image
 	bundle.BasePrice = req.BasePrice
+	bundle.Stock = req.Stock
 	bundle.IsAvailable = req.IsAvailable
 	bundle.IsActive = req.IsActive
+	bundle.TaxId = req.TaxId
 
 	if err := s.BundleRepository.UpdateBundle(&bundle); err != nil {
 		return err
@@ -103,11 +119,15 @@ func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
 	if err != nil {
 		return response.BundleResponse{}, err
 	}
-	return mapBundleToResponse(bundle), nil
+	return helper.ToBundleToResponse(bundle), nil
 }
 
 func (s *bundleService) Delete(id int) error {
 	return s.BundleRepository.Delete(id)
+}
+
+func (s *bundleService) SetIsActive(id int, active bool) error {
+	return s.BundleRepository.SetIsActive(id, active)
 }
 
 func (s *bundleService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
@@ -118,42 +138,8 @@ func (s *bundleService) FindWithPagination(businessId int, pagination request.Pa
 
 	var result []response.BundleResponse
 	for _, bundleItem := range bundles {
-		result = append(result, mapBundleToResponse(bundleItem))
+		result = append(result, helper.ToBundleToResponse(bundleItem))
 	}
 
 	return result, total, nil
-}
-
-func mapBundleToResponse(p entity.Bundle) response.BundleResponse {
-	var items []response.BundleItemResponse
-	for _, i := range p.Items {
-		items = append(items, response.BundleItemResponse{
-			Id:          i.Id,
-			ProductId:   i.ProductId,
-			Name:        i.Product.Name,
-			Description: i.Product.Description,
-			Image:       i.Product.Image,
-			BasePrice:   *i.Product.BasePrice,
-			SKU:         *i.Product.SKU,
-			Stock:       *i.Product.Stock,
-			IsAvailable: i.Product.IsAvailable,
-			IsActive:    i.Product.IsActive,
-			Quantity:    i.Quantity,
-		})
-	}
-
-	description := helper.StringOrDefault(p.Description, "")
-	image := helper.StringOrDefault(p.Image, "")
-
-	return response.BundleResponse{
-		Id:          p.Id,
-		Name:        p.Name,
-		Description: description,
-		Image:       image,
-		BasePrice:   p.BasePrice,
-		Stock:       p.Stock,
-		IsAvailable: p.IsAvailable,
-		IsActive:    p.IsActive,
-		Items:       items,
-	}
 }

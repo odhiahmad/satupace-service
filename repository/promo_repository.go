@@ -15,6 +15,8 @@ type PromoRepository interface {
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Promo, int64, error)
 	AppendRequiredProducts(promo *entity.Promo, products []entity.Product) error
 	ReplaceRequiredProducts(promoId int, products []entity.Product) error
+	SetIsActive(id int, isActive bool) error
+	Exists(id int) (bool, error)
 }
 
 type promoRepository struct {
@@ -52,7 +54,6 @@ func (r *promoRepository) AppendRequiredProducts(promo *entity.Promo, products [
 func (r *promoRepository) FindById(id int) (entity.Promo, error) {
 	var promo entity.Promo
 	err := r.db.
-		Preload("ProductPromos.Product").
 		Preload("RequiredProducts"). // ⬅️ Tambahkan preload untuk required
 		First(&promo, id).Error
 	return promo, err
@@ -68,7 +69,6 @@ func (r *promoRepository) FindWithPagination(businessId int, pagination request.
 	var total int64
 
 	baseQuery := r.db.Model(&entity.Promo{}).
-		Preload("ProductPromos.Product").
 		Preload("RequiredProducts").
 		Where("business_id = ?", businessId)
 
@@ -88,4 +88,14 @@ func (r *promoRepository) FindWithPagination(businessId int, pagination request.
 	}
 
 	return promos, total, nil
+}
+
+func (r *promoRepository) SetIsActive(id int, active bool) error {
+	return r.db.Model(&entity.Promo{}).Where("id = ?", id).Update("is_active", active).Error
+}
+
+func (r *promoRepository) Exists(id int) (bool, error) {
+	var count int64
+	err := r.db.Model(&entity.Promo{}).Where("id = ?", id).Count(&count).Error
+	return count > 0, err
 }

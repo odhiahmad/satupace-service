@@ -94,9 +94,8 @@ func (c *paymentMethodController) Update(ctx *gin.Context) {
 		))
 		return
 	}
-	input.Id = id
 
-	res, err := c.paymentMethodService.UpdatePaymentMethod(input)
+	res, err := c.paymentMethodService.UpdatePaymentMethod(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengubah metode pembayaran",

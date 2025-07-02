@@ -72,14 +72,14 @@ func (c *productVariantController) Update(ctx *gin.Context) {
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
-
-	if err := c.Service.Update(id, req); err != nil {
+	variant, err := c.Service.Update(id, req)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal memperbarui variant", "INTERNAL_ERROR", "product_variant", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Variant berhasil diperbarui", helper.EmptyObj{}))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Variant berhasil diperbarui", variant))
 }
 
 func (c *productVariantController) Delete(ctx *gin.Context) {

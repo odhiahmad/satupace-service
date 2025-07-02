@@ -12,6 +12,8 @@ type Bundle struct {
 	BasePrice   float64
 	Stock       int
 	Items       []BundleItem `gorm:"foreignKey:BundleId"`
+	TaxId       *int         `gorm:"index" json:"tax_id,omitempty"`
+	Tax         *Tax         `gorm:"foreignKey:TaxId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"tax,omitempty"`
 	IsAvailable bool         `gorm:"not null;column:is_available"`
 	IsActive    bool         `gorm:"not null;column:is_active"`
 	CreatedAt   time.Time    `json:"created_at"`

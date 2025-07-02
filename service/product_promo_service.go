@@ -32,11 +32,9 @@ func (s *productPromoService) CreateMany(productId int, productVariantId int, bu
 			return err
 		}
 		productPromos = append(productPromos, entity.ProductPromo{
-			ProductId:        &productId,
-			ProductVariantId: &productVariantId,
-			PromoId:          p.PromoId,
-			BusinessId:       businessId,
-			MinQuantity:      p.MinQuantity,
+			ProductId:  &productId,
+			PromoId:    p.PromoId,
+			BusinessId: businessId,
 		})
 	}
 

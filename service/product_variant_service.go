@@ -12,7 +12,7 @@ import (
 
 type ProductVariantService interface {
 	Create(req request.ProductVariantCreate, productId int) (*entity.ProductVariant, error)
-	Update(id int, req request.ProductVariantUpdate) error
+	Update(id int, req request.ProductVariantUpdate) (*entity.ProductVariant, error)
 	Delete(id int) error
 	DeleteByProductId(productId int) error
 	FindById(id int) (*entity.ProductVariant, error)
@@ -46,6 +46,7 @@ func (s *productVariantService) Create(req request.ProductVariantCreate, product
 	}
 
 	sku := req.SKU
+	trackStock := req.Stock == 0
 
 	if sku == "" {
 		sku = helper.GenerateSKU(req.Name)
@@ -55,14 +56,10 @@ func (s *productVariantService) Create(req request.ProductVariantCreate, product
 		ProductId:  productId,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
-		Image:      req.Image,
 		BasePrice:  req.BasePrice,
 		SKU:        sku,
 		Stock:      req.Stock,
-		TrackStock: req.TrackStock,
-		TaxId:      req.TaxId,
-		DiscountId: req.DiscountId,
-		UnitId:     req.UnitId,
+		TrackStock: trackStock,
 	}
 
 	err = s.repo.Create(&variant)
@@ -71,20 +68,20 @@ func (s *productVariantService) Create(req request.ProductVariantCreate, product
 	}
 
 	if !product.HasVariant {
-		_ = s.productRepo.SetHasVariant(productId, true)
+		_ = s.productRepo.SetHasVariant(productId)
 	}
 
 	return &variant, nil
 }
 
-func (s *productVariantService) Update(id int, req request.ProductVariantUpdate) error {
+func (s *productVariantService) Update(id int, req request.ProductVariantUpdate) (*entity.ProductVariant, error) {
 	if err := s.validate.Struct(req); err != nil {
-		return err
+		return nil, err
 	}
 
 	existing, err := s.repo.FindById(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sku := req.SKU
@@ -93,29 +90,51 @@ func (s *productVariantService) Update(id int, req request.ProductVariantUpdate)
 		sku = helper.GenerateSKU(req.Name)
 	}
 
+	trackStock := req.Stock == 0
+
 	// Update field
 	existing.Name = req.Name
-	existing.Image = req.Image
 	existing.BasePrice = req.BasePrice
 	existing.SKU = sku
 	existing.Stock = req.Stock
-	existing.TrackStock = req.TrackStock
-	existing.TaxId = req.TaxId
-	existing.DiscountId = req.DiscountId
-	existing.UnitId = req.UnitId
+	existing.TrackStock = trackStock
 
 	err = s.repo.Update(&existing)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: Update relasi many2many ke promos jika diperlukan
 
-	return nil
+	return &existing, err
 }
 
 func (s *productVariantService) Delete(id int) error {
-	return s.repo.Delete(id)
+	// 1. Ambil variant sebelum dihapus untuk dapatkan ProductId
+	variant, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+
+	// 2. Hapus variant
+	if err := s.repo.Delete(id); err != nil {
+		return err
+	}
+
+	// 3. Hitung sisa variant pada produk tersebut
+	count, err := s.repo.CountByProductId(variant.ProductId)
+	if err != nil {
+		return err
+	}
+
+	// 4. Jika tidak ada variant lagi, reset status produk
+	if count == 0 {
+		if err := s.productRepo.ResetVariantStateToFalse(variant.ProductId); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *productVariantService) DeleteByProductId(productId int) error {
