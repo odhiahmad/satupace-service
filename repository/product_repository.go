@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -91,10 +93,38 @@ func (conn *productConnection) FindById(id int) (entity.Product, error) {
 }
 
 func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
-	var bundles []entity.Product
+	var products []entity.Product
 	var total int64
 
-	// Base query
+	// Jika ada search, gunakan Elasticsearch
+	if pagination.Search != "" {
+		ids, err := helper.SearchProductElastic(pagination.Search, businessId)
+		if err != nil {
+			return nil, 0, err
+		}
+		if len(ids) == 0 {
+			return []entity.Product{}, 0, nil
+		}
+
+		orderExpr := fmt.Sprintf("FIELD(id, %s)", intSliceToString(ids))
+
+		if err := conn.db.
+			Preload("Variants").
+			Preload("ProductCategory").
+			Preload("Tax").
+			Preload("Discount").
+			Preload("Unit").
+			Preload("ProductPromos").
+			Preload("ProductPromos.Promo").
+			Preload("ProductPromos.Promo.RequiredProducts").
+			Where("id IN ?", ids).
+			Order(orderExpr).
+			Find(&products).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Kalau tidak ada search, gunakan DB pagination biasa
 	baseQuery := conn.db.Model(&entity.Product{}).
 		Preload("Variants").
 		Preload("ProductCategory").
@@ -106,27 +136,17 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 		Preload("ProductPromos.Promo.RequiredProducts").
 		Where("business_id = ?", businessId)
 
-	// Search filter
-	if pagination.Search != "" {
-		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ? OR brand ILIKE ?", search, search, search)
-	}
-
-	// Hitung total data
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Gunakan helper paginator dengan validasi sort
 	p := helper.Paginate(pagination)
-
-	// Ambil data hasil paginasi
-	_, _, err := p.Paginate(baseQuery, &bundles)
+	_, _, err := p.Paginate(baseQuery, &products)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return bundles, total, nil
+	return products, total, nil
 }
 
 func (conn *productConnection) SetActive(id int, active bool) error {
@@ -174,4 +194,12 @@ func (conn *productConnection) WithTransaction(fn func(conn ProductRepository) e
 		txRepo := &productConnection{db: tx}
 		return fn(txRepo)
 	})
+}
+
+func intSliceToString(ints []int) string {
+	strs := make([]string, len(ints))
+	for i, num := range ints {
+		strs[i] = fmt.Sprintf("%d", num)
+	}
+	return strings.Join(strs, ",")
 }

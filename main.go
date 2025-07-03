@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	es "github.com/odhiahmad/kasirku-service/config"
 	"github.com/odhiahmad/kasirku-service/routes"
 )
 
@@ -31,6 +32,7 @@ func CORSMiddleware() gin.HandlerFunc {
 
 func main() {
 	// Load .env file
+	es.InitElasticSearch()
 	_ = godotenv.Load(".env")
 
 	// Get environment variables

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -100,6 +101,10 @@ func (s *productService) Create(req request.ProductCreate) error {
 			return fmt.Errorf("gagal menyimpan produk: %w", err)
 		}
 
+		if err := helper.IndexProductToElastic(&product); err != nil {
+			log.Printf("gagal mengindeks produk ke Elasticsearch: %v", err)
+		}
+
 		// Simpan variants
 		for _, v := range req.Variants {
 			skuVariant := v.SKU
@@ -186,6 +191,10 @@ func (s *productService) Update(id int, req request.ProductUpdate) (*entity.Prod
 		return nil, err
 	}
 
+	if err := helper.IndexProductToElastic(&product); err != nil {
+		log.Printf("gagal mengindeks produk ke Elasticsearch: %v", err)
+	}
+
 	_ = s.ProductPromoRepo.DeleteByProductId(product.Id)
 
 	if len(req.PromoIds) > 0 {
@@ -236,7 +245,12 @@ func (s *productService) FindById(id int) (response.ProductResponse, error) {
 }
 
 func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
-	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
+	var products []entity.Product
+	var total int64
+	var err error
+
+	products, total, err = s.ProductRepo.FindWithPagination(businessId, pagination)
+
 	if err != nil {
 		return nil, 0, err
 	}
