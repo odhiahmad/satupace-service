@@ -3,17 +3,18 @@ package service
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type TaxService interface {
-	Create(req request.TaxCreate) (entity.Tax, error)
-	Update(id int, req request.TaxUpdate) (entity.Tax, error)
+	Create(req request.TaxCreate) (response.TaxResponse, error)
+	Update(id int, req request.TaxUpdate) (response.TaxResponse, error)
 	Delete(id int) error
-	FindById(id int) (entity.Tax, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
+	FindById(roleId int) response.TaxResponse
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error)
 }
 
 type taxService struct {
@@ -28,13 +29,15 @@ func NewTaxService(repo repository.TaxRepository, validate *validator.Validate) 
 	}
 }
 
-func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
+func (s *taxService) Create(req request.TaxCreate) (response.TaxResponse, error) {
+	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
-		return entity.Tax{}, err
+		return response.TaxResponse{}, err
 	}
 
 	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
+	// Buat entity Tax
 	tax := entity.Tax{
 		BusinessId:   req.BusinessId,
 		Name:         req.Name,
@@ -43,12 +46,20 @@ func (s *taxService) Create(req request.TaxCreate) (entity.Tax, error) {
 		IsGlobal:     req.IsGlobal,
 	}
 
-	return s.repo.Create(tax)
+	createdTax, err := s.repo.Create(tax)
+	if err != nil {
+		return response.TaxResponse{}, err
+	}
+
+	// Mapping ke response
+	taxResponse := helper.MapTax(&createdTax)
+
+	return *taxResponse, nil
 }
 
-func (s *taxService) Update(id int, req request.TaxUpdate) (entity.Tax, error) {
+func (s *taxService) Update(id int, req request.TaxUpdate) (response.TaxResponse, error) {
 	if err := s.validate.Struct(req); err != nil {
-		return entity.Tax{}, err
+		return response.TaxResponse{}, err
 	}
 
 	isPercentageVal := helper.DeterminePromoType(req.Amount)
@@ -61,7 +72,15 @@ func (s *taxService) Update(id int, req request.TaxUpdate) (entity.Tax, error) {
 		IsGlobal:     req.IsGlobal,
 	}
 
-	return s.repo.Update(tax)
+	updatedTax, err := s.repo.Update(tax)
+	if err != nil {
+		return response.TaxResponse{}, err
+	}
+
+	// Mapping ke response
+	taxResponse := helper.MapTax(&updatedTax)
+
+	return *taxResponse, nil
 }
 
 func (s *taxService) Delete(id int) error {
@@ -72,10 +91,24 @@ func (s *taxService) Delete(id int) error {
 	return s.repo.Delete(tax)
 }
 
-func (s *taxService) FindById(id int) (entity.Tax, error) {
-	return s.repo.FindById(id)
+func (s *taxService) FindById(taxId int) response.TaxResponse {
+	taxData, err := s.repo.FindById(taxId)
+	helper.ErrorPanic(err)
+
+	taxResponse := helper.MapTax(&taxData)
+	return *taxResponse
 }
 
-func (s *taxService) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error) {
-	return s.repo.FindWithPagination(businessId, pagination)
+func (s *taxService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error) {
+	taxes, total, err := s.repo.FindWithPagination(businessId, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var result []response.TaxResponse
+	for _, tax := range taxes {
+		result = append(result, *helper.MapTax(&tax))
+	}
+
+	return result, total, nil
 }

@@ -89,19 +89,25 @@ func (c *taxController) Delete(ctx *gin.Context) {
 }
 
 func (c *taxController) FindById(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	taxIdParam := ctx.Param("id")
+	taxId, err := strconv.Atoi(taxIdParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
+		response := helper.BuildErrorResponse(
+			"Parameter id tidak valid",
+			"invalid_parameter",
+			"id",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	res, err := c.taxService.FindById(id)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Tax tidak ditemukan", "not_found", "id", err.Error(), nil))
-		return
-	}
+	// hanya satu return value
+	taxResponse := c.taxService.FindById(taxId)
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil tax", res))
+	response := helper.BuildResponse(true, "Berhasil mengambil data tax", taxResponse)
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *taxController) FindWithPagination(ctx *gin.Context) {

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -11,7 +13,7 @@ type TaxRepository interface {
 	Create(tax entity.Tax) (entity.Tax, error)
 	Update(tax entity.Tax) (entity.Tax, error)
 	Delete(tax entity.Tax) error
-	FindById(id int) (entity.Tax, error)
+	FindById(taxId int) (taxes entity.Tax, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
 }
 
@@ -24,23 +26,44 @@ func NewTaxRepository(db *gorm.DB) TaxRepository {
 }
 
 func (conn *taxConnection) Create(tax entity.Tax) (entity.Tax, error) {
+	// Buat data tax
 	err := conn.db.Create(&tax).Error
-	return tax, err
+	if err != nil {
+		return entity.Tax{}, err
+	}
+
+	// Ambil ulang dengan preload Business
+	err = conn.db.Preload("Business").First(&tax, tax.Id).Error
+	if err != nil {
+		return entity.Tax{}, err
+	}
+
+	return tax, nil
 }
 
 func (conn *taxConnection) Update(tax entity.Tax) (entity.Tax, error) {
 	err := conn.db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&tax).Error
+	if err != nil {
+		return entity.Tax{}, err
+	}
+
+	err = conn.db.Preload("Business").First(&tax, tax.Id).Error
+
 	return tax, err
 }
 
 func (conn *taxConnection) Delete(tax entity.Tax) error {
-	return conn.db.Delete(&tax).Error
+	return conn.db.Preload("Business").Delete(&tax).Error
 }
 
-func (conn *taxConnection) FindById(id int) (entity.Tax, error) {
+func (conn *taxConnection) FindById(taxId int) (taxes entity.Tax, err error) {
 	var tax entity.Tax
-	err := conn.db.Preload("Products").First(&tax, id).Error
-	return tax, err
+	result := conn.db.Preload("Business").Find(&tax, taxId)
+	if result != nil {
+		return tax, nil
+	} else {
+		return tax, errors.New("tag is not found")
+	}
 }
 
 func (conn *taxConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error) {
@@ -49,8 +72,8 @@ func (conn *taxConnection) FindWithPagination(businessId int, pagination request
 
 	// Base query dengan preload relasi
 	baseQuery := conn.db.Model(&entity.Tax{}).
-		Where("business_id = ?", businessId).
-		Preload("Products")
+		Preload("Business").
+		Where("business_id = ?", businessId)
 
 	// Search filter
 	if pagination.Search != "" {

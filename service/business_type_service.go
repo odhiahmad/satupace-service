@@ -13,25 +13,25 @@ import (
 
 type BusinessTypeService interface {
 	CreateBusinessType(businessType request.BusinessTypeCreate)
-	UpdateBusinessType(businessType request.BusinessTypeUpdate)
+	UpdateBusinessType(businessTypeId int, businessType request.BusinessTypeUpdate)
 	FindById(businessTypeId int) response.BusinessTypeResponse
 	FindAll() []response.BusinessTypeResponse
 	Delete(businessTypeId int)
 }
 
-type BusinessTypeRepository struct {
+type businessTypeService struct {
 	BusinessTypeRepository repository.BusinessTypeRepository
 	Validate               *validator.Validate
 }
 
 func NewBusinessTypeService(businessTypeRepo repository.BusinessTypeRepository, validate *validator.Validate) BusinessTypeService {
-	return &BusinessTypeRepository{
+	return &businessTypeService{
 		BusinessTypeRepository: businessTypeRepo,
 		Validate:               validate,
 	}
 }
 
-func (service *BusinessTypeRepository) CreateBusinessType(businessType request.BusinessTypeCreate) {
+func (service *businessTypeService) CreateBusinessType(businessType request.BusinessTypeCreate) {
 	err := service.Validate.Struct(businessType)
 	if err != nil {
 		log.Fatalf("Failed map %v:", err)
@@ -43,8 +43,8 @@ func (service *BusinessTypeRepository) CreateBusinessType(businessType request.B
 	service.BusinessTypeRepository.InsertBusinessType((businessTypeEntity))
 }
 
-func (service *BusinessTypeRepository) UpdateBusinessType(businessType request.BusinessTypeUpdate) {
-	businessTypeData, err := service.BusinessTypeRepository.FindById(businessType.Id)
+func (service *businessTypeService) UpdateBusinessType(businessTypeId int, businessType request.BusinessTypeUpdate) {
+	businessTypeData, err := service.BusinessTypeRepository.FindById(businessTypeId)
 	helper.ErrorPanic(err)
 
 	businessTypeData.Name = businessType.Name
@@ -52,7 +52,7 @@ func (service *BusinessTypeRepository) UpdateBusinessType(businessType request.B
 	service.BusinessTypeRepository.UpdateBusinessType(businessTypeData)
 }
 
-func (service *BusinessTypeRepository) FindById(businessTypeId int) response.BusinessTypeResponse {
+func (service *businessTypeService) FindById(businessTypeId int) response.BusinessTypeResponse {
 	businessTypeData, err := service.BusinessTypeRepository.FindById(businessTypeId)
 	helper.ErrorPanic(err)
 
@@ -63,7 +63,7 @@ func (service *BusinessTypeRepository) FindById(businessTypeId int) response.Bus
 	return tagResponse
 }
 
-func (t *BusinessTypeRepository) FindAll() []response.BusinessTypeResponse {
+func (t *businessTypeService) FindAll() []response.BusinessTypeResponse {
 	result := t.BusinessTypeRepository.FindAll()
 
 	var tags []response.BusinessTypeResponse
@@ -78,6 +78,6 @@ func (t *BusinessTypeRepository) FindAll() []response.BusinessTypeResponse {
 	return tags
 }
 
-func (t *BusinessTypeRepository) Delete(businessTypeId int) {
+func (t *businessTypeService) Delete(businessTypeId int) {
 	t.BusinessTypeRepository.Delete(businessTypeId)
 }

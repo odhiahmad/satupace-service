@@ -14,95 +14,6 @@ func SafeString(s *string) string {
 }
 
 func MapProductToResponse(product entity.Product) response.ProductResponse {
-	var promos []response.PromoResponse
-
-	for _, pp := range product.ProductPromos {
-		if pp.Promo != nil && pp.Promo.Id != 0 {
-			p := pp.Promo
-
-			// Konversi required products
-			var requiredProducts []response.RequiredProductData
-			for _, rp := range p.RequiredProducts {
-				requiredProducts = append(requiredProducts, response.RequiredProductData{
-					Id:   rp.Id,
-					Name: rp.Name,
-				})
-			}
-
-			// Bangun response
-			promos = append(promos, response.PromoResponse{
-				Id:               p.Id,
-				BusinessId:       p.BusinessId,
-				Name:             p.Name,
-				Description:      p.Description,
-				Type:             p.Type,
-				Amount:           p.Amount,
-				IsPercentage:     p.IsPercentage,
-				MinSpend:         p.MinSpend,
-				MinQuantity:      p.MinQuantity, // helper
-				FreeProduct:      nil,           // isi kalau ada relasi free product
-				RequiredProducts: requiredProducts,
-				StartDate:        p.StartDate,
-				EndDate:          p.EndDate,
-				IsActive:         p.IsActive,
-			})
-		}
-	}
-
-	var categoryRes *response.ProductCategoryResponse
-	if product.ProductCategory != nil && product.ProductCategory.Id != 0 {
-		categoryRes = &response.ProductCategoryResponse{
-			Id:   product.ProductCategory.Id,
-			Name: product.ProductCategory.Name,
-		}
-	}
-
-	var taxRes *response.TaxResponse
-	if product.Tax != nil {
-		taxRes = &response.TaxResponse{
-			Id:           product.Tax.Id,
-			Name:         product.Tax.Name,
-			Amount:       product.Tax.Amount,
-			IsPercentage: product.Tax.IsPercentage,
-		}
-	}
-
-	var discountRes *response.DiscountResponse
-	if product.Discount != nil {
-		discountRes = &response.DiscountResponse{
-			Id:           product.Discount.Id,
-			Name:         product.Discount.Name,
-			Amount:       product.Discount.Amount,
-			IsPercentage: product.Discount.IsPercentage,
-			IsMultiple:   product.Discount.IsMultiple,
-			IsGlobal:     product.Discount.IsGlobal,
-			StartAt:      product.Discount.StartAt,
-			EndAt:        product.Discount.EndAt,
-		}
-	}
-
-	var unitRes *response.UnitResponse
-	if product.Unit != nil {
-		unitRes = &response.UnitResponse{
-			Id:         product.Unit.Id,
-			Name:       product.Unit.Name,
-			Alias:      product.Unit.Alias,
-			Multiplier: product.Unit.Multiplier,
-		}
-	}
-
-	var variants []response.ProductVariantResponse
-	for _, variant := range product.Variants {
-		// Mapping relasi variant
-
-		variants = append(variants, response.ProductVariantResponse{
-			Id:        variant.Id,
-			Name:      variant.Name,
-			BasePrice: variant.BasePrice,
-			SKU:       variant.SKU,
-		})
-	}
-
 	return response.ProductResponse{
 		Id:              product.Id,
 		Name:            product.Name,
@@ -115,11 +26,118 @@ func MapProductToResponse(product entity.Product) response.ProductResponse {
 		IsAvailable:     product.IsAvailable,
 		IsActive:        product.IsActive,
 		HasVariant:      product.HasVariant,
-		Variants:        variants,
-		ProductCategory: categoryRes,
-		Tax:             taxRes,
-		Discount:        discountRes,
-		Unit:            unitRes,
-		Promos:          promos,
+		Variants:        MapProductVariants(product.Variants),
+		ProductCategory: MapProductCategory(product.ProductCategory),
+		Tax:             MapTax(product.Tax),
+		Discount:        MapDiscount(product.Discount),
+		Unit:            MapUnit(product.Unit),
+		Promos:          MapProductPromos(product.ProductPromos),
 	}
+}
+
+func MapProductVariants(variants []entity.ProductVariant) []response.ProductVariantResponse {
+	var result []response.ProductVariantResponse
+	for _, v := range variants {
+		result = append(result, response.ProductVariantResponse{
+			Id:        v.Id,
+			Name:      v.Name,
+			BasePrice: v.BasePrice,
+			SKU:       v.SKU,
+		})
+	}
+	return result
+}
+
+func MapProductCategory(category *entity.ProductCategory) *response.ProductCategoryResponse {
+	if category == nil || category.Id == 0 {
+		return nil
+	}
+
+	return &response.ProductCategoryResponse{
+		Id:   category.Id,
+		Name: category.Name,
+	}
+}
+
+func MapTax(tax *entity.Tax) *response.TaxResponse {
+	if tax == nil {
+		return nil
+	}
+
+	return &response.TaxResponse{
+		Id:           tax.Id,
+		BusinessId:   tax.BusinessId,
+		Name:         tax.Name,
+		Amount:       tax.Amount,
+		IsPercentage: tax.IsPercentage,
+		IsGlobal:     tax.IsGlobal,
+		IsActive:     tax.IsActive,
+	}
+}
+
+func MapDiscount(discount *entity.Discount) *response.DiscountResponse {
+	if discount == nil {
+		return nil
+	}
+
+	return &response.DiscountResponse{
+		Id:           discount.Id,
+		Name:         discount.Name,
+		Amount:       discount.Amount,
+		IsPercentage: discount.IsPercentage,
+		IsMultiple:   discount.IsMultiple,
+		IsGlobal:     discount.IsGlobal,
+		StartAt:      discount.StartAt,
+		EndAt:        discount.EndAt,
+	}
+}
+
+func MapUnit(unit *entity.Unit) *response.UnitResponse {
+	if unit == nil {
+		return nil
+	}
+
+	return &response.UnitResponse{
+		Id:         unit.Id,
+		Name:       unit.Name,
+		Alias:      unit.Alias,
+		Multiplier: unit.Multiplier,
+	}
+}
+
+func MapProductPromos(productPromos []entity.ProductPromo) []response.PromoResponse {
+	var result []response.PromoResponse
+
+	for _, pp := range productPromos {
+		if pp.Promo != nil && pp.Promo.Id != 0 {
+			p := pp.Promo
+
+			var requiredProducts []response.RequiredProductData
+			for _, rp := range p.RequiredProducts {
+				requiredProducts = append(requiredProducts, response.RequiredProductData{
+					Id:   rp.Id,
+					Name: rp.Name,
+				})
+			}
+
+			result = append(result, response.PromoResponse{
+				Id:               p.Id,
+				BusinessId:       p.BusinessId,
+				Name:             p.Name,
+				Description:      p.Description,
+				Type:             p.Type,
+				Amount:           p.Amount,
+				IsPercentage:     p.IsPercentage,
+				MinSpend:         p.MinSpend,
+				MinQuantity:      p.MinQuantity,
+				FreeProduct:      nil, // tambahkan mapping jika perlu
+				RequiredProducts: requiredProducts,
+				StartDate:        p.StartDate,
+				EndDate:          p.EndDate,
+				IsActive:         p.IsActive,
+			})
+		}
+	}
+
+	return result
 }

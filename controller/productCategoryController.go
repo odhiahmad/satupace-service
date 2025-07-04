@@ -34,8 +34,8 @@ func NewProductCategoryController(productCategoryService service.ProductCategory
 // Create
 func (c *productCategoryController) Create(ctx *gin.Context) {
 	var req request.ProductCategoryCreate
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		res := helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
@@ -47,35 +47,35 @@ func (c *productCategoryController) Create(ctx *gin.Context) {
 		return
 	}
 
-	err = c.productCategoryService.Create(req)
+	result, err := c.productCategoryService.Create(req)
 	if err != nil {
 		res := helper.BuildErrorResponse("Gagal membuat kategori", "CREATE_FAILED", "internal", err.Error(), nil)
 		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
-	res := helper.BuildResponse(true, "Berhasil membuat kategori produk", helper.EmptyObj{})
+	res := helper.BuildResponse(true, "Berhasil membuat kategori produk", result)
 	ctx.JSON(http.StatusCreated, res)
 }
 
 // Update
 func (c *productCategoryController) Update(ctx *gin.Context) {
 	var req request.ProductCategoryUpdate
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		res := helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	err = c.productCategoryService.Update(req)
+	result, err := c.productCategoryService.Update(req)
 	if err != nil {
 		res := helper.BuildErrorResponse("Gagal mengubah kategori", "UPDATE_FAILED", "internal", err.Error(), nil)
 		ctx.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
-	res := helper.BuildResponse(true, "Berhasil mengubah kategori produk", helper.EmptyObj{})
+	res := helper.BuildResponse(true, "Berhasil mengubah kategori produk", result)
 	ctx.JSON(http.StatusOK, res)
 }
 

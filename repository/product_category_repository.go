@@ -8,8 +8,8 @@ import (
 )
 
 type ProductCategoryRepository interface {
-	InsertProductCategory(productCategory entity.ProductCategory) error
-	UpdateProductCategory(productCategory entity.ProductCategory) error
+	InsertProductCategory(productCategory entity.ProductCategory) (entity.ProductCategory, error)
+	UpdateProductCategory(productCategory entity.ProductCategory) (entity.ProductCategory, error)
 	FindById(productCategoryId int) (entity.ProductCategory, error)
 	FindAll() ([]entity.ProductCategory, error)
 	FindByBusinessId(businessId int) ([]entity.ProductCategory, error)
@@ -24,27 +24,47 @@ func NewProductCategoryRepository(Db *gorm.DB) ProductCategoryRepository {
 	return &productCategoryConnection{Db: Db}
 }
 
-func (conn *productCategoryConnection) InsertProductCategory(productCategory entity.ProductCategory) error {
+func (conn *productCategoryConnection) InsertProductCategory(productCategory entity.ProductCategory) (entity.ProductCategory, error) {
 	// Validasi keberadaan business
 	var business entity.Business
 	if err := conn.Db.First(&business, productCategory.BusinessId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("business not found")
+			return entity.ProductCategory{}, errors.New("business not found")
 		}
-		return err
+		return entity.ProductCategory{}, err
 	}
 
 	productCategory.IsActive = true
-	result := conn.Db.Create(&productCategory)
-	return result.Error
+	err := conn.Db.Create(&productCategory).Error
+	if err != nil {
+		return entity.ProductCategory{}, err
+	}
+
+	// Ambil ulang dengan preload relasi Business
+	err = conn.Db.Preload("Business").First(&productCategory, productCategory.Id).Error
+	if err != nil {
+		return entity.ProductCategory{}, err
+	}
+
+	return productCategory, nil
 }
 
-func (conn *productCategoryConnection) UpdateProductCategory(productCategory entity.ProductCategory) error {
-	result := conn.Db.Model(&productCategory).Updates(map[string]interface{}{
+func (conn *productCategoryConnection) UpdateProductCategory(productCategory entity.ProductCategory) (entity.ProductCategory, error) {
+	err := conn.Db.Model(&productCategory).Updates(map[string]interface{}{
 		"name":      productCategory.Name,
 		"parent_id": productCategory.ParentId,
-	})
-	return result.Error
+	}).Error
+	if err != nil {
+		return entity.ProductCategory{}, err
+	}
+
+	// Ambil ulang dengan preload relasi Business
+	err = conn.Db.Preload("Business").First(&productCategory, productCategory.Id).Error
+	if err != nil {
+		return entity.ProductCategory{}, err
+	}
+
+	return productCategory, nil
 }
 
 func (conn *productCategoryConnection) FindById(productCategoryId int) (entity.ProductCategory, error) {

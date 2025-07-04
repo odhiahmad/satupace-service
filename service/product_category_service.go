@@ -5,34 +5,35 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type ProductCategoryService interface {
-	Create(productCategory request.ProductCategoryCreate) error
-	Update(productCategory request.ProductCategoryUpdate) error
+	Create(productCategory request.ProductCategoryCreate) (response.ProductCategoryResponse, error)
+	Update(productCategory request.ProductCategoryUpdate) (response.ProductCategoryResponse, error)
 	FindById(id int) (response.ProductCategoryResponse, error)
 	FindAll() ([]response.ProductCategoryResponse, error)
 	FindByBusinessId(businessId int) ([]response.ProductCategoryResponse, error)
 	Delete(id int) error
 }
 
-type ProductCategoryServiceImpl struct {
-	Repo     repository.ProductCategoryRepository
+type productCategoryService struct {
+	repo     repository.ProductCategoryRepository
 	Validate *validator.Validate
 }
 
 func NewProductCategoryService(repo repository.ProductCategoryRepository, validate *validator.Validate) ProductCategoryService {
-	return &ProductCategoryServiceImpl{
-		Repo:     repo,
+	return &productCategoryService{
+		repo:     repo,
 		Validate: validate,
 	}
 }
 
-func (s *ProductCategoryServiceImpl) Create(req request.ProductCategoryCreate) error {
+func (s *productCategoryService) Create(req request.ProductCategoryCreate) (response.ProductCategoryResponse, error) {
 	err := s.Validate.Struct(req)
 	if err != nil {
-		return err
+		return response.ProductCategoryResponse{}, err
 	}
 
 	category := entity.ProductCategory{
@@ -42,27 +43,42 @@ func (s *ProductCategoryServiceImpl) Create(req request.ProductCategoryCreate) e
 		IsActive:   true,
 	}
 
-	return s.Repo.InsertProductCategory(category)
+	createdCategory, err := s.repo.InsertProductCategory(category)
+	if err != nil {
+		return response.ProductCategoryResponse{}, err
+	}
+
+	categoryResponse := helper.MapProductCategory(&createdCategory)
+	return *categoryResponse, nil
 }
-func (s *ProductCategoryServiceImpl) Update(req request.ProductCategoryUpdate) error {
+
+func (s *productCategoryService) Update(req request.ProductCategoryUpdate) (response.ProductCategoryResponse, error) {
 	err := s.Validate.Struct(req)
 	if err != nil {
-		return err
+		return response.ProductCategoryResponse{}, err
 	}
 
-	category, err := s.Repo.FindById(req.Id)
+	// Ambil data lama
+	category, err := s.repo.FindById(req.Id)
 	if err != nil {
-		return err
+		return response.ProductCategoryResponse{}, err
 	}
 
+	// Update field yang boleh diubah
 	category.Name = req.Name
 	category.ParentId = req.ParentId
 
-	return s.Repo.UpdateProductCategory(category)
+	updatedCategory, err := s.repo.UpdateProductCategory(category)
+	if err != nil {
+		return response.ProductCategoryResponse{}, err
+	}
+
+	categoryResponse := helper.MapProductCategory(&updatedCategory)
+	return *categoryResponse, nil
 }
 
-func (s *ProductCategoryServiceImpl) FindById(id int) (response.ProductCategoryResponse, error) {
-	category, err := s.Repo.FindById(id)
+func (s *productCategoryService) FindById(id int) (response.ProductCategoryResponse, error) {
+	category, err := s.repo.FindById(id)
 	if err != nil {
 		return response.ProductCategoryResponse{}, err
 	}
@@ -74,8 +90,8 @@ func (s *ProductCategoryServiceImpl) FindById(id int) (response.ProductCategoryR
 	}, nil
 }
 
-func (s *ProductCategoryServiceImpl) FindAll() ([]response.ProductCategoryResponse, error) {
-	categories, err := s.Repo.FindAll()
+func (s *productCategoryService) FindAll() ([]response.ProductCategoryResponse, error) {
+	categories, err := s.repo.FindAll()
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +108,8 @@ func (s *ProductCategoryServiceImpl) FindAll() ([]response.ProductCategoryRespon
 	return result, nil
 }
 
-func (s *ProductCategoryServiceImpl) FindByBusinessId(businessId int) ([]response.ProductCategoryResponse, error) {
-	categories, err := s.Repo.FindByBusinessId(businessId)
+func (s *productCategoryService) FindByBusinessId(businessId int) ([]response.ProductCategoryResponse, error) {
+	categories, err := s.repo.FindByBusinessId(businessId)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +125,6 @@ func (s *ProductCategoryServiceImpl) FindByBusinessId(businessId int) ([]respons
 
 	return result, nil
 }
-func (s *ProductCategoryServiceImpl) Delete(id int) error {
-	return s.Repo.Delete(id)
+func (s *productCategoryService) Delete(id int) error {
+	return s.repo.Delete(id)
 }
