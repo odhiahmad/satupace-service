@@ -14,6 +14,7 @@ import (
 type AuthService interface {
 	VerifyCredential(email string, password string) interface{}
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
+	VerifyEmailToken(token string) error
 }
 
 type authService struct {
@@ -48,6 +49,10 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 		return nil, helper.ErrUserNotFound
 	}
 
+	if !user.IsVerified {
+		return nil, helper.ErrEmailNotVerified
+	}
+
 	if !comparePassword(user.Password, []byte(password)) {
 		return nil, helper.ErrInvalidPassword
 	}
@@ -71,6 +76,22 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	res := helper.MapAuthResponse(&user, token)
 
 	return res, nil
+}
+
+func (s *authService) VerifyEmailToken(token string) error {
+	user, err := s.userBusinessRepository.FindByVerificationToken(token)
+	if err != nil {
+		return helper.ErrUserNotFound
+	}
+
+	if user.IsVerified {
+		return helper.ErrEmailAlreadyVerified
+	}
+
+	user.IsVerified = true
+	user.VerificationToken = nil
+	err = s.userBusinessRepository.Update(&user)
+	return err
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {

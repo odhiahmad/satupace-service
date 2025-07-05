@@ -16,6 +16,8 @@ type UserBusinessRepository interface {
 	IsDuplicateEmail(email string) bool
 	VerifyCredentialBusiness(email string, password string) interface{}
 	FindByEmailOrPhone(identifier string) (entity.UserBusiness, error)
+	FindByVerificationToken(token string) (entity.UserBusiness, error)
+	Update(user *entity.UserBusiness) error
 }
 
 type userBusinessConnection struct {
@@ -95,4 +97,14 @@ func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entit
 	}
 
 	return user, nil
+}
+
+func (conn *userBusinessConnection) FindByVerificationToken(token string) (entity.UserBusiness, error) {
+	var user entity.UserBusiness
+	err := conn.db.Where("verification_token = ?", token).First(&user).Error
+	return user, err
+}
+
+func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
+	return r.db.Save(user).Error
 }

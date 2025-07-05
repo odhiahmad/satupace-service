@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -19,16 +21,18 @@ type RegistrationService interface {
 }
 
 type registrationService struct {
-	repo       repository.RegistrationRepository
-	membership repository.MembershipRepository
-	validate   *validator.Validate
+	repo         repository.RegistrationRepository
+	membership   repository.MembershipRepository
+	validate     *validator.Validate
+	emailService EmailService
 }
 
-func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, validate *validator.Validate) RegistrationService {
+func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, emailService EmailService, validate *validator.Validate) RegistrationService {
 	return &registrationService{
-		repo:       repo,
-		membership: membership,
-		validate:   validate,
+		repo:         repo,
+		membership:   membership,
+		validate:     validate,
+		emailService: emailService,
 	}
 }
 
@@ -55,7 +59,6 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		Image:          req.Image,
 		IsActive:       true,
 	}
-
 	savedBusiness, err := s.repo.CreateBusiness(business)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
@@ -74,30 +77,34 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		IsMain:      true,
 		IsActive:    true,
 	}
-
-	err = s.repo.CreateMainBranch(&mainBranch)
-	if err != nil {
+	if err := s.repo.CreateMainBranch(&mainBranch); err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 3. Buat User
-	user := entity.UserBusiness{
-		Email:       req.Email,
-		Password:    helper.HashAndSalt([]byte(req.Password)),
-		RoleId:      req.RoleId,
-		BusinessId:  savedBusiness.Id,
-		BranchId:    &mainBranch.Id,
-		PhoneNumber: req.PhoneNumber,
-		IsActive:    true,
-		IsVerified:  false,
-	}
+	// 3. Hash password
+	hashedPassword := helper.HashAndSalt([]byte(req.Password))
 
+	// 4. Generate verification token (bisa dianggap OTP juga)
+	otpCode := helper.GenerateOTPCode(6) // misal: "832641"
+
+	// 5. Buat User
+	user := entity.UserBusiness{
+		Email:             req.Email,
+		Password:          hashedPassword,
+		RoleId:            req.RoleId,
+		BusinessId:        savedBusiness.Id,
+		BranchId:          &mainBranch.Id,
+		PhoneNumber:       req.PhoneNumber,
+		IsActive:          true,
+		IsVerified:        false,
+		VerificationToken: &otpCode,
+	}
 	savedUser, err := s.repo.CreateUser(user)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 4. Buat Membership
+	// 6. Buat Membership
 	startedAt, expiredAt := GetMembershipPeriod(req.Type)
 	membership := entity.Membership{
 		UserId:    savedUser.Id,
@@ -106,12 +113,18 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		EndDate:   expiredAt,
 		IsActive:  true,
 	}
-
 	if _, err := s.membership.CreateMembership(membership); err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 5. Kembalikan response user
+	// 7. Kirim OTP ke WhatsApp user
+	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
+	if err := helper.SendOTPViaWhatsApp(*req.PhoneNumber, message); err != nil {
+		// Logging tapi tetap lanjut
+		log.Println("Gagal mengirim OTP WhatsApp:", err)
+	}
+
+	// 8. Kembalikan response user
 	return *helper.MapUserBusinessResponse(savedUser), nil
 }
 

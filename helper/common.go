@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -22,4 +23,20 @@ func GenerateSKU(name string) string {
 	randomPart := rand.Intn(1000)            // 3 digit acak
 
 	return fmt.Sprintf("%s-%d-%03d", prefix, timestamp, randomPart)
+}
+
+func GenerateRandomToken(n int) string {
+	b := make([]byte, n)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func GenerateOTPCode(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	digits := "0123456789"
+	code := make([]byte, length)
+	for i := range code {
+		code[i] = digits[rand.Intn(len(digits))]
+	}
+	return string(code)
 }
