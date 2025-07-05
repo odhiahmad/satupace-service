@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
@@ -39,4 +40,10 @@ func GenerateOTPCode(length int) string {
 		code[i] = digits[rand.Intn(len(digits))]
 	}
 	return string(code)
+}
+
+// HashOTP meng-hash OTP untuk disimpan dengan aman
+func HashOTP(otp string) string {
+	hash := sha256.Sum256([]byte(otp))
+	return hex.EncodeToString(hash[:])
 }

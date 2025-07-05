@@ -13,7 +13,6 @@ import (
 type AuthController interface {
 	Login(ctx *gin.Context)
 	LoginBusiness(ctx *gin.Context)
-	VerifyEmail(ctx *gin.Context)
 }
 
 type authController struct {
@@ -120,23 +119,5 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 
 	// Tidak perlu generate token lagi, sudah di dalam service
 	response := helper.BuildResponse(true, "Berhasil login", user)
-	ctx.JSON(http.StatusOK, response)
-}
-
-func (c *authController) VerifyEmail(ctx *gin.Context) {
-	token := ctx.Query("token")
-	if token == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Token tidak ditemukan", "INVALID_TOKEN", "token", "empty", nil))
-		return
-	}
-
-	err := c.authService.VerifyEmailToken(token)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Verifikasi gagal", "VERIFICATION_FAILED", "token", err.Error(), nil))
-		return
-	}
-
-	response := helper.BuildResponse(true, "Email berhasil diverifikasi", nil)
-
 	ctx.JSON(http.StatusOK, response)
 }

@@ -9,7 +9,7 @@ type RegistrationRequest struct {
 	OwnerName      string  `json:"owner_name" validate:"required"`
 	Address        *string `json:"address,omitempty"`
 	PhoneNumber    *string `json:"phone_number,omitempty"`
-	Type           string  `json:"type" binding:"required,oneof=monthly yearly weekly"` // hanya boleh 'monthly' atau 'yearly'
+	Type           *string `json:"type"` // hanya boleh 'monthly' atau 'yearly'
 	Logo           *string `json:"logo,omitempty"`
 	Rating         *string `json:"rating,omitempty"`
 	Provinsi       *string `json:"provinsi,omitempty"`

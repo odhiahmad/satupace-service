@@ -1,13 +1,13 @@
 package routes
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/config"
 	"github.com/odhiahmad/kasirku-service/controller"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/middleware"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/odhiahmad/kasirku-service/service"
@@ -16,18 +16,12 @@ import (
 )
 
 var (
-	resendFrom   = os.Getenv("RESEND_FROM")    // Contoh: "Kasirku <noreply@kasirku.com>"
-	resendAPIKey = os.Getenv("RESEND_API_KEY") // Contoh: "re_live_xxx..."
-
-	// Tambahkan log untuk debugging
-	_ = fmt.Sprintf("📧 RESEND_FROM: %s", resendFrom)
-	_ = fmt.Sprintf("🔐 RESEND_API_KEY: %s", resendAPIKey) // ⚠️ Hapus ini di production
-	// Initialize the validator
 	emailService service.EmailService = service.NewEmailService(
 		os.Getenv("RESEND_FROM"),    // e.g. "Kasirku <noreply@kasirku.com>"
 		os.Getenv("RESEND_API_KEY"), // API key dari Resend
 	)
 	redisClient               *redis.Client                        = config.SetupRedisClient()
+	redisHelper               *helper.RedisHelper                  = helper.NewRedisHelper(redisClient)
 	validate                  *validator.Validate                  = validator.New()
 	db                        *gorm.DB                             = config.SetupDatabaseConnection()
 	userRepository            repository.UserRepository            = repository.NewUserRepository(db)
@@ -57,7 +51,7 @@ var (
 	businessTypeService    service.BusinessTypeService    = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService   service.PaymentMethodService   = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	productCategoryService service.ProductCategoryService = service.NewProductCategoryService(productCategoryRepository, validate)
-	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, membershipRepository, emailService, validate)
+	registrationService    service.RegistrationService    = service.NewRegistrationService(registrationRepository, membershipRepository, emailService, validate, redisHelper, userBusinessRepository)
 	productService         service.ProductService         = service.NewProductService(productRepository, productPromoRepository, promoRepository, productVariantRepository, validate, redisClient)
 	bundleService          service.BundleService          = service.NewBundleService(bundleRepository, validate)
 	taxService             service.TaxService             = service.NewTaxService(taxRepository, validate)
@@ -94,8 +88,9 @@ func SetupRouter() *gin.Engine {
 	authRoutes := r.Group("auth")
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
-		authRoutes.POST("/business/verify-email", authController.VerifyEmail)
 		authRoutes.POST("", authController.Login)
+		authRoutes.POST("/verify-otp", registrationController.VerifyOTP)
+		authRoutes.POST("/retry-otp", registrationController.RetryOTP)
 	}
 
 	registrationRoutes := r.Group("registration")
