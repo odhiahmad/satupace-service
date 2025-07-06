@@ -87,7 +87,7 @@ func (conn *taxConnection) FindWithPagination(businessId int, pagination request
 	}
 
 	// Siapkan paginator
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Jalankan paginasi
 	_, _, err := p.Paginate(baseQuery, &tax)

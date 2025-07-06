@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"log"
 	"strings"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -13,21 +14,20 @@ type Paginator struct {
 }
 
 // Buat paginator baru dengan validasi field sort yang diizinkan
-func Paginate(pagination request.Pagination) *Paginator {
+func Paginate(pagination request.Pagination, validSortFields []string) *Paginator {
+	validSort := make(map[string]bool)
+	for _, field := range validSortFields {
+		validSort[field] = true
+	}
+
 	return &Paginator{
 		pagination: pagination,
-		validSort: map[string]bool{
-			"name":        true,
-			"created_at":  true,
-			"updated_at":  true,
-			"description": true,
-		},
+		validSort:  validSort,
 	}
 }
 
 // Apply pagination ke query GORM
 func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) {
-	// Validasi nilai
 	if p.pagination.Page <= 0 {
 		p.pagination.Page = 1
 	}
@@ -35,7 +35,10 @@ func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) 
 		p.pagination.Limit = 10
 	}
 
-	sortBy := p.pagination.SortBy
+	// Debug sebelum validasi
+	log.Printf("RAW sortBy: %s", p.pagination.SortBy)
+
+	sortBy := strings.ToLower(p.pagination.SortBy)
 	if sortBy == "" || !p.validSort[sortBy] {
 		sortBy = "created_at"
 	}
@@ -46,6 +49,8 @@ func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) 
 	}
 
 	offset := (p.pagination.Page - 1) * p.pagination.Limit
+
+	log.Printf("FINAL SortBy: %s, Order: %s", sortBy, order)
 
 	query := db.
 		Order(sortBy + " " + order).

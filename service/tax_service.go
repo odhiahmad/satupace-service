@@ -10,8 +10,8 @@ import (
 )
 
 type TaxService interface {
-	Create(req request.TaxCreate) (response.TaxResponse, error)
-	Update(id int, req request.TaxUpdate) (response.TaxResponse, error)
+	Create(req request.TaxRequest) (response.TaxResponse, error)
+	Update(id int, req request.TaxRequest) (response.TaxResponse, error)
 	Delete(id int) error
 	FindById(roleId int) response.TaxResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error)
@@ -29,7 +29,7 @@ func NewTaxService(repo repository.TaxRepository, validate *validator.Validate) 
 	}
 }
 
-func (s *taxService) Create(req request.TaxCreate) (response.TaxResponse, error) {
+func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error) {
 	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.TaxResponse{}, err
@@ -43,7 +43,6 @@ func (s *taxService) Create(req request.TaxCreate) (response.TaxResponse, error)
 		Name:         req.Name,
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
-		IsGlobal:     req.IsGlobal,
 	}
 
 	createdTax, err := s.repo.Create(tax)
@@ -57,7 +56,7 @@ func (s *taxService) Create(req request.TaxCreate) (response.TaxResponse, error)
 	return *taxResponse, nil
 }
 
-func (s *taxService) Update(id int, req request.TaxUpdate) (response.TaxResponse, error) {
+func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxResponse, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return response.TaxResponse{}, err
 	}
@@ -69,7 +68,6 @@ func (s *taxService) Update(id int, req request.TaxUpdate) (response.TaxResponse
 		Name:         req.Name,
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
-		IsGlobal:     req.IsGlobal,
 	}
 
 	updatedTax, err := s.repo.Update(tax)

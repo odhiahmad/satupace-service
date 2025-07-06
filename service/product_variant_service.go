@@ -11,8 +11,8 @@ import (
 )
 
 type ProductVariantService interface {
-	Create(req request.ProductVariantCreate, productId int) (*entity.ProductVariant, error)
-	Update(id int, req request.ProductVariantUpdate) (*entity.ProductVariant, error)
+	Create(req request.ProductVariantRequest, productId int) (*entity.ProductVariant, error)
+	Update(id int, req request.ProductVariantRequest) (*entity.ProductVariant, error)
 	Delete(id int) error
 	DeleteByProductId(productId int) error
 	FindById(id int) (*entity.ProductVariant, error)
@@ -35,7 +35,7 @@ func NewProductVariantService(repo repository.ProductVariantRepository, productR
 	}
 }
 
-func (s *productVariantService) Create(req request.ProductVariantCreate, productId int) (*entity.ProductVariant, error) {
+func (s *productVariantService) Create(req request.ProductVariantRequest, productId int) (*entity.ProductVariant, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (s *productVariantService) Create(req request.ProductVariantCreate, product
 	return &variant, nil
 }
 
-func (s *productVariantService) Update(id int, req request.ProductVariantUpdate) (*entity.ProductVariant, error) {
+func (s *productVariantService) Update(id int, req request.ProductVariantRequest) (*entity.ProductVariant, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return nil, err
 	}

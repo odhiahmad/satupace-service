@@ -31,7 +31,7 @@ func NewProductVariantController(s service.ProductVariantService, jwt service.JW
 }
 
 func (c *productVariantController) Create(ctx *gin.Context) {
-	var req request.ProductVariantCreate
+	var req request.ProductVariantRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -66,7 +66,7 @@ func (c *productVariantController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var req request.ProductVariantUpdate
+	var req request.ProductVariantRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))

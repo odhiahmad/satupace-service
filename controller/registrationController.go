@@ -12,8 +12,6 @@ import (
 type RegistrationController interface {
 	Register(ctx *gin.Context)
 	CheckDuplicateEmail(ctx *gin.Context)
-	VerifyOTP(ctx *gin.Context)
-	RetryOTP(ctx *gin.Context)
 }
 
 type registrationController struct {
@@ -103,74 +101,5 @@ func (c *registrationController) CheckDuplicateEmail(ctx *gin.Context) {
 	}
 
 	res := helper.BuildResponse(true, "Pemeriksaan email berhasil", response)
-	ctx.JSON(http.StatusOK, res)
-}
-
-// VerifyOTP memverifikasi kode OTP dari pengguna
-func (c *registrationController) VerifyOTP(ctx *gin.Context) {
-	var req struct {
-		Phone string `json:"phone" binding:"required"`
-		Token string `json:"token" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Input tidak valid",
-			"bad_request",
-			"request_body",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	if err := c.registrationService.VerifyOTPToken(req.Phone, req.Token); err != nil {
-		res := helper.BuildErrorResponse(
-			"Verifikasi OTP gagal",
-			"invalid_token",
-			"token",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	res := helper.BuildResponse(true, "OTP berhasil diverifikasi", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
-}
-
-// RetryOTP mengirim ulang kode OTP ke pengguna
-func (c *registrationController) RetryOTP(ctx *gin.Context) {
-	var req struct {
-		Phone string `json:"phone" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Input tidak valid",
-			"bad_request",
-			"request_body",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	if err := c.registrationService.RetryOTP(req.Phone); err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal mengirim ulang OTP",
-			"retry_failed",
-			"phone",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusInternalServerError, res)
-		return
-	}
-
-	res := helper.BuildResponse(true, "OTP berhasil dikirim ulang", helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, res)
 }

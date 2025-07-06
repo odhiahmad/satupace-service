@@ -12,11 +12,12 @@ import (
 )
 
 type BundleService interface {
-	CreateBundle(req request.BundleCreate) error
-	UpdateBundle(id int, req request.BundleUpdate) error
+	CreateBundle(req request.BundleRequest) (response.BundleResponse, error)
+	UpdateBundle(id int, req request.BundleRequest) (response.BundleResponse, error)
 	FindById(id int) (response.BundleResponse, error)
 	Delete(id int) error
 	SetIsActive(id int, active bool) error
+	SetIsAvailable(id int, isAvailable bool) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) // <- Tambahan
 }
 
@@ -32,9 +33,9 @@ func NewBundleService(repo repository.BundleRepository, validate *validator.Vali
 	}
 }
 
-func (s *bundleService) CreateBundle(req request.BundleCreate) error {
+func (s *bundleService) CreateBundle(req request.BundleRequest) (response.BundleResponse, error) {
 	if err := s.Validate.Struct(req); err != nil {
-		return err
+		return response.BundleResponse{}, err
 	}
 
 	// Upload gambar produk utama
@@ -42,7 +43,7 @@ func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 	if req.Image != nil && *req.Image != "" {
 		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
 		if err != nil {
-			return fmt.Errorf("gagal upload gambar produk: %w", err)
+			return response.BundleResponse{}, fmt.Errorf("gagal upload gambar produk: %w", err)
 		}
 		imageURL = &url
 	}
@@ -59,8 +60,9 @@ func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 		IsActive:    true,
 	}
 
-	if err := s.BundleRepository.InsertBundle(&bundle); err != nil {
-		return err
+	createdBundle, err := s.BundleRepository.InsertBundle(&bundle)
+	if err != nil {
+		return response.BundleResponse{}, err
 	}
 
 	var items []entity.BundleItem
@@ -72,17 +74,24 @@ func (s *bundleService) CreateBundle(req request.BundleCreate) error {
 		})
 	}
 
-	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
+	err = s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
+	if err != nil {
+		return response.BundleResponse{}, err
+	}
+
+	bundleResponse := helper.MapBundleToResponse(createdBundle)
+
+	return bundleResponse, nil
 }
 
-func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
+func (s *bundleService) UpdateBundle(id int, req request.BundleRequest) (response.BundleResponse, error) {
 	if err := s.Validate.Struct(req); err != nil {
-		return err
+		return response.BundleResponse{}, err
 	}
 
 	bundle, err := s.BundleRepository.FindById(id)
 	if err != nil {
-		return err
+		return response.BundleResponse{}, err
 	}
 
 	bundle.BusinessId = req.BusinessId
@@ -90,16 +99,15 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
 	bundle.Description = req.Description
 	bundle.BasePrice = req.BasePrice
 	bundle.Stock = req.Stock
-	bundle.IsAvailable = req.IsAvailable
-	bundle.IsActive = req.IsActive
 	bundle.TaxId = req.TaxId
 
-	if err := s.BundleRepository.UpdateBundle(&bundle); err != nil {
-		return err
+	updatedBundle, err := s.BundleRepository.UpdateBundle(&bundle)
+	if err != nil {
+		return response.BundleResponse{}, err
 	}
 
 	if err := s.BundleRepository.DeleteItemsByBundleId(bundle.Id); err != nil {
-		return err
+		return response.BundleResponse{}, err
 	}
 
 	var items []entity.BundleItem
@@ -111,7 +119,14 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleUpdate) error {
 		})
 	}
 
-	return s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
+	err = s.BundleRepository.InsertItemsByBundleId(bundle.Id, items)
+	if err != nil {
+		return response.BundleResponse{}, err
+	}
+
+	bundleResponse := helper.MapBundleToResponse(updatedBundle)
+
+	return bundleResponse, nil
 }
 
 func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
@@ -128,6 +143,10 @@ func (s *bundleService) Delete(id int) error {
 
 func (s *bundleService) SetIsActive(id int, active bool) error {
 	return s.BundleRepository.SetIsActive(id, active)
+}
+
+func (s *bundleService) SetIsAvailable(id int, active bool) error {
+	return s.BundleRepository.SetIsAvailable(id, active)
 }
 
 func (s *bundleService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {

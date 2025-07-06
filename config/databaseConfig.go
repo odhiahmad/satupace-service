@@ -64,7 +64,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.Business{},
 			&entity.Membership{},
 			&entity.BusinessBranch{},
-			&entity.ProductCategory{},
+			&entity.Category{},
 			&entity.Unit{},
 			&entity.Tax{},
 			&entity.Discount{},
@@ -81,6 +81,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.Promo{}, // ✅ setelah Product
 			&entity.PromoRequiredProduct{},
 			&entity.ProductPromo{},
+			&entity.Brand{},
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}

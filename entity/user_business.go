@@ -12,8 +12,8 @@ type UserBusiness struct {
 	Business    Business        `gorm:"foreignKey:BusinessId"`
 	BranchId    *int            `gorm:"index"`
 	Branch      *BusinessBranch `gorm:"foreignKey:BranchId"`
-	Email       string          `gorm:"uniqueIndex;type:varchar(255)" json:"email"`
-	PhoneNumber *string         `gorm:"type:varchar(255)" json:"phone_number,omitempty"`
+	Email       *string         `gorm:"uniqueIndex;type:varchar(255)" json:"email"`
+	PhoneNumber string          `gorm:"type:varchar(255);uniqueIndex" json:"phone_number,omitempty"`
 	Password    string          `gorm:"->;<-;not null" json:"-"`
 	Token       string          `gorm:"-" json:"token,omitempty"`
 	IsVerified  bool            `gorm:"not null; column:is_verified"`

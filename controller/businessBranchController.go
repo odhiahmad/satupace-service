@@ -96,24 +96,12 @@ func (c *businessBranchController) FindById(ctx *gin.Context) {
 }
 
 func (c *businessBranchController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.Query("business_id")
-	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "MISSING_PARAM", "business_id", "parameter business_id tidak ditemukan", nil))
-		return
-	}
 
-	businessID, err := strconv.Atoi(businessIDStr)
-	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", "INVALID_PARAM", "business_id", err.Error(), nil))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	page, err := strconv.Atoi(pageStr)

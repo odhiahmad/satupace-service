@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,19 +16,23 @@ import (
 type AuthService interface {
 	VerifyCredential(email string, password string) interface{}
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
+	VerifyOTPToken(phone string, token string) error
+	RetryOTP(phone string) error
 }
 
 type authService struct {
 	userRepository         repository.UserRepository
 	userBusinessRepository repository.UserBusinessRepository
 	jwtService             JWTService
+	redisHelper            *helper.RedisHelper
 }
 
-func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService) AuthService {
+func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper) AuthService {
 	return &authService{
 		userRepository:         userRep,
 		userBusinessRepository: userBusinessRepository,
 		jwtService:             jwtSvc,
+		redisHelper:            redisHelper,
 	}
 }
 
@@ -71,7 +77,7 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	}
 
 	// Token dan response
-	token := service.jwtService.GenerateToken(user.Id)
+	token := service.jwtService.GenerateToken(user)
 	res := helper.MapAuthResponse(&user, token)
 
 	return res, nil
@@ -85,4 +91,65 @@ func comparePassword(hashedPwd string, plainPassword []byte) bool {
 		return false
 	}
 	return true
+}
+
+func (s *authService) VerifyOTPToken(phone string, token string) error {
+	// Ambil OTP dari Redis
+	savedOTP, err := s.redisHelper.GetOTP("whatsapp", phone)
+	if err != nil {
+		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
+	}
+
+	// Cocokkan token
+	if savedOTP != token {
+		return errors.New("OTP tidak valid")
+	}
+
+	// Update is_verified = true berdasarkan phone number
+	user, err := s.userBusinessRepository.FindByEmailOrPhone(phone)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	if user.IsVerified {
+		return errors.New("akun sudah terverifikasi")
+	}
+
+	user.IsVerified = true
+
+	err = s.userBusinessRepository.Update(&user)
+	if err != nil {
+		return errors.New("gagal memverifikasi akun")
+	}
+
+	// (Opsional) Hapus OTP dari Redis setelah verifikasi berhasil
+	_ = s.redisHelper.DeleteOTP("whatsapp", phone)
+
+	return nil
+}
+
+func (s *authService) RetryOTP(phone string) error {
+	// Ambil OTP dari Redis
+	otpCode, err := s.redisHelper.GetOTP("whatsapp", phone)
+	if err != nil {
+		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
+	}
+
+	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
+
+	// Kirim ulang OTP dengan retry selama TTL Redis masih aktif
+	err = s.redisHelper.RetryUntilRedisKeyExpired(
+		"whatsapp",
+		phone,
+		2*time.Second,
+		func() error {
+			return helper.SendOTPViaWhatsApp(phone, message)
+		},
+	)
+	if err != nil {
+		log.Println("Gagal mengirim ulang OTP:", err)
+		return errors.New("gagal mengirim ulang OTP")
+	}
+
+	return nil
 }
