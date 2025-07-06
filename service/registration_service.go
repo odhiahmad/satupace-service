@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -19,16 +21,20 @@ type RegistrationService interface {
 }
 
 type registrationService struct {
-	repo       repository.RegistrationRepository
-	membership repository.MembershipRepository
-	validate   *validator.Validate
+	repo         repository.RegistrationRepository
+	membership   repository.MembershipRepository
+	validate     *validator.Validate
+	emailService EmailService
+	redisHelper  *helper.RedisHelper
 }
 
-func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, validate *validator.Validate) RegistrationService {
+func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, emailService EmailService, validate *validator.Validate, redisHelper *helper.RedisHelper) RegistrationService {
 	return &registrationService{
-		repo:       repo,
-		membership: membership,
-		validate:   validate,
+		repo:         repo,
+		membership:   membership,
+		validate:     validate,
+		emailService: emailService,
+		redisHelper:  redisHelper,
 	}
 }
 
@@ -39,7 +45,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 	}
 
 	// Cek duplikat email
-	exists, err := s.repo.IsEmailExists(req.Email)
+	exists, err := s.repo.IsEmailExists(*req.Email)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
 	}
@@ -55,7 +61,6 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		Image:          req.Image,
 		IsActive:       true,
 	}
-
 	savedBusiness, err := s.repo.CreateBusiness(business)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
@@ -63,27 +68,24 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 
 	// 2. Buat Branch Utama
 	mainBranch := entity.BusinessBranch{
-		BusinessId:  savedBusiness.Id,
-		Address:     req.Address,
-		PhoneNumber: req.PhoneNumber,
-		Rating:      req.Rating,
-		Provinsi:    req.Provinsi,
-		Kota:        req.Kota,
-		Kecamatan:   req.Kecamatan,
-		PostalCode:  req.PostalCode,
-		IsMain:      true,
-		IsActive:    true,
+		BusinessId: savedBusiness.Id,
+		Address:    req.Address,
+		Rating:     req.Rating,
+		Provinsi:   req.Provinsi,
+		Kota:       req.Kota,
+		Kecamatan:  req.Kecamatan,
+		PostalCode: req.PostalCode,
+		IsMain:     true,
+		IsActive:   true,
 	}
-
-	err = s.repo.CreateMainBranch(&mainBranch)
-	if err != nil {
+	if err := s.repo.CreateMainBranch(&mainBranch); err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 3. Buat User
+	hashedPassword := helper.HashAndSalt([]byte(req.Password))
 	user := entity.UserBusiness{
 		Email:       req.Email,
-		Password:    helper.HashAndSalt([]byte(req.Password)),
+		Password:    hashedPassword,
 		RoleId:      req.RoleId,
 		BusinessId:  savedBusiness.Id,
 		BranchId:    &mainBranch.Id,
@@ -91,27 +93,41 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		IsActive:    true,
 		IsVerified:  false,
 	}
-
 	savedUser, err := s.repo.CreateUser(user)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 4. Buat Membership
-	startedAt, expiredAt := GetMembershipPeriod(req.Type)
+	// 6. Buat Membership
+	startedAt, expiredAt := GetMembershipPeriod("weekly")
 	membership := entity.Membership{
 		UserId:    savedUser.Id,
-		Type:      req.Type,
 		StartDate: startedAt,
 		EndDate:   expiredAt,
 		IsActive:  true,
+		Type:      "weekly",
 	}
-
 	if _, err := s.membership.CreateMembership(membership); err != nil {
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 5. Kembalikan response user
+	otpCode := helper.GenerateOTPCode(6) // misal "123456"
+
+	// Simpan ke Redis selama 5 menit
+	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)
+	if err != nil {
+		log.Println("Gagal simpan OTP:", err)
+		return response.UserBusinessResponse{}, err
+	}
+
+	// 7. Kirim OTP ke WhatsApp user
+	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
+	if err := helper.SendOTPViaWhatsApp(req.PhoneNumber, message); err != nil {
+		// Logging tapi tetap lanjut
+		log.Println("Gagal mengirim OTP WhatsApp:", err)
+	}
+
+	// 8. Kembalikan response user
 	return *helper.MapUserBusinessResponse(savedUser), nil
 }
 

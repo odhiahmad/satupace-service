@@ -80,7 +80,7 @@ func HitungHargaTransaksi(
 	}
 
 	var totalTax float64
-	if product.Tax != nil && product.Tax.IsActive {
+	if product.Tax != nil {
 		if product.Tax.IsPercentage {
 			totalTax += price * product.Tax.Amount
 		} else {

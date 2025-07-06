@@ -166,33 +166,10 @@ func (c *promoController) FindById(ctx *gin.Context) {
 }
 
 func (c *promoController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.Query("business_id")
-	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi",
-			"MISSING_BUSINESS_ID",
-			"business_id",
-			"business_id diperlukan",
-			nil,
-		))
-		return
-	}
-
-	businessID, err := strconv.Atoi(businessIDStr)
-	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid",
-			"INVALID_BUSINESS_ID",
-			"business_id",
-			err.Error(),
-			nil,
-		))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "created_at")
-	orderBy := ctx.DefaultQuery("orderBy", "desc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	limit, err := strconv.Atoi(limitStr)

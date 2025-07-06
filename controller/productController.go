@@ -14,6 +14,7 @@ import (
 type ProductController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
+	UpdateImage(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
@@ -35,24 +36,28 @@ func NewProductController(productService service.ProductService, jwtService serv
 
 // CREATE PRODUCT
 func (c *productController) Create(ctx *gin.Context) {
-	var req request.ProductCreate
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	businessId := ctx.MustGet("business_id").(int)
+	var input request.ProductRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Gagal bind data produk", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
+			"Gagal bind data product", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	if err := c.productService.Create(req); err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal membuat produk", "CREATE_ERROR", "product", err.Error(), helper.EmptyObj{}))
+	input.BusinessId = businessId
+	res, err := c.productService.Create(input)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat product", "internal_error", "product", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Produk berhasil dibuat", helper.EmptyObj{}))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat product", res))
 }
 
 func (c *productController) Update(ctx *gin.Context) {
+	businessId := ctx.MustGet("business_id").(int)
 	idParam := ctx.Param("id")
+
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -60,14 +65,15 @@ func (c *productController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var req request.ProductUpdate
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	var input request.ProductRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Gagal bind data update", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	result, err := c.productService.Update(id, req)
+	input.BusinessId = businessId
+	result, err := c.productService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengubah produk", "UPDATE_ERROR", "product", err.Error(), helper.EmptyObj{}))
@@ -75,6 +81,35 @@ func (c *productController) Update(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Produk berhasil diubah", result))
+}
+
+func (c *productController) UpdateImage(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "param", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	var req struct {
+		Image string `json:"image" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse("Gambar tidak valid", "INVALID_IMAGE", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	updated, err := c.productService.UpdateImage(id, req.Image)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal update gambar produk", "UPDATE_IMAGE_FAILED", "service", err.Error(), nil)
+		ctx.JSON(http.StatusInternalServerError, res)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Gambar Produk berhasil diubah", updated))
 }
 
 func (c *productController) Delete(ctx *gin.Context) {
@@ -115,24 +150,11 @@ func (c *productController) FindById(ctx *gin.Context) {
 }
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {
-	businessIdStr := ctx.Query("business_id")
-	if businessIdStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "MISSING_PARAM", "business_id", "parameter tidak ditemukan", helper.EmptyObj{}))
-		return
-	}
-
-	businessId, err := strconv.Atoi(businessIdStr)
-	if err != nil || businessId <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Business ID tidak valid", "INVALID_PARAM", "business_id", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	page, err := strconv.Atoi(pageStr)
@@ -157,7 +179,7 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	products, total, err := c.productService.FindWithPagination(businessId, pagination)
+	products, total, err := c.productService.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
@@ -204,7 +226,12 @@ func (c *productController) SetActive(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status aktif produk berhasil diubah", helper.EmptyObj{}))
+	statusMsg := "dinonaktifkan"
+	if body.IsActive {
+		statusMsg = "diaktifkan"
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status produk berhasil "+statusMsg, helper.EmptyObj{}))
 }
 
 func (c *productController) SetAvailable(ctx *gin.Context) {
@@ -231,5 +258,10 @@ func (c *productController) SetAvailable(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status ketersediaan produk berhasil diubah", helper.EmptyObj{}))
+	statusMsg := "tidak tersedia"
+	if body.IsAvailable {
+		statusMsg = "tersedia"
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status produk sekarang ini "+statusMsg, helper.EmptyObj{}))
 }

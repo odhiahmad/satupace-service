@@ -39,14 +39,8 @@ func (connection *unitConnection) Delete(id int) error {
 
 func (connection *unitConnection) FindById(id int) (entity.Unit, error) {
 	var unit entity.Unit
-	err := connection.db.Preload("Products").First(&unit, id).Error
+	err := connection.db.First(&unit, id).Error
 	return unit, err
-}
-
-func (connection *unitConnection) FindByBusinessId(businessId int) ([]entity.Unit, error) {
-	var units []entity.Unit
-	err := connection.db.Where("business_id = ?", businessId).Preload("Products").Find(&units).Error
-	return units, err
 }
 
 func (connection *unitConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error) {
@@ -60,7 +54,7 @@ func (connection *unitConnection) FindWithPagination(businessId int, pagination 
 	// Filter pencarian
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
+		baseQuery = baseQuery.Where("name ILIKE ?", search)
 	}
 
 	// Hitung total data
@@ -69,7 +63,7 @@ func (connection *unitConnection) FindWithPagination(businessId int, pagination 
 	}
 
 	// Siapkan paginator
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Jalankan paginasi
 	_, _, err := p.Paginate(baseQuery, &units)

@@ -65,25 +65,26 @@ func (c *businessTypeController) UpdateBusinessType(ctx *gin.Context) {
 		return
 	}
 
-	businessTypeId := ctx.Param("businessTypeId")
-	id, err := strconv.Atoi(businessTypeId)
+	// Konversi businessTypeId dari string ke int
+	businessTypeIdParam := ctx.Param("businessTypeId")
+	businessTypeId, err := strconv.Atoi(businessTypeIdParam)
 	if err != nil {
 		response := helper.BuildErrorResponse(
-			"Invalid ID parameter",
+			"Invalid businessType ID",
 			"INVALID_ID",
-			"businessTypeId",
+			"param",
 			err.Error(),
 			helper.EmptyObj{},
 		)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
-	businessTypeUpdate.Id = id
 
-	c.businessTypeService.UpdateBusinessType(businessTypeUpdate)
+	// Kirim ke service
+	c.businessTypeService.UpdateBusinessType(businessTypeId, businessTypeUpdate)
 
 	response := helper.BuildResponse(true, "!OK", nil)
-	ctx.JSON(http.StatusCreated, response)
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *businessTypeController) FindBusinessTypeAll(ctx *gin.Context) {

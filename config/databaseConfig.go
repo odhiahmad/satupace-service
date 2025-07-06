@@ -64,7 +64,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.Business{},
 			&entity.Membership{},
 			&entity.BusinessBranch{},
-			&entity.ProductCategory{},
+			&entity.Category{},
 			&entity.Unit{},
 			&entity.Tax{},
 			&entity.Discount{},
@@ -81,6 +81,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.Promo{}, // ✅ setelah Product
 			&entity.PromoRequiredProduct{},
 			&entity.ProductPromo{},
+			&entity.Brand{},
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}
@@ -101,4 +102,24 @@ func CloseDatabaseConnection(db *gorm.DB) {
 	if err := sqlDB.Close(); err != nil {
 		log.Fatalf("Gagal menutup koneksi database: %v", err)
 	}
+}
+
+func SetupWhatsAppGORM() *gorm.DB {
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbName := os.Getenv("DB_NAME_WHATSAPP")
+	dbPort := os.Getenv("DB_PORT")
+
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
+		dbHost, dbUser, dbPass, dbName, dbPort,
+	)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("❌ Gagal koneksi ke DB WhatsApp: %v", err)
+	}
+
+	return db
 }

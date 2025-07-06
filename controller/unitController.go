@@ -29,12 +29,14 @@ func NewUnitController(s service.UnitService, jwtService service.JWTService) Uni
 }
 
 func (c *unitController) Create(ctx *gin.Context) {
-	var input request.UnitCreate
+	businessId := ctx.MustGet("business_id").(int)
+	var input request.UnitRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
+	input.BusinessId = businessId
 
 	res, err := c.service.Create(input)
 	if err != nil {
@@ -43,18 +45,32 @@ func (c *unitController) Create(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat satuan produk", res))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat satuan produk", res))
 }
 
 func (c *unitController) Update(ctx *gin.Context) {
-	var input request.UnitUpdate
+	idStr := ctx.Param("id")
+	businessId := ctx.MustGet("business_id").(int)
+
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
+		return
+	}
+
+	var input request.UnitRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
-
-	res, err := c.service.Update(input)
+	input.BusinessId = businessId
+	res, err := c.service.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengubah satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
@@ -83,42 +99,33 @@ func (c *unitController) Delete(ctx *gin.Context) {
 }
 
 func (c *unitController) FindById(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	unitIdParam := ctx.Param("id")
+	unitId, err := strconv.Atoi(unitIdParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
+		response := helper.BuildErrorResponse(
+			"Parameter id tidak valid",
+			"invalid_parameter",
+			"id",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	res, err := c.service.FindById(id)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse(
-			"Satuan produk tidak ditemukan", "NOT_FOUND", "product_unit", err.Error(), helper.EmptyObj{}))
-		return
-	}
+	// hanya satu return value
+	unitResponse := c.service.FindById(unitId)
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil satuan produk", res))
+	response := helper.BuildResponse(true, "Berhasil mengambil data unit", unitResponse)
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *unitController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.Query("business_id")
-	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi", "BAD_REQUEST", "business_id", "Query parameter business_id kosong", helper.EmptyObj{}))
-		return
-	}
-
-	businessID, err := strconv.Atoi(businessIDStr)
-	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid", "BAD_REQUEST", "business_id", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	page, err := strconv.Atoi(pageStr)
@@ -146,7 +153,7 @@ func (c *unitController) FindWithPagination(ctx *gin.Context) {
 	units, total, err := c.service.FindWithPagination(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data unit produk", "INTERNAL_ERROR", "unit", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
@@ -160,7 +167,7 @@ func (c *unitController) FindWithPagination(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
-		"Berhasil mengambil data satuan produk",
+		"Berhasil mengambil data unit produk",
 		units,
 		paginationMeta,
 	))

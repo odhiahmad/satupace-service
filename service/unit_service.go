@@ -3,16 +3,18 @@ package service
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type UnitService interface {
-	Create(req request.UnitCreate) (entity.Unit, error)
-	Update(req request.UnitUpdate) (entity.Unit, error)
+	Create(req request.UnitRequest) (entity.Unit, error)
+	Update(id int, req request.UnitRequest) (entity.Unit, error)
 	Delete(id int) error
-	FindById(id int) (entity.Unit, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
+	FindById(id int) response.UnitResponse
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.UnitResponse, int64, error)
 }
 
 type unitService struct {
@@ -27,7 +29,7 @@ func NewUnitService(repo repository.UnitRepository) UnitService {
 	}
 }
 
-func (s *unitService) Create(req request.UnitCreate) (entity.Unit, error) {
+func (s *unitService) Create(req request.UnitRequest) (entity.Unit, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Unit{}, err
 	}
@@ -42,13 +44,13 @@ func (s *unitService) Create(req request.UnitCreate) (entity.Unit, error) {
 	return s.repo.Create(unit)
 }
 
-func (s *unitService) Update(req request.UnitUpdate) (entity.Unit, error) {
+func (s *unitService) Update(id int, req request.UnitRequest) (entity.Unit, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Unit{}, err
 	}
 
 	unit := entity.Unit{
-		Id:         req.Id,
+		Id:         id,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
 		Alias:      req.Alias,
@@ -62,10 +64,24 @@ func (s *unitService) Delete(id int) error {
 	return s.repo.Delete(id)
 }
 
-func (s *unitService) FindById(id int) (entity.Unit, error) {
-	return s.repo.FindById(id)
+func (s *unitService) FindById(unitId int) response.UnitResponse {
+	unitData, err := s.repo.FindById(unitId)
+	helper.ErrorPanic(err)
+
+	unitResponse := helper.MapUnit(&unitData)
+	return *unitResponse
 }
 
-func (s *unitService) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error) {
-	return s.repo.FindWithPagination(businessId, pagination)
+func (s *unitService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.UnitResponse, int64, error) {
+	units, total, err := s.repo.FindWithPagination(businessId, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var result []response.UnitResponse
+	for _, unit := range units {
+		result = append(result, *helper.MapUnit(&unit))
+	}
+
+	return result, total, nil
 }

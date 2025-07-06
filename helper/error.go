@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	ErrInvalidPassword    = errors.New("invalid password")
-	ErrMembershipInactive = errors.New("inactive membership")
-	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidPassword      = errors.New("invalid password")
+	ErrMembershipInactive   = errors.New("inactive membership")
+	ErrUserNotFound         = errors.New("user not found")
+	ErrEmailNotVerified     = errors.New("email belum diverifikasi")
+	ErrEmailAlreadyVerified = errors.New("email sudah diverifikasi")
 )
 
 // ErrorPanic akan memunculkan panic jika terjadi error, serta mencatatnya ke log

@@ -3,7 +3,6 @@ package repository
 import (
 	"errors"
 
-	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
@@ -32,12 +31,18 @@ func (conn *businessTypeConnection) InsertBusinessType(businessType entity.Busin
 }
 
 func (conn *businessTypeConnection) UpdateBusinessType(businessType entity.BusinessType) {
-	var updateBusinessType = request.BusinessTypeUpdate{
-		Id:   businessType.Id,
-		Name: businessType.Name,
+	// Pastikan ID tidak kosong
+	if businessType.Id == 0 {
+		helper.ErrorPanic(errors.New("ID businessType tidak boleh kosong"))
 	}
 
-	result := conn.db.Model(&businessType).Updates(updateBusinessType)
+	// Update langsung menggunakan struct entity
+	result := conn.db.Model(&entity.BusinessType{}).
+		Where("id = ?", businessType.Id).
+		Updates(map[string]interface{}{
+			"name": businessType.Name,
+		})
+
 	helper.ErrorPanic(result.Error)
 }
 

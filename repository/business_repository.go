@@ -69,7 +69,7 @@ func (conn *businessConnection) FindWithPagination(pagination request.Pagination
 	}
 
 	// Siapkan paginator
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Query utama dengan paginator
 	_, _, err := p.Paginate(baseQuery, &businesses)

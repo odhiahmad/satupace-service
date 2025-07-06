@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	es "github.com/odhiahmad/kasirku-service/config"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/routes"
 )
 
@@ -35,6 +35,7 @@ func main() {
 	es.InitElasticSearch()
 	_ = godotenv.Load(".env")
 
+	helper.InitWhatsApp()
 	// Get environment variables
 	mode := os.Getenv("GIN_MODE")
 	if mode == "" {

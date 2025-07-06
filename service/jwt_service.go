@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 )
 
 type JWTService interface {
-	GenerateToken(userId int) string
+	GenerateToken(user entity.UserBusiness) string
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
@@ -34,11 +35,16 @@ func getSecretKey() string {
 	return secretKey
 }
 
-func (j *jwtService) GenerateToken(userId int) string {
+func (j *jwtService) GenerateToken(user entity.UserBusiness) string {
 	claims := jwt.MapClaims{
-		"user_id": userId,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-		"iss":     j.issuer,
+		"user_id":      user.Id,
+		"phone_number": user.PhoneNumber,
+		"business_id":  user.BusinessId,
+		"branch_id":    user.BranchId,
+		"email":        user.Email,
+		"role_id":      user.RoleId,
+		"exp":          time.Now().Add(100 * 365 * 24 * time.Hour).Unix(), // tidak expired dalam waktu dekat
+		"iss":          j.issuer,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

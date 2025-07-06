@@ -89,7 +89,7 @@ func (conn *discountConnection) FindWithPagination(businessId int, pagination re
 	}
 
 	// Siapkan paginator
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Paginate query
 	_, _, err := p.Paginate(baseQuery, &discounts)

@@ -5,7 +5,7 @@ import "time"
 type AuthResponse struct {
 	Id          int                     `json:"id"`
 	Email       string                  `json:"email"`
-	PhoneNumber *string                 `json:"phone_number,omitempty"`
+	PhoneNumber string                  `json:"phone_number,omitempty"`
 	Token       string                  `json:"token"`
 	IsVerified  bool                    `json:"is_verified"`
 	IsActive    bool                    `json:"is_active"`
