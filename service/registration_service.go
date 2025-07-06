@@ -82,20 +82,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		return response.UserBusinessResponse{}, err
 	}
 
-	// 3. Hash password
 	hashedPassword := helper.HashAndSalt([]byte(req.Password))
-
-	// 4. Generate verification token (bisa dianggap OTP juga)
-	otpCode := helper.GenerateOTPCode(6) // misal "123456"
-
-	// Simpan ke Redis selama 5 menit
-	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)
-	if err != nil {
-		log.Println("Gagal simpan OTP:", err)
-		return response.UserBusinessResponse{}, err
-	}
-
-	// 5. Buat User
 	user := entity.UserBusiness{
 		Email:       req.Email,
 		Password:    hashedPassword,
@@ -118,8 +105,18 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		StartDate: startedAt,
 		EndDate:   expiredAt,
 		IsActive:  true,
+		Type:      "weekly",
 	}
 	if _, err := s.membership.CreateMembership(membership); err != nil {
+		return response.UserBusinessResponse{}, err
+	}
+
+	otpCode := helper.GenerateOTPCode(6) // misal "123456"
+
+	// Simpan ke Redis selama 5 menit
+	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)
+	if err != nil {
+		log.Println("Gagal simpan OTP:", err)
 		return response.UserBusinessResponse{}, err
 	}
 
