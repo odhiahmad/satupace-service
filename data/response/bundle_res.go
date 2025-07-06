@@ -15,16 +15,14 @@ type BundleItemResponse struct {
 }
 
 type BundleResponse struct {
-	Id                int                      `json:"id"`
-	Name              string                   `json:"name"`
-	Description       string                   `json:"description,omitempty"`
-	Image             string                   `json:"image"`
-	BasePrice         float64                  `json:"base_price"`
-	SKU               string                   `json:"sku,omitempty"`
-	Stock             int                      `json:"stock,omitempty"`
-	IsAvailable       bool                     `json:"is_available"`
-	IsActive          bool                     `json:"is_active"`
-	Items             []BundleItemResponse     `json:"items"`
-	ProductCategoryId int                      `json:"product_category_id,omitempty"`
-	ProductCategory   *ProductCategoryResponse `json:"product_category,omitempty"`
+	Id          int                  `json:"id"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	Image       string               `json:"image"`
+	BasePrice   float64              `json:"base_price"`
+	SKU         string               `json:"sku,omitempty"`
+	Stock       int                  `json:"stock,omitempty"`
+	IsAvailable bool                 `json:"is_available"`
+	IsActive    bool                 `json:"is_active"`
+	Items       []BundleItemResponse `json:"items"`
 }

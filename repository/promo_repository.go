@@ -81,7 +81,7 @@ func (conn *promoConnection) FindWithPagination(businessId int, pagination reque
 		return nil, 0, err
 	}
 
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 	_, _, err := p.Paginate(baseQuery, &promos)
 	if err != nil {
 		return nil, 0, err

@@ -12,8 +12,8 @@ import (
 )
 
 type DiscountService interface {
-	Create(req request.DiscountCreate) (entity.Discount, error)
-	Update(id int, req request.DiscountUpdate) (entity.Discount, error)
+	Create(req request.DiscountRequest) (entity.Discount, error)
+	Update(id int, req request.DiscountRequest) (entity.Discount, error)
 	Delete(id int) error
 	FindById(id int) (response.DiscountResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.DiscountResponse, int64, error)
@@ -32,7 +32,7 @@ func NewDiscountService(repo repository.DiscountRepository, validate *validator.
 	}
 }
 
-func (s *discountService) Create(req request.DiscountCreate) (entity.Discount, error) {
+func (s *discountService) Create(req request.DiscountRequest) (entity.Discount, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Discount{}, err
 	}
@@ -60,7 +60,7 @@ func (s *discountService) Create(req request.DiscountCreate) (entity.Discount, e
 	return s.repo.Create(discount)
 }
 
-func (s *discountService) Update(id int, req request.DiscountUpdate) (entity.Discount, error) {
+func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Discount, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Discount{}, err
 	}

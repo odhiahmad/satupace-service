@@ -5,6 +5,5 @@ type BusinessTypeCreate struct {
 }
 
 type BusinessTypeUpdate struct {
-	Id   int    `validate:"required"`
 	Name string `json:"name" validate:"required"`
 }

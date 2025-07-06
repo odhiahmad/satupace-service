@@ -10,14 +10,15 @@ import (
 )
 
 type BundleRepository interface {
-	InsertBundle(bundle *entity.Bundle) error
-	UpdateBundle(bundle *entity.Bundle) error
+	InsertBundle(bundle *entity.Bundle) (entity.Bundle, error)
+	UpdateBundle(bundle *entity.Bundle) (entity.Bundle, error)
 	FindById(bundleId int) (entity.Bundle, error)
 	Delete(bundleId int) error
 	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
 	DeleteItemsByBundleId(bundleId int) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
 	SetIsActive(id int, isActive bool) error
+	SetIsAvailable(id int, isActive bool) error
 }
 
 type bundleConnection struct {
@@ -28,14 +29,26 @@ func NewBundleRepository(db *gorm.DB) BundleRepository {
 	return &bundleConnection{db: db}
 }
 
-func (conn *bundleConnection) InsertBundle(bundle *entity.Bundle) error {
-	result := conn.db.Create(bundle)
-	return result.Error
+func (conn *bundleConnection) InsertBundle(bundle *entity.Bundle) (entity.Bundle, error) {
+	err := conn.db.Create(bundle).Error
+	if err != nil {
+		return entity.Bundle{}, err
+	}
+
+	// Misal ingin preload relasi seperti BundleItems atau lainnya
+	err = conn.db.Preload("BundleItems").First(bundle, bundle.Id).Error
+	return *bundle, err
 }
 
-func (conn *bundleConnection) UpdateBundle(bundle *entity.Bundle) error {
-	result := conn.db.Save(bundle)
-	return result.Error
+func (conn *bundleConnection) UpdateBundle(bundle *entity.Bundle) (entity.Bundle, error) {
+	err := conn.db.Save(bundle).Error
+	if err != nil {
+		return entity.Bundle{}, err
+	}
+
+	// Preload relasi jika perlu
+	err = conn.db.Preload("BundleItems").First(bundle, bundle.Id).Error
+	return *bundle, err
 }
 
 func (conn *bundleConnection) FindById(bundleId int) (entity.Bundle, error) {
@@ -87,7 +100,7 @@ func (conn *bundleConnection) FindWithPagination(businessId int, pagination requ
 	}
 
 	// Siapkan paginator
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Query utama dengan paginator
 	_, _, err := p.Paginate(baseQuery, &bundles)
@@ -102,4 +115,10 @@ func (conn *bundleConnection) SetIsActive(id int, isActive bool) error {
 	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
 		Update("is_active", isActive).Error
+}
+
+func (conn *bundleConnection) SetIsAvailable(id int, isAvailable bool) error {
+	return conn.db.Model(&entity.Bundle{}).
+		Where("id = ?", id).
+		Update("is_available", isAvailable).Error
 }

@@ -5,14 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
 )
 
 type AuthController interface {
-	Login(ctx *gin.Context)
 	LoginBusiness(ctx *gin.Context)
+	VerifyOTP(ctx *gin.Context)
+	RetryOTP(ctx *gin.Context)
 }
 
 type authController struct {
@@ -25,39 +25,6 @@ func NewAuthController(authService service.AuthService, jwtService service.JWTSe
 		authService: authService,
 		jwtService:  jwtService,
 	}
-}
-
-func (c *authController) Login(ctx *gin.Context) {
-	var loginDTO request.LoginUserDTO
-	if err := ctx.ShouldBind(&loginDTO); err != nil {
-		response := helper.BuildErrorResponse(
-			"Input tidak valid",
-			"VALIDATION_ERROR",
-			"email",
-			err.Error(),
-			nil,
-		)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
-
-	authResult := c.authService.VerifyCredential(loginDTO.Email, loginDTO.Password)
-	if user, ok := authResult.(entity.User); ok {
-		token := c.jwtService.GenerateToken(user.Id)
-		user.Token = token
-		response := helper.BuildResponse(true, "Berhasil login", user)
-		ctx.JSON(http.StatusOK, response)
-		return
-	}
-
-	response := helper.BuildErrorResponse(
-		"Login gagal",
-		"AUTH_INVALID_CREDENTIALS",
-		"email",
-		"Email atau password tidak valid",
-		nil,
-	)
-	ctx.JSON(http.StatusUnauthorized, response)
 }
 
 func (c *authController) LoginBusiness(ctx *gin.Context) {
@@ -120,4 +87,73 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 	// Tidak perlu generate token lagi, sudah di dalam service
 	response := helper.BuildResponse(true, "Berhasil login", user)
 	ctx.JSON(http.StatusOK, response)
+}
+
+// VerifyOTP memverifikasi kode OTP dari pengguna
+func (c *authController) VerifyOTP(ctx *gin.Context) {
+	var req struct {
+		Phone string `json:"phone" binding:"required"`
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse(
+			"Input tidak valid",
+			"bad_request",
+			"request_body",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	if err := c.authService.VerifyOTPToken(req.Phone, req.Token); err != nil {
+		res := helper.BuildErrorResponse(
+			"Verifikasi OTP gagal",
+			"invalid_token",
+			"token",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res := helper.BuildResponse(true, "OTP berhasil diverifikasi", helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
+}
+
+// RetryOTP mengirim ulang kode OTP ke pengguna
+func (c *authController) RetryOTP(ctx *gin.Context) {
+	var req struct {
+		Phone string `json:"phone" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse(
+			"Input tidak valid",
+			"bad_request",
+			"request_body",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	if err := c.authService.RetryOTP(req.Phone); err != nil {
+		res := helper.BuildErrorResponse(
+			"Gagal mengirim ulang OTP",
+			"retry_failed",
+			"phone",
+			err.Error(),
+			helper.EmptyObj{},
+		)
+		ctx.JSON(http.StatusInternalServerError, res)
+		return
+	}
+
+	res := helper.BuildResponse(true, "OTP berhasil dikirim ulang", helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
 }

@@ -30,7 +30,8 @@ func NewDiscountController(discountService service.DiscountService, jwtService s
 }
 
 func (c *discountController) Create(ctx *gin.Context) {
-	var input request.DiscountCreate
+	businessId := ctx.MustGet("business_id").(int)
+	var input request.DiscountRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
@@ -41,6 +42,8 @@ func (c *discountController) Create(ctx *gin.Context) {
 		))
 		return
 	}
+
+	input.BusinessId = businessId
 
 	res, err := c.discountService.Create(input)
 	if err != nil {
@@ -54,11 +57,13 @@ func (c *discountController) Create(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat diskon", res))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat diskon", res))
 }
 
 func (c *discountController) Update(ctx *gin.Context) {
+	businessId := ctx.MustGet("business_id").(int)
 	idStr := ctx.Param("id")
+
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Parameter id wajib diisi",
@@ -82,7 +87,7 @@ func (c *discountController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var input request.DiscountUpdate
+	var input request.DiscountRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
@@ -94,6 +99,7 @@ func (c *discountController) Update(ctx *gin.Context) {
 		return
 	}
 
+	input.BusinessId = businessId
 	res, err := c.discountService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
@@ -166,34 +172,11 @@ func (c *discountController) FindById(ctx *gin.Context) {
 }
 
 func (c *discountController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.Query("business_id")
-	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi",
-			"MISSING_BUSINESS_ID",
-			"business_id",
-			"Query parameter business_id kosong",
-			helper.EmptyObj{},
-		))
-		return
-	}
-
-	businessID, err := strconv.Atoi(businessIDStr)
-	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid",
-			"INVALID_BUSINESS_ID",
-			"business_id",
-			err.Error(),
-			helper.EmptyObj{},
-		))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "id")
-	orderBy := ctx.DefaultQuery("orderBy", "asc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	page, err := strconv.Atoi(pageStr)

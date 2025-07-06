@@ -17,7 +17,7 @@ func HitungHargaBundle(bundle entity.Bundle, quantity int) (*BundlePricing, erro
 	price := bundle.BasePrice * float64(quantity)
 	var totalTax float64
 
-	if bundle.Tax != nil && bundle.Tax.IsActive {
+	if bundle.Tax != nil {
 		if bundle.Tax.IsPercentage {
 			totalTax = price * (bundle.Tax.Amount / 100.0)
 		} else {

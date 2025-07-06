@@ -10,6 +10,7 @@ type ProductVariant struct {
 	ProductId   int       `gorm:"not null" json:"product_id"`
 	Product     *Product  `gorm:"foreignKey:ProductId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	BasePrice   *float64  `json:"base_price"`
+	SellPrice   *float64  `json:"sale_price"`
 	Stock       int       `json:"stock"`
 	TrackStock  bool      `gorm:"default:false" json:"track_stock"`
 	SKU         string    `gorm:"type:varchar(100);uniqueIndex" json:"sku"`

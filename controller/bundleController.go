@@ -17,6 +17,7 @@ type BundleController interface {
 	FindById(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	SetIsActive(ctx *gin.Context)
+	SetIsAvailable(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 }
 
@@ -34,77 +35,55 @@ func NewBundleController(bundleService service.BundleService, jwtService service
 
 // Create Bundle
 func (c *bundleController) Create(ctx *gin.Context) {
-	var req request.BundleCreate
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal memproses data",
-			"VALIDATION_ERROR",
-			"request_body",
-			err.Error(),
-			nil,
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+	businessId := ctx.MustGet("business_id").(int)
+	var input request.BundleRequest
+
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind data bundle", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	if err := c.bundleService.CreateBundle(req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal membuat bundle",
-			"BUNDLE_CREATE_FAILED",
-			"",
-			err.Error(),
-			nil,
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+	input.BusinessId = businessId
+	res, err := c.bundleService.CreateBundle(input)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat bundle", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
-	res := helper.BuildResponse(true, "Bundle berhasil dibuat", helper.EmptyObj{})
-	ctx.JSON(http.StatusCreated, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil membuat bundle", res))
 }
 
 func (c *bundleController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
+	businessId := ctx.MustGet("business_id").(int)
+
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
+		return
+	}
+
 	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
+		return
+	}
+
+	var input request.BundleRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
+		return
+	}
+
+	input.BusinessId = businessId
+
+	res, err := c.bundleService.UpdateBundle(id, input)
 	if err != nil {
-		res := helper.BuildErrorResponse(
-			"ID tidak valid",
-			"INVALID_ID",
-			"id",
-			err.Error(),
-			nil,
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah bundle", "internal_error", "bundle", err.Error(), nil))
 		return
 	}
 
-	var req request.BundleUpdate
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal memproses data",
-			"VALIDATION_ERROR",
-			"request_body",
-			err.Error(),
-			nil,
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	if err := c.bundleService.UpdateBundle(id, req); err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal memperbarui bundle",
-			"BUNDLE_UPDATE_FAILED",
-			"",
-			err.Error(),
-			nil,
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	res := helper.BuildResponse(true, "Bundle berhasil diperbarui", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Bundle berhasil diperbaru", res))
 }
 
 func (c *bundleController) FindById(ctx *gin.Context) {
@@ -227,34 +206,38 @@ func (c *bundleController) SetIsActive(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Diskon berhasil "+statusMsg, nil))
 }
 
+func (c *bundleController) SetIsAvailable(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"ID tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	var body struct {
+		IsAvailable bool `json:"is_available"`
+	}
+
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Gagal bind body", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	if err := c.bundleService.SetIsAvailable(id, body.IsAvailable); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status ketersediaan bundle", "UPDATE_ERROR", "is_available", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status ketersediaan bundle berhasil diubah", helper.EmptyObj{}))
+}
+
 func (c *bundleController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.Query("business_id")
-	if businessIDStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id wajib diisi",
-			"REQUIRED_QUERY_PARAM",
-			"business_id",
-			"Parameter business_id tidak boleh kosong",
-			nil,
-		))
-		return
-	}
-
-	businessID, err := strconv.Atoi(businessIDStr)
-	if err != nil || businessID <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter business_id tidak valid",
-			"INVALID_QUERY_PARAM",
-			"business_id",
-			err.Error(),
-			nil,
-		))
-		return
-	}
-
+	businessID := ctx.MustGet("business_id").(int)
 	limitStr := ctx.DefaultQuery("limit", "10")
-	sortBy := ctx.DefaultQuery("sortBy", "created_at")
-	orderBy := ctx.DefaultQuery("orderBy", "desc")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
 	search := ctx.DefaultQuery("search", "")
 
 	limit, err := strconv.Atoi(limitStr)

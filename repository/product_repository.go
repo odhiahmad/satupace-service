@@ -10,8 +10,9 @@ import (
 )
 
 type ProductRepository interface {
-	Create(product *entity.Product) error
+	Create(product entity.Product) (entity.Product, error)
 	Update(product entity.Product) (entity.Product, error)
+	UpdateAll(product *entity.Product) (entity.Product, error)
 	Delete(id int) error
 	FindById(id int) (entity.Product, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
@@ -34,39 +35,72 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productConnection{db}
 }
 
-func (conn *productConnection) Create(product *entity.Product) error {
-	return conn.db.Create(product).Error // ✅ cukup satu pointer
-}
+func (conn *productConnection) Create(product entity.Product) (entity.Product, error) {
+	// Buat data brand
+	err := conn.db.Create(&product).Error
+	if err != nil {
+		return entity.Product{}, err
+	}
 
+	// Ambil ulang dengan preload Business
+	err = conn.db.First(&product, product.Id).Error
+	if err != nil {
+		return entity.Product{}, err
+	}
+
+	return product, nil
+}
 func (conn *productConnection) Update(product entity.Product) (entity.Product, error) {
 	// Kosongkan relasi agar GORM tidak abaikan update FK
 	product.Tax = nil
 	product.ProductPromos = nil
 	product.Discount = nil
-	product.ProductCategory = nil
+	product.Category = nil
 	product.Unit = nil
 
 	updateData := map[string]interface{}{
-		"name":                product.Name,
-		"description":         product.Description,
-		"base_price":          product.BasePrice,
-		"sku":                 product.SKU,
-		"stock":               product.Stock,
-		"minimum_sales":       *product.MinimumSales,
-		"track_stock":         product.TrackStock,
-		"has_variant":         product.HasVariant,
-		"is_available":        product.IsAvailable,
-		"is_active":           product.IsActive,
-		"product_category_id": product.ProductCategoryId,
-		"tax_id":              product.TaxId,
-		"unit_id":             product.UnitId,
-		"discount_id":         product.DiscountId,
+		"name":          product.Name,
+		"description":   product.Description,
+		"base_price":    product.BasePrice,
+		"sell_price":    product.SellPrice,
+		"sku":           product.SKU,
+		"stock":         product.Stock,
+		"minimum_sales": product.MinimumSales,
+		"track_stock":   product.TrackStock,
+		"has_variant":   product.HasVariant,
+		"is_available":  product.IsAvailable,
+		"is_active":     product.IsActive,
+		"category_id":   product.CategoryId,
+		"tax_id":        product.TaxId,
+		"unit_id":       product.UnitId,
+		"discount_id":   product.DiscountId,
 	}
 
 	log.Printf("Updating product with ID %d", product.Id)
 
 	err := conn.db.Debug().Model(&product).Updates(updateData).Error
+	if err != nil {
+		return entity.Product{}, err
+	}
+
+	err = conn.db.First(&product, product.Id).Error
+
 	return product, err
+}
+
+func (r *productConnection) UpdateAll(product *entity.Product) (entity.Product, error) {
+	err := r.db.Model(&entity.Product{}).Where("id = ?", product.Id).Updates(product).Error
+	if err != nil {
+		return entity.Product{}, err
+	}
+
+	// Reload product dari DB setelah update
+	var updated entity.Product
+	if err := r.db.First(&updated, product.Id).Error; err != nil {
+		return entity.Product{}, err
+	}
+
+	return updated, nil
 }
 
 func (conn *productConnection) Delete(id int) error {
@@ -79,7 +113,8 @@ func (conn *productConnection) FindById(id int) (entity.Product, error) {
 	var product entity.Product
 	err := conn.db.
 		Preload("Variants").
-		Preload("ProductCategory").
+		Preload("Brand").
+		Preload("Category").
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
@@ -97,7 +132,8 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 	// Base query
 	baseQuery := conn.db.Model(&entity.Product{}).
 		Preload("Variants").
-		Preload("ProductCategory").
+		Preload("Brand").
+		Preload("Category").
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
@@ -118,7 +154,7 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 	}
 
 	// Gunakan helper paginator dengan validasi sort
-	p := helper.Paginate(pagination)
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
 	// Ambil data hasil paginasi
 	_, _, err := p.Paginate(baseQuery, &bundles)
