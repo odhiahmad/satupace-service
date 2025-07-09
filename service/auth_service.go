@@ -65,11 +65,9 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	// Cek membership aktif
 	now := time.Now()
 	hasActiveMembership := false
-	for _, m := range user.Memberships {
-		if m.IsActive && m.EndDate.After(now) {
-			hasActiveMembership = true
-			break
-		}
+
+	if user.Membership.IsActive && user.Membership.EndDate.After(now) {
+		hasActiveMembership = true
 	}
 
 	if !hasActiveMembership {

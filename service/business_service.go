@@ -48,21 +48,26 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 
 	return MapToBusinessResponse(created), nil
 }
-
 func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessResponse, error) {
+	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.BusinessResponse{}, err
 	}
 
+	// Mapping request ke entity
 	business := entity.Business{
 		Id:             req.Id,
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: req.BusinessTypeId,
-		Image:          req.Image,
+		ProvinceID:     req.ProvinceID,
+		CityID:         req.CityID,
+		DistrictID:     req.DistrictID,
+		VillageID:      req.VillageID,
 		IsActive:       req.IsActive,
 	}
 
+	// Update ke repository
 	updated, err := s.repo.Update(business)
 	if err != nil {
 		return response.BusinessResponse{}, err

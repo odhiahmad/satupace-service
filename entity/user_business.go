@@ -20,5 +20,5 @@ type UserBusiness struct {
 	IsActive    bool            `gorm:"default:false" json:"is_active"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
-	Memberships []Membership    `gorm:"foreignKey:UserId" json:"memberships,omitempty"`
+	Membership  *Membership     `gorm:"foreignKey:UserId" json:"membership,omitempty"`
 }

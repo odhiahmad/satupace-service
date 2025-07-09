@@ -47,6 +47,7 @@ var (
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper)
 	userService           service.UserService           = service.NewUserService(userRepository, validate)
+	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
@@ -64,6 +65,7 @@ var (
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userController           controller.UserController           = controller.NewUserController(userService, jwtService)
+	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
 	roleController           controller.RoleController           = controller.NewRoleController(roleService, jwtService)
 	businessTypeController   controller.BusinessTypeController   = controller.NewBusinessTypeController(businessTypeService, jwtService)
 	paymentMethodController  controller.PaymentMethodController  = controller.NewPaymentMethodController(paymentMethodService, jwtService)
@@ -91,10 +93,13 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("/registration", registrationController.Register)
 	}
 
-	userRoutes := r.Group("user")
+	userRoutes := r.Group("user", middleware.AuthorizeJWT(jwtService))
 	{
-		userRoutes.POST("/create", userController.CreateUser)
-		userRoutes.PUT("/update", userController.UpdateUser)
+		userRoutes.GET("/profile", userBusinessController.FindById)
+		userRoutes.PUT("/change-phone", userBusinessController.ChangePhone)
+		userRoutes.PUT("/change-email", userBusinessController.ChangeEmail)
+		userRoutes.PUT("/change-password", userBusinessController.ChangePassword)
+		userRoutes.PUT("/business", businessController.Update)
 	}
 
 	roleRoutes := r.Group("role")
@@ -183,7 +188,7 @@ func SetupRouter() *gin.Engine {
 	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService))
 	{
 		bundleRoutes.POST("", bundleController.Create)
-		bundleRoutes.PATCH("/:id", bundleController.Update)
+		bundleRoutes.PUT("/:id", bundleController.Update)
 		bundleRoutes.GET("/:id", bundleController.FindById)
 		bundleRoutes.DELETE("/:id", bundleController.Delete)
 		bundleRoutes.GET("", bundleController.FindWithPagination)
@@ -194,20 +199,30 @@ func SetupRouter() *gin.Engine {
 	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService))
 	{
 		transactionRoutes.POST("", transactionController.Create)
-		transactionRoutes.PATCH("/:id/payment", transactionController.Payment)
+		transactionRoutes.PUT("/:id/payment", transactionController.Payment)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
-		transactionRoutes.PATCH("/:id/items", transactionController.AddOrUpdateItem)
+		transactionRoutes.PUT("/:id/items", transactionController.AddOrUpdateItem)
 	}
 
 	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService))
 	{
 		businessRoutes.POST("", businessController.Create)
-		businessRoutes.PATCH("/:id", businessController.Update)
+
 		businessRoutes.GET("/:id", businessController.FindById)
 		businessRoutes.DELETE("/:id", businessController.Delete)
 		businessRoutes.GET("", businessController.FindWithPagination)
 	}
+
+	r.POST("/dev/reindex", func(ctx *gin.Context) {
+
+		err := helper.CreateElasticProductIndex()
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, gin.H{"message": "Index berhasil dibuat"})
+	})
 
 	return r
 }

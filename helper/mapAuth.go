@@ -34,18 +34,6 @@ func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResp
 		}
 	}
 
-	// Optional: Mapping memberships
-	var memberships []response.MembershipResponse
-	for _, m := range user.Memberships {
-		memberships = append(memberships, response.MembershipResponse{
-			Id:        m.Id,
-			Type:      m.Type,
-			StartDate: m.StartDate,
-			EndDate:   m.EndDate,
-			IsActive:  m.IsActive,
-		})
-	}
-
 	return &response.AuthResponse{
 		Id:          user.Id,
 		Email:       *user.Email,
@@ -58,6 +46,6 @@ func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResp
 		Role:        role,
 		Business:    business,
 		Branch:      branch,
-		Memberships: memberships,
+		Memberships: MapMembershipResponse(*user.Membership),
 	}
 }
