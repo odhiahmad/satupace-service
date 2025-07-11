@@ -40,7 +40,6 @@ func (j *jwtService) GenerateToken(user entity.UserBusiness) string {
 		"user_id":      user.Id,
 		"phone_number": user.PhoneNumber,
 		"business_id":  user.BusinessId,
-		"branch_id":    user.BranchId,
 		"email":        user.Email,
 		"role_id":      user.RoleId,
 		"exp":          time.Now().Add(100 * 365 * 24 * time.Hour).Unix(), // tidak expired dalam waktu dekat

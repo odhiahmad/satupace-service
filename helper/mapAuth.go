@@ -17,21 +17,12 @@ func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResp
 	}
 
 	business := response.BusinessResponse{
-		Id:             user.Business.Id,
-		Name:           user.Business.Name,
-		OwnerName:      user.Business.OwnerName,
-		BusinessTypeId: user.Business.BusinessTypeId,
-		Image:          user.Business.Image,
-		IsActive:       user.Business.IsActive,
-		Type:           businessType,
-	}
-
-	var branch *response.BusinessBranchResponse
-	if user.Branch != nil {
-		branch = &response.BusinessBranchResponse{
-			Id:          user.Branch.Id,
-			PhoneNumber: &user.Branch.Phone,
-		}
+		Id:           user.Business.Id,
+		Name:         user.Business.Name,
+		OwnerName:    user.Business.OwnerName,
+		Image:        user.Business.Image,
+		IsActive:     user.Business.IsActive,
+		BusinessType: &businessType,
 	}
 
 	return &response.AuthResponse{
@@ -45,7 +36,6 @@ func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResp
 		UpdatedAt:   user.UpdatedAt,
 		Role:        role,
 		Business:    business,
-		Branch:      branch,
 		Memberships: MapMembershipResponse(*user.Membership),
 	}
 }

@@ -30,8 +30,3 @@ type CategoryResponse struct {
 	Name     string `json:"name"`
 	ParentId *int   `json:"parent_id,omitempty"`
 }
-
-type RequiredProductData struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}

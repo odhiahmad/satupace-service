@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -13,12 +12,19 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type AutocompleteProduct struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	ImageURL string `json:"image_url"`
+}
+
 type ProductService interface {
 	Create(req request.ProductRequest) (response.ProductResponse, error)
 	Update(id int, req request.ProductRequest) (response.ProductResponse, error)
 	Delete(id int) error
 	FindById(id int) (response.ProductResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
+	SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error)
 	SetActive(id int, isActive bool) error
 	SetAvailable(id int, isAvailable bool) error
 	UpdateImage(id int, base64Image string) (response.ProductResponse, error)
@@ -26,19 +32,15 @@ type ProductService interface {
 
 type productService struct {
 	ProductRepo        repository.ProductRepository
-	ProductPromoRepo   repository.ProductPromoRepository
 	ProductVariantRepo repository.ProductVariantRepository
-	PromoRepo          repository.PromoRepository
 	Validate           *validator.Validate
 	Redis              *redis.Client
 }
 
-func NewProductService(productRepo repository.ProductRepository, productPromoRepo repository.ProductPromoRepository, promoRepo repository.PromoRepository, variantRepo repository.ProductVariantRepository, validate *validator.Validate, redis *redis.Client) ProductService {
+func NewProductService(productRepo repository.ProductRepository, variantRepo repository.ProductVariantRepository, validate *validator.Validate, redis *redis.Client) ProductService {
 	return &productService{
 		ProductRepo:        productRepo,
 		ProductVariantRepo: variantRepo,
-		ProductPromoRepo:   productPromoRepo,
-		PromoRepo:          promoRepo,
 		Validate:           validate,
 		Redis:              redis,
 	}
@@ -49,7 +51,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, err
 	}
 
-	// Upload gambar produk utama
 	var imageURL *string
 	if req.Image != nil && *req.Image != "" {
 		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
@@ -65,7 +66,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	if req.Stock != nil {
 		trackStock = *req.Stock == 0
 	} else {
-		trackStock = true // atau false tergantung default logika kamu
+		trackStock = true
 	}
 
 	if sku == "" {
@@ -100,18 +101,12 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	err := s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
-		// Simpan produk
 		createdProduct, err := txRepo.Create(product)
 		if err != nil {
 			return fmt.Errorf("gagal menyimpan produk: %w", err)
 		}
-		product = createdProduct // assign balik ke variabel utama jika diperlukan
+		product = createdProduct
 
-		if err := helper.IndexProductToElastic(&product); err != nil {
-			log.Printf("gagal mengindeks produk ke Elasticsearch: %v", err)
-		}
-
-		// Simpan variants
 		for _, v := range req.Variants {
 			skuVariant := v.SKU
 			if skuVariant == "" {
@@ -136,21 +131,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			}
 		}
 
-		// Simpan relasi promo
-		if len(req.PromoIds) > 0 {
-			var promos []entity.ProductPromo
-			for _, promoId := range req.PromoIds {
-				promos = append(promos, entity.ProductPromo{
-					BusinessId: req.BusinessId,
-					ProductId:  &product.Id,
-					PromoId:    promoId,
-				})
-			}
-			if err := s.ProductPromoRepo.CreateManyWithTx(txRepo, promos); err != nil {
-				return fmt.Errorf("gagal menyimpan relasi promo: %w", err)
-			}
-		}
-
 		return nil
 	})
 
@@ -158,13 +138,20 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, err
 	}
 
-	// Ambil ulang produk yang sudah di-preload relasinya
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah simpan: %w", err)
 	}
 
-	// Mapping ke response
+	if createdProduct.Image != nil {
+		go func() {
+			err := helper.AddProductToAutocomplete(s.Redis, req.BusinessId, product.Id, product.Name, *createdProduct.Image)
+			if err != nil {
+				fmt.Printf("gagal menambahkan autocomplete Redis: %v\n", err)
+			}
+		}()
+	}
+
 	productResponse := helper.MapProductToResponse(createdProduct)
 	return productResponse, nil
 }
@@ -185,11 +172,10 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 	if req.Stock != nil {
 		trackStock = *req.Stock == 0
 	} else {
-		trackStock = true // atau false tergantung default logika kamu
+		trackStock = true
 	}
 
-	fmt.Println("TrackStock:", trackStock)
-
+	oldName := product.Name
 	product.CategoryId = *req.CategoryId
 	product.Name = req.Name
 	product.Description = req.Description
@@ -203,7 +189,6 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
 
-	// Jika punya variant, kosongkan harga dan stock di induk
 	if hasVariants {
 		product.BasePrice = nil
 		product.SellPrice = nil
@@ -221,33 +206,7 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 		return response.ProductResponse{}, err
 	}
 
-	if err := helper.IndexProductToElastic(&product); err != nil {
-		log.Printf("gagal mengindeks produk ke Elasticsearch: %v", err)
-	}
-
-	_ = s.ProductPromoRepo.DeleteByProductId(product.Id)
-
-	if len(req.PromoIds) > 0 {
-		var promos []entity.ProductPromo
-		for _, promoId := range req.PromoIds {
-			exists, err := s.PromoRepo.Exists(promoId)
-			if err != nil {
-				return response.ProductResponse{}, fmt.Errorf("gagal cek promo: %w", err)
-			}
-			if !exists {
-				return response.ProductResponse{}, fmt.Errorf("promo dengan ID %d tidak ditemukan", promoId)
-			}
-
-			promos = append(promos, entity.ProductPromo{
-				BusinessId: product.BusinessId,
-				ProductId:  &product.Id,
-				PromoId:    promoId,
-			})
-		}
-		if err := s.ProductPromoRepo.CreateMany(promos); err != nil {
-			return response.ProductResponse{}, fmt.Errorf("gagal menyimpan relasi promo baru: %w", err)
-		}
-	}
+	_ = helper.UpdateProductAutocomplete(s.Redis, product.BusinessId, oldName, product.Name, product.Id, *product.Image)
 
 	productResponse := helper.MapProductToResponse(updatedProduct)
 
@@ -255,8 +214,28 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 }
 
 func (s *productService) Delete(id int) error {
+	product, err := s.ProductRepo.FindById(id)
+	if err != nil {
+		return err
+	}
+
 	_ = s.ProductVariantRepo.DeleteByProductId(id)
-	return s.ProductRepo.Delete(id)
+	err = s.ProductRepo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, product.Name); err != nil {
+		fmt.Printf("gagal menghapus autocomplete produk: %v\n", err)
+	}
+
+	for _, variant := range product.Variants {
+		if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, variant.Name); err != nil {
+			fmt.Printf("gagal menghapus autocomplete variant: %v\n", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *productService) SetActive(id int, isActive bool) error {
@@ -277,47 +256,93 @@ func (s *productService) FindById(id int) (response.ProductResponse, error) {
 }
 
 func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
-	var products []entity.Product
-	var total int64
-	var err error
-
-	products, total, err = s.ProductRepo.FindWithPagination(businessId, pagination)
-
+	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	var result []response.ProductResponse
-	for _, product := range products {
-		result = append(result, helper.MapProductToResponse(product))
+	for _, p := range products {
+		result = append(result, helper.MapProductToResponse(p))
 	}
 	return result, total, nil
 }
 
+func (s *productService) SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
+	// Ambil hasil autocomplete dari Redis
+	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(results) == 0 {
+		return nil, 0, nil
+	}
+
+	// Parse hasil JSON dan ambil ID produk
+	var productIDs []int
+	autocompleteMap := make(map[int]response.ProductResponse)
+
+	for _, product := range results {
+		productIDs = append(productIDs, product.Id)
+		autocompleteMap[product.Id] = product
+	}
+
+	// Ambil produk dari database
+	products, err := s.ProductRepo.FindByIds(businessId, productIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Build hasil akhir, tambahkan image dari Redis jika ada
+	var finalResults []response.ProductResponse
+	for _, p := range products {
+		res := helper.MapProductToResponse(p)
+
+		if fromRedis, ok := autocompleteMap[p.Id]; ok && fromRedis.Image != nil && *fromRedis.Image != "" {
+			res.Image = fromRedis.Image // override jika ada image dari Redis
+		}
+
+		finalResults = append(finalResults, res)
+	}
+
+	return finalResults, int64(len(finalResults)), nil
+}
+
+func (s *productService) SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
+	// Ambil hasil autocomplete dari Redis
+	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Jika tidak ada hasil, langsung kembalikan kosong
+	if len(results) == 0 {
+		return nil, 0, nil
+	}
+
+	// Tidak perlu ambil ke database, cukup return hasil dari Redis
+	return results, int64(len(results)), nil
+}
+
 func (s *productService) UpdateImage(id int, base64Image string) (response.ProductResponse, error) {
-	// Cari produk
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("produk tidak ditemukan: %w", err)
 	}
 
-	// Simpan URL gambar lama
 	var oldImageURL *string = product.Image
 
-	// Upload gambar baru ke Cloudinary
 	newImageURL, err := helper.UploadBase64ToCloudinary(base64Image, "product")
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("gagal upload gambar baru: %w", err)
 	}
 	product.Image = &newImageURL
 
-	// Update produk ke DB
 	updatedProduct, err := s.ProductRepo.UpdateAll(&product)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("gagal update produk: %w", err)
 	}
 
-	// Hapus gambar lama dari Cloudinary jika ada
 	if oldImageURL != nil {
 		publicID, err := helper.ExtractPublicIDFromURL(*oldImageURL)
 		if err == nil {

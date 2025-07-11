@@ -67,12 +67,10 @@ func (conn *userBusinessConnection) IsDuplicateEmail(email string) bool {
 	var userBusiness entity.UserBusiness
 	err := conn.db.Where("email = ?", email).Take(&userBusiness).Error
 
-	// Perbaikan logika
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false // email belum ada → TIDAK duplikat
+		return false
 	}
 
-	// Kalau tidak error atau error lain (misalnya koneksi), anggap duplikat
 	return err == nil
 }
 
@@ -92,8 +90,7 @@ func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entit
 		Preload("Role").
 		Preload("Business").
 		Preload("Business.BusinessType").
-		Preload("Branch").
-		Preload("Memberships").
+		Preload("Membership").
 		Where("email = ? OR phone_number = ?", identifier, identifier).
 		First(&user).Error
 

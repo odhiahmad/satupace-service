@@ -116,43 +116,6 @@ func MapBrand(unit *entity.Brand) *response.BrandResponse {
 	}
 }
 
-func MapProductPromos(productPromos []entity.ProductPromo) []response.PromoResponse {
-	var result []response.PromoResponse
-
-	for _, pp := range productPromos {
-		if pp.Promo != nil && pp.Promo.Id != 0 {
-			p := pp.Promo
-
-			var requiredProducts []response.RequiredProductData
-			for _, rp := range p.RequiredProducts {
-				requiredProducts = append(requiredProducts, response.RequiredProductData{
-					Id:   rp.Id,
-					Name: rp.Name,
-				})
-			}
-
-			result = append(result, response.PromoResponse{
-				Id:               p.Id,
-				BusinessId:       p.BusinessId,
-				Name:             p.Name,
-				Description:      p.Description,
-				Type:             p.Type,
-				Amount:           p.Amount,
-				IsPercentage:     p.IsPercentage,
-				MinSpend:         p.MinSpend,
-				MinQuantity:      p.MinQuantity,
-				FreeProduct:      nil, // tambahkan mapping jika perlu
-				RequiredProducts: requiredProducts,
-				StartDate:        p.StartDate,
-				EndDate:          p.EndDate,
-				IsActive:         p.IsActive,
-			})
-		}
-	}
-
-	return result
-}
-
 func CalculateFinalPrice(p *entity.Product) float64 {
 	if p.SellPrice == nil {
 		return 0

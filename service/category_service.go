@@ -1,12 +1,17 @@
 package service
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type CategoryService interface {
@@ -20,12 +25,14 @@ type CategoryService interface {
 type categoryService struct {
 	repo     repository.CategoryRepository
 	Validate *validator.Validate
+	Redis    *redis.Client
 }
 
-func NewCategoryService(repo repository.CategoryRepository, validate *validator.Validate) CategoryService {
+func NewCategoryService(repo repository.CategoryRepository, validate *validator.Validate, redis *redis.Client) CategoryService {
 	return &categoryService{
 		repo:     repo,
 		Validate: validate,
+		Redis:    redis,
 	}
 }
 
@@ -47,6 +54,9 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 		return response.CategoryResponse{}, err
 	}
 
+	pattern := fmt.Sprintf("categories:business:%d*", req.BusinessId)
+	go helper.DeleteKeysByPattern(context.Background(), s.Redis, pattern)
+
 	categoryResponse := helper.MapCategory(&createdCategory)
 	return *categoryResponse, nil
 }
@@ -57,13 +67,11 @@ func (s *categoryService) Update(id int, req request.CategoryRequest) (response.
 		return response.CategoryResponse{}, err
 	}
 
-	// Ambil data lama
 	category, err := s.repo.FindById(id)
 	if err != nil {
 		return response.CategoryResponse{}, err
 	}
 
-	// Update field yang boleh diubah
 	category.Name = req.Name
 	category.BusinessId = req.BusinessId
 	category.ParentId = req.ParentId
@@ -72,6 +80,9 @@ func (s *categoryService) Update(id int, req request.CategoryRequest) (response.
 	if err != nil {
 		return response.CategoryResponse{}, err
 	}
+
+	cacheKey := fmt.Sprintf("category:%d", id)
+	s.Redis.Del(context.Background(), cacheKey)
 
 	categoryResponse := helper.MapCategory(&updatedCategory)
 	return *categoryResponse, nil
@@ -86,6 +97,15 @@ func (s *categoryService) FindById(brandId int) response.CategoryResponse {
 }
 
 func (s *categoryService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("categories:business:%d:page:%d:limit:%d:cat:%v", businessId, pagination.Page, pagination.Limit, pagination.CategoryID)
+
+	var cached []response.CategoryResponse
+	err := helper.GetJSONFromRedis(ctx, s.Redis, cacheKey, &cached)
+	if err == nil {
+		return cached, int64(len(cached)), nil
+	}
+
 	categories, total, err := s.repo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -96,9 +116,28 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 		result = append(result, *helper.MapCategory(&category))
 	}
 
+	_ = helper.SetJSONToRedis(ctx, s.Redis, cacheKey, result, time.Minute*10)
+
 	return result, total, nil
 }
 
 func (s *categoryService) Delete(id int) error {
-	return s.repo.Delete(id)
+	category, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	s.Redis.Del(ctx, fmt.Sprintf("category:%d", id))
+
+	pattern := fmt.Sprintf("categories:business:%d*", category.BusinessId)
+	go helper.DeleteKeysByPattern(ctx, s.Redis, pattern)
+
+	return nil
 }

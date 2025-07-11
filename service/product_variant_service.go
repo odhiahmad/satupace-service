@@ -8,13 +8,13 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type ProductVariantService interface {
 	Create(req request.ProductVariantRequest, productId int) (*entity.ProductVariant, error)
 	Update(id int, req request.ProductVariantRequest) (*entity.ProductVariant, error)
 	Delete(id int) error
-	DeleteByProductId(productId int) error
 	FindById(id int) (*entity.ProductVariant, error)
 	FindByProductId(productId int) ([]entity.ProductVariant, error)
 	SetActive(id int, isActive bool) error
@@ -25,13 +25,15 @@ type productVariantService struct {
 	repo        repository.ProductVariantRepository
 	productRepo repository.ProductRepository // Tambahkan ini
 	validate    *validator.Validate
+	redis       *redis.Client
 }
 
-func NewProductVariantService(repo repository.ProductVariantRepository, productRepo repository.ProductRepository, validate *validator.Validate) ProductVariantService {
+func NewProductVariantService(repo repository.ProductVariantRepository, productRepo repository.ProductRepository, validate *validator.Validate, redis *redis.Client) ProductVariantService {
 	return &productVariantService{
 		repo:        repo,
 		productRepo: productRepo,
 		validate:    validate,
+		redis:       redis,
 	}
 }
 
@@ -67,6 +69,7 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 		return nil, err
 	}
 
+	// Update status produk jika belum memiliki variant
 	if !product.HasVariant {
 		_ = s.productRepo.SetHasVariant(productId)
 	}
@@ -85,14 +88,12 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 	}
 
 	sku := req.SKU
-
 	if sku == "" {
 		sku = helper.GenerateSKU(req.Name)
 	}
 
 	trackStock := req.Stock == 0
 
-	// Update field
 	existing.Name = req.Name
 	existing.BasePrice = req.BasePrice
 	existing.SKU = sku
@@ -104,30 +105,27 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 		return nil, err
 	}
 
-	// TODO: Update relasi many2many ke promos jika diperlukan
-
 	return &existing, err
 }
 
 func (s *productVariantService) Delete(id int) error {
-	// 1. Ambil variant sebelum dihapus untuk dapatkan ProductId
 	variant, err := s.repo.FindById(id)
 	if err != nil {
 		return err
 	}
 
-	// 2. Hapus variant
+	// ✅ Hapus dari Redis Autocomplete
+	_ = helper.DeleteProductFromAutocomplete(s.redis, variant.BusinessId, variant.Name)
+
 	if err := s.repo.Delete(id); err != nil {
 		return err
 	}
 
-	// 3. Hitung sisa variant pada produk tersebut
 	count, err := s.repo.CountByProductId(variant.ProductId)
 	if err != nil {
 		return err
 	}
 
-	// 4. Jika tidak ada variant lagi, reset status produk
 	if count == 0 {
 		if err := s.productRepo.ResetVariantStateToFalse(variant.ProductId); err != nil {
 			return err
@@ -135,10 +133,6 @@ func (s *productVariantService) Delete(id int) error {
 	}
 
 	return nil
-}
-
-func (s *productVariantService) DeleteByProductId(productId int) error {
-	return s.repo.DeleteByProductId(productId)
 }
 
 func (s *productVariantService) FindById(id int) (*entity.ProductVariant, error) {

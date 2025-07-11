@@ -84,12 +84,22 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 		return
 	}
 
-	// Tidak perlu generate token lagi, sudah di dalam service
+	if !user.IsVerified {
+		response := helper.BuildErrorResponse(
+			"Akun belum diverifikasi",
+			"AUTH_NOT_VERIFIED",
+			"verification",
+			"Silakan verifikasi akun Anda sebelum login",
+			nil,
+		)
+		ctx.JSON(http.StatusForbidden, response)
+		return
+	}
+
 	response := helper.BuildResponse(true, "Berhasil login", user)
 	ctx.JSON(http.StatusOK, response)
 }
 
-// VerifyOTP memverifikasi kode OTP dari pengguna
 func (c *authController) VerifyOTP(ctx *gin.Context) {
 	var req struct {
 		Phone string `json:"phone" binding:"required"`
@@ -97,31 +107,29 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
-			"bad_request",
+			"BAD_REQUEST",
 			"request_body",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	if err := c.authService.VerifyOTPToken(req.Phone, req.Token); err != nil {
-		res := helper.BuildErrorResponse(
+	userResponse, err := c.authService.VerifyOTPToken(req.Phone, req.Token)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Verifikasi OTP gagal",
-			"invalid_token",
+			"INVALID_TOKEN",
 			"token",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	res := helper.BuildResponse(true, "OTP berhasil diverifikasi", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "OTP berhasil diverifikasi", userResponse))
 }
 
 // RetryOTP mengirim ulang kode OTP ke pengguna

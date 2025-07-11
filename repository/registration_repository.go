@@ -9,7 +9,6 @@ import (
 type RegistrationRepository interface {
 	CreateBusiness(business entity.Business) (entity.Business, error)
 	CreateUser(user entity.UserBusiness) (entity.UserBusiness, error)
-	CreateMainBranch(branch *entity.BusinessBranch) error
 	IsEmailExists(email string) (bool, error)
 }
 
@@ -39,18 +38,11 @@ func (conn *registrationConnection) CreateUser(user entity.UserBusiness) (entity
 
 	var savedUser entity.UserBusiness
 	if err := conn.db.
-		Preload("Role").
-		Preload("Business").
-		Preload("Branch").
 		First(&savedUser, user.Id).Error; err != nil {
 		return entity.UserBusiness{}, err
 	}
 
 	return savedUser, nil
-}
-
-func (conn *registrationConnection) CreateMainBranch(branch *entity.BusinessBranch) error {
-	return conn.db.Create(branch).Error
 }
 
 // IsEmailExists mengecek apakah email sudah digunakan.

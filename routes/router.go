@@ -31,7 +31,6 @@ var (
 	paymentMethodRepository  repository.PaymentMethodRepository  = repository.NewPaymentMethodRepository(db)
 	categoryRepository       repository.CategoryRepository       = repository.NewCategoryRepository(db)
 	productRepository        repository.ProductRepository        = repository.NewProductRepository(db)
-	productPromoRepository   repository.ProductPromoRepository   = repository.NewProductPromoRepository(db)
 	productVariantRepository repository.ProductVariantRepository = repository.NewProductVariantRepository(db)
 	registrationRepository   repository.RegistrationRepository   = repository.NewRegistrationRepository(db)
 	bundleRepository         repository.BundleRepository         = repository.NewBundleRepository(db)
@@ -39,10 +38,10 @@ var (
 	discountRepository       repository.DiscountRepository       = repository.NewDiscountRepository(db)
 	unitRepository           repository.UnitRepository           = repository.NewUnitRepository(db)
 	transactionRepository    repository.TransactionRepository    = repository.NewTransactionRepository(db)
-	promoRepository          repository.PromoRepository          = repository.NewPromoRepository(db)
 	businessRepository       repository.BusinessRepository       = repository.NewBusinessRepository(db)
 	membershipRepository     repository.MembershipRepository     = repository.NewMembershipRepository(db)
 	brandRepository          repository.BrandRepository          = repository.NewBrandRepository(db)
+	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper)
@@ -51,17 +50,18 @@ var (
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
-	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate)
+	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate, redisClient)
 	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, emailService, validate, redisHelper)
-	productService        service.ProductService        = service.NewProductService(productRepository, productPromoRepository, promoRepository, productVariantRepository, validate, redisClient)
+	productService        service.ProductService        = service.NewProductService(productRepository, productVariantRepository, validate, redisClient)
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
 	unitService           service.UnitService           = service.NewUnitService(unitRepository)
 	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, validate)
 	discountService       service.DiscountService       = service.NewDiscountService(discountRepository, validate)
 	businessService       service.BusinessService       = service.NewBusinessService(businessRepository, validate)
-	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
+	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate, redisClient)
 	brandService          service.BrandService          = service.NewBrandService(brandRepository, validate)
+	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userController           controller.UserController           = controller.NewUserController(userService, jwtService)
@@ -80,6 +80,7 @@ var (
 	businessController       controller.BusinessController       = controller.NewBusinessController(businessService, jwtService)
 	productVariantController controller.ProductVariantController = controller.NewProductVariantController(productVariantService, jwtService)
 	brandController          controller.BrandController          = controller.NewBrandController(brandService, jwtService)
+	locationController       controller.LocationController       = controller.NewLocationController(locationService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -176,7 +177,6 @@ func SetupRouter() *gin.Engine {
 		productRoutes.POST("/:id/variant", productVariantController.Create)
 		productRoutes.PATCH("/:id/variant", productVariantController.Update)
 		productRoutes.DELETE("/variant/:id", productVariantController.Delete)
-		productRoutes.DELETE("/variant/product/:productId", productVariantController.DeleteByProductId)
 		productRoutes.GET("/variant/:id", productVariantController.FindById)
 		productRoutes.GET("/variant/product/:productId", productVariantController.FindByProductId)
 		productRoutes.PUT("/:id/active", productController.SetActive)
@@ -214,15 +214,13 @@ func SetupRouter() *gin.Engine {
 		businessRoutes.GET("", businessController.FindWithPagination)
 	}
 
-	r.POST("/dev/reindex", func(ctx *gin.Context) {
-
-		err := helper.CreateElasticProductIndex()
-		if err != nil {
-			ctx.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-		ctx.JSON(200, gin.H{"message": "Index berhasil dibuat"})
-	})
+	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService))
+	{
+		locationRoutes.GET("/provinces", locationController.GetProvinces)
+		locationRoutes.GET("/cities", locationController.GetCities)
+		locationRoutes.GET("/districts", locationController.GetDistricts)
+		locationRoutes.GET("/villages", locationController.GetVillages)
+	}
 
 	return r
 }

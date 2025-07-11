@@ -5,6 +5,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -36,7 +37,7 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 	business := entity.Business{
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
-		BusinessTypeId: req.BusinessTypeId,
+		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
 		IsActive:       req.IsActive,
 	}
@@ -59,11 +60,11 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 		Id:             req.Id,
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
-		BusinessTypeId: req.BusinessTypeId,
-		ProvinceID:     req.ProvinceID,
-		CityID:         req.CityID,
-		DistrictID:     req.DistrictID,
-		VillageID:      req.VillageID,
+		BusinessTypeId: &req.BusinessTypeId,
+		ProvinceID:     &req.ProvinceID,
+		CityID:         &req.CityID,
+		DistrictID:     &req.DistrictID,
+		VillageID:      &req.VillageID,
 		IsActive:       req.IsActive,
 	}
 
@@ -107,29 +108,12 @@ func (s *businessService) FindWithPagination(pagination request.Pagination) ([]r
 }
 
 func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
-	var branches []response.BusinessBranchResponse
-	for _, branch := range b.Branches {
-		branches = append(branches, response.BusinessBranchResponse{
-			Id:          branch.Id,
-			BusinessId:  branch.BusinessId,
-			PhoneNumber: branch.PhoneNumber,
-			Rating:      branch.Rating,
-			Provinsi:    branch.Provinsi,
-			Kota:        branch.Kota,
-			Kecamatan:   branch.Kecamatan,
-			PostalCode:  branch.PostalCode,
-			IsMain:      branch.IsMain,
-			IsActive:    branch.IsActive,
-		})
-	}
-
 	return response.BusinessResponse{
-		Id:             b.Id,
-		Name:           b.Name,
-		OwnerName:      b.OwnerName,
-		BusinessTypeId: b.BusinessTypeId,
-		Image:          b.Image,
-		IsActive:       b.IsActive,
-		Branches:       branches,
+		Id:           b.Id,
+		Name:         b.Name,
+		OwnerName:    b.OwnerName,
+		BusinessType: helper.MapBusinessTypeToResponse(b.BusinessType),
+		Image:        b.Image,
+		IsActive:     b.IsActive,
 	}
 }

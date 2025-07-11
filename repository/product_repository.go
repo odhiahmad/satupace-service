@@ -15,6 +15,7 @@ type ProductRepository interface {
 	UpdateAll(product *entity.Product) (entity.Product, error)
 	Delete(id int) error
 	FindById(id int) (entity.Product, error)
+	FindByIds(businessId int, ids []int) ([]entity.Product, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
@@ -50,9 +51,6 @@ func (conn *productConnection) Create(product entity.Product) (entity.Product, e
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
-		Preload("ProductPromos").
-		Preload("ProductPromos.Promo").
-		Preload("ProductPromos.Promo.RequiredProducts").
 		First(&product, product.Id).Error
 	if err != nil {
 		return entity.Product{}, err
@@ -64,7 +62,6 @@ func (conn *productConnection) Create(product entity.Product) (entity.Product, e
 func (conn *productConnection) Update(product entity.Product) (entity.Product, error) {
 	// Kosongkan relasi agar GORM tidak abaikan update FK
 	product.Tax = nil
-	product.ProductPromos = nil
 	product.Discount = nil
 	product.Category = nil
 	product.Unit = nil
@@ -102,9 +99,6 @@ func (conn *productConnection) Update(product entity.Product) (entity.Product, e
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
-		Preload("ProductPromos").
-		Preload("ProductPromos.Promo").
-		Preload("ProductPromos.Promo.RequiredProducts").
 		First(&product, product.Id).Error
 
 	return product, err
@@ -125,9 +119,6 @@ func (r *productConnection) UpdateAll(product *entity.Product) (entity.Product, 
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
-		Preload("ProductPromos").
-		Preload("ProductPromos.Promo").
-		Preload("ProductPromos.Promo.RequiredProducts").
 		First(&updated, product.Id).Error; err != nil {
 		return entity.Product{}, err
 	}
@@ -150,97 +141,52 @@ func (conn *productConnection) FindById(id int) (entity.Product, error) {
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
-		Preload("ProductPromos").
-		Preload("ProductPromos.Promo").
-		Preload("ProductPromos.Promo.RequiredProducts").
 		First(&product, id).Error
 	return product, err
 }
 
-func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
+func (conn *productConnection) FindByIds(businessId int, ids []int) ([]entity.Product, error) {
 	var products []entity.Product
-	var total int64
-
-	// --- Gunakan Elasticsearch jika ada keyword pencarian ---
-	if pagination.Search != "" {
-		ids, err := helper.SearchProductElastic(pagination.Search, businessId)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		// Fallback ke pencarian biasa jika hasil Elasticsearch kosong
-		if len(ids) == 0 {
-			baseQuery := conn.db.Model(&entity.Product{}).
-				Preload("Variants").
-				Preload("Brand").
-				Preload("Category").
-				Preload("Tax").
-				Preload("Discount").
-				Preload("Unit").
-				Preload("ProductPromos").
-				Preload("ProductPromos.Promo").
-				Preload("ProductPromos.Promo.RequiredProducts").
-				Where("business_id = ?", businessId).
-				Where("name ILIKE ? OR description ILIKE ?", "%"+pagination.Search+"%", "%"+pagination.Search+"%")
-
-			if err := baseQuery.Count(&total).Error; err != nil {
-				return nil, 0, err
-			}
-
-			p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
-			_, _, err := p.Paginate(baseQuery, &products)
-			if err != nil {
-				return nil, 0, err
-			}
-
-			return products, total, nil
-		}
-
-		baseQuery := conn.db.Model(&entity.Product{}).
-			Preload("Variants").
-			Preload("Brand").
-			Preload("Category").
-			Preload("Tax").
-			Preload("Discount").
-			Preload("Unit").
-			Preload("ProductPromos").
-			Preload("ProductPromos.Promo").
-			Preload("ProductPromos.Promo.RequiredProducts").
-			Where("business_id = ?", businessId).
-			Where("id IN ?", ids)
-
-		if err := baseQuery.Count(&total).Error; err != nil {
-			return nil, 0, err
-		}
-
-		p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
-		_, _, err = p.Paginate(baseQuery, &products)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		return products, total, nil
-	}
-
-	// --- Default query tanpa search ---
-	baseQuery := conn.db.Model(&entity.Product{}).
+	err := conn.db.
 		Preload("Variants").
 		Preload("Brand").
 		Preload("Category").
 		Preload("Tax").
 		Preload("Discount").
 		Preload("Unit").
-		Preload("ProductPromos").
-		Preload("ProductPromos.Promo").
-		Preload("ProductPromos.Promo.RequiredProducts").
+		Where("business_id = ? AND id IN ?", businessId, ids).
+		Find(&products).Error
+
+	return products, err
+}
+
+func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
+	var products []entity.Product
+	var total int64
+
+	// Base query dengan preload dan filter awal
+	query := conn.db.Model(&entity.Product{}).
+		Preload("Variants").
+		Preload("Brand").
+		Preload("Category").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
 		Where("business_id = ?", businessId)
 
-	if err := baseQuery.Count(&total).Error; err != nil {
+	// Tambahkan filter kategori jika ada
+	if pagination.CategoryID != nil {
+		query = query.Where("category_id = ?", *pagination.CategoryID)
+	}
+
+	// Hitung total hasil dengan filter yang sudah lengkap
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
+	// Apply pagination
 	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
-	_, _, err := p.Paginate(baseQuery, &products)
+	_, _, err := p.Paginate(query, &products)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -268,7 +214,6 @@ func (conn *productConnection) SetHasVariant(productId int) error {
 		"stock":       nil,
 		"track_stock": false,
 		"discount_id": nil,
-		"promo_id":    nil,
 	}
 
 	return conn.db.Model(&entity.Product{}).
