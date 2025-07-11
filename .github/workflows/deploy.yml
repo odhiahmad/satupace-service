@@ -2,27 +2,63 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: main  # Atur sesuai branch kamu
+    branches:
+      - main
 
 jobs:
   deploy:
+    name: Deploy to VPS via SSH
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Connect & deploy via SSH
+      - name: Deploy via SSH
+        id: deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM_HOST }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/html/kasirku-service
+            echo "===> Deploying kasirku-service"
+
+            cd /var/www/html/kasirku-service || exit 1
+
+            echo "===> Pulling latest code..."
+            git reset --hard
+            git clean -fd
             git pull origin main
-            # Install dependency Golang
+
+            echo "===> Tidying go modules..."
             go mod tidy
-            # Build ulang
+
+            echo "===> Building project..."
             go build -o kasirku main.go
-            pm2 restart kasirku-service || pm2 start ./kasirku --name kasirku-service
+
+            echo "===> Restarting PM2 process..."
+            pm2 describe kasirku-service > /dev/null
+            if [ $? -eq 0 ]; then
+              pm2 restart kasirku-service
+            else
+              pm2 start ./kasirku --name kasirku-service
+            fi
+
+            echo "===> Deployment complete ✅"
+
+      - name: Send Telegram Notification on Success
+        if: success()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="✅ *Kasirku Service* berhasil dideploy ke VPS.*\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: ${{ github.actor }}\n🔁 Branch: \`${{ github.ref_name }}\`" \
+            -d parse_mode=Markdown
+
+      - name: Send Telegram Notification on Failure
+        if: failure()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -d text="❌ *Kasirku Service* gagal dideploy ke VPS.*\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: ${{ github.actor }}\n🔁 Branch: \`${{ github.ref_name }}\`\n\n🪵 Cek GitHub Actions log untuk detail error." \
+            -d parse_mode=Markdown
