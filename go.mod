@@ -1,6 +1,8 @@
 module github.com/odhiahmad/kasirku-service
 
-go 1.23.2
+go 1.24.1
+
+toolchain go1.24.4
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.10.1
@@ -17,6 +19,11 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/postgres v1.4.6
 	gorm.io/gorm v1.24.3
+)
+
+require (
+	github.com/go-sql-driver/mysql v1.9.1 // indirect
+	github.com/vandyahmad24/golang-wilayah-indonesia v0.0.3
 )
 
 require (

@@ -45,12 +45,14 @@ func (c *businessController) Create(ctx *gin.Context) {
 }
 
 func (c *businessController) Update(ctx *gin.Context) {
+	businessId := ctx.MustGet("business_id").(int)
 	var input request.BusinessUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
 
+	input.Id = businessId
 	res, err := c.businessService.Update(input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah bisnis", "UPDATE_FAILED", "service", err.Error(), nil))

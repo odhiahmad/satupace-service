@@ -9,14 +9,13 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type RegistrationService interface {
-	Register(req request.RegistrationRequest) (response.UserBusinessResponse, error)
+	Register(req request.RegistrationRequest) error
 	IsDuplicateEmail(email string) (bool, error)
 }
 
@@ -38,48 +37,30 @@ func NewRegistrationService(repo repository.RegistrationRepository, membership r
 	}
 }
 
-func (s *registrationService) Register(req request.RegistrationRequest) (response.UserBusinessResponse, error) {
+func (s *registrationService) Register(req request.RegistrationRequest) error {
 	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 
-	// Cek duplikat email
 	exists, err := s.repo.IsEmailExists(*req.Email)
 	if err != nil {
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 	if exists {
-		return response.UserBusinessResponse{}, errors.New("email sudah digunakan")
+		return errors.New("email sudah digunakan")
 	}
 
-	// 1. Buat Business
 	business := entity.Business{
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
-		BusinessTypeId: req.BusinessTypeId,
+		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
 		IsActive:       true,
 	}
 	savedBusiness, err := s.repo.CreateBusiness(business)
 	if err != nil {
-		return response.UserBusinessResponse{}, err
-	}
-
-	// 2. Buat Branch Utama
-	mainBranch := entity.BusinessBranch{
-		BusinessId: savedBusiness.Id,
-		Address:    req.Address,
-		Rating:     req.Rating,
-		Provinsi:   req.Provinsi,
-		Kota:       req.Kota,
-		Kecamatan:  req.Kecamatan,
-		PostalCode: req.PostalCode,
-		IsMain:     true,
-		IsActive:   true,
-	}
-	if err := s.repo.CreateMainBranch(&mainBranch); err != nil {
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 
 	hashedPassword := helper.HashAndSalt([]byte(req.Password))
@@ -88,17 +69,15 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		Password:    hashedPassword,
 		RoleId:      req.RoleId,
 		BusinessId:  savedBusiness.Id,
-		BranchId:    &mainBranch.Id,
 		PhoneNumber: req.PhoneNumber,
 		IsActive:    true,
 		IsVerified:  false,
 	}
 	savedUser, err := s.repo.CreateUser(user)
 	if err != nil {
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 
-	// 6. Buat Membership
 	startedAt, expiredAt := GetMembershipPeriod("weekly")
 	membership := entity.Membership{
 		UserId:    savedUser.Id,
@@ -108,27 +87,24 @@ func (s *registrationService) Register(req request.RegistrationRequest) (respons
 		Type:      "weekly",
 	}
 	if _, err := s.membership.CreateMembership(membership); err != nil {
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 
-	otpCode := helper.GenerateOTPCode(6) // misal "123456"
+	otpCode := helper.GenerateOTPCode(6)
 
-	// Simpan ke Redis selama 5 menit
 	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)
 	if err != nil {
 		log.Println("Gagal simpan OTP:", err)
-		return response.UserBusinessResponse{}, err
+		return err
 	}
 
-	// 7. Kirim OTP ke WhatsApp user
 	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
 	if err := helper.SendOTPViaWhatsApp(req.PhoneNumber, message); err != nil {
-		// Logging tapi tetap lanjut
 		log.Println("Gagal mengirim OTP WhatsApp:", err)
+		// Tidak return error agar tidak mengganggu proses
 	}
 
-	// 8. Kembalikan response user
-	return *helper.MapUserBusinessResponse(savedUser), nil
+	return nil
 }
 
 func (s *registrationService) IsDuplicateEmail(email string) (bool, error) {

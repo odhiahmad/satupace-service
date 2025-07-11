@@ -31,7 +31,6 @@ var (
 	paymentMethodRepository  repository.PaymentMethodRepository  = repository.NewPaymentMethodRepository(db)
 	categoryRepository       repository.CategoryRepository       = repository.NewCategoryRepository(db)
 	productRepository        repository.ProductRepository        = repository.NewProductRepository(db)
-	productPromoRepository   repository.ProductPromoRepository   = repository.NewProductPromoRepository(db)
 	productVariantRepository repository.ProductVariantRepository = repository.NewProductVariantRepository(db)
 	registrationRepository   repository.RegistrationRepository   = repository.NewRegistrationRepository(db)
 	bundleRepository         repository.BundleRepository         = repository.NewBundleRepository(db)
@@ -39,31 +38,34 @@ var (
 	discountRepository       repository.DiscountRepository       = repository.NewDiscountRepository(db)
 	unitRepository           repository.UnitRepository           = repository.NewUnitRepository(db)
 	transactionRepository    repository.TransactionRepository    = repository.NewTransactionRepository(db)
-	promoRepository          repository.PromoRepository          = repository.NewPromoRepository(db)
 	businessRepository       repository.BusinessRepository       = repository.NewBusinessRepository(db)
 	membershipRepository     repository.MembershipRepository     = repository.NewMembershipRepository(db)
 	brandRepository          repository.BrandRepository          = repository.NewBrandRepository(db)
+	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper)
 	userService           service.UserService           = service.NewUserService(userRepository, validate)
+	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
-	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate)
+	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate, redisClient)
 	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, emailService, validate, redisHelper)
-	productService        service.ProductService        = service.NewProductService(productRepository, productPromoRepository, promoRepository, productVariantRepository, validate, redisClient)
+	productService        service.ProductService        = service.NewProductService(productRepository, productVariantRepository, validate, redisClient)
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
 	unitService           service.UnitService           = service.NewUnitService(unitRepository)
 	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, validate)
 	discountService       service.DiscountService       = service.NewDiscountService(discountRepository, validate)
 	businessService       service.BusinessService       = service.NewBusinessService(businessRepository, validate)
-	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
+	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate, redisClient)
 	brandService          service.BrandService          = service.NewBrandService(brandRepository, validate)
+	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userController           controller.UserController           = controller.NewUserController(userService, jwtService)
+	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
 	roleController           controller.RoleController           = controller.NewRoleController(roleService, jwtService)
 	businessTypeController   controller.BusinessTypeController   = controller.NewBusinessTypeController(businessTypeService, jwtService)
 	paymentMethodController  controller.PaymentMethodController  = controller.NewPaymentMethodController(paymentMethodService, jwtService)
@@ -78,6 +80,7 @@ var (
 	businessController       controller.BusinessController       = controller.NewBusinessController(businessService, jwtService)
 	productVariantController controller.ProductVariantController = controller.NewProductVariantController(productVariantService, jwtService)
 	brandController          controller.BrandController          = controller.NewBrandController(brandService, jwtService)
+	locationController       controller.LocationController       = controller.NewLocationController(locationService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -91,10 +94,13 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("/registration", registrationController.Register)
 	}
 
-	userRoutes := r.Group("user")
+	userRoutes := r.Group("user", middleware.AuthorizeJWT(jwtService))
 	{
-		userRoutes.POST("/create", userController.CreateUser)
-		userRoutes.PUT("/update", userController.UpdateUser)
+		userRoutes.GET("/profile", userBusinessController.FindById)
+		userRoutes.PUT("/change-phone", userBusinessController.ChangePhone)
+		userRoutes.PUT("/change-email", userBusinessController.ChangeEmail)
+		userRoutes.PUT("/change-password", userBusinessController.ChangePassword)
+		userRoutes.PUT("/business", businessController.Update)
 	}
 
 	roleRoutes := r.Group("role")
@@ -171,7 +177,6 @@ func SetupRouter() *gin.Engine {
 		productRoutes.POST("/:id/variant", productVariantController.Create)
 		productRoutes.PATCH("/:id/variant", productVariantController.Update)
 		productRoutes.DELETE("/variant/:id", productVariantController.Delete)
-		productRoutes.DELETE("/variant/product/:productId", productVariantController.DeleteByProductId)
 		productRoutes.GET("/variant/:id", productVariantController.FindById)
 		productRoutes.GET("/variant/product/:productId", productVariantController.FindByProductId)
 		productRoutes.PUT("/:id/active", productController.SetActive)
@@ -183,7 +188,7 @@ func SetupRouter() *gin.Engine {
 	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService))
 	{
 		bundleRoutes.POST("", bundleController.Create)
-		bundleRoutes.PATCH("/:id", bundleController.Update)
+		bundleRoutes.PUT("/:id", bundleController.Update)
 		bundleRoutes.GET("/:id", bundleController.FindById)
 		bundleRoutes.DELETE("/:id", bundleController.Delete)
 		bundleRoutes.GET("", bundleController.FindWithPagination)
@@ -194,19 +199,27 @@ func SetupRouter() *gin.Engine {
 	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService))
 	{
 		transactionRoutes.POST("", transactionController.Create)
-		transactionRoutes.PATCH("/:id/payment", transactionController.Payment)
+		transactionRoutes.PUT("/:id/payment", transactionController.Payment)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
-		transactionRoutes.PATCH("/:id/items", transactionController.AddOrUpdateItem)
+		transactionRoutes.PUT("/:id/items", transactionController.AddOrUpdateItem)
 	}
 
 	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService))
 	{
 		businessRoutes.POST("", businessController.Create)
-		businessRoutes.PATCH("/:id", businessController.Update)
+
 		businessRoutes.GET("/:id", businessController.FindById)
 		businessRoutes.DELETE("/:id", businessController.Delete)
 		businessRoutes.GET("", businessController.FindWithPagination)
+	}
+
+	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService))
+	{
+		locationRoutes.GET("/provinces", locationController.GetProvinces)
+		locationRoutes.GET("/cities", locationController.GetCities)
+		locationRoutes.GET("/districts", locationController.GetDistricts)
+		locationRoutes.GET("/villages", locationController.GetVillages)
 	}
 
 	return r

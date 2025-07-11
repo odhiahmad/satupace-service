@@ -10,7 +10,7 @@ import (
 
 type UserBusinessRepository interface {
 	InsertUserBusiness(userBusiness entity.UserBusiness) (entity.UserBusiness, error)
-	FindById(userBusinessId int) (userBusiness entity.UserBusiness, err error)
+	FindById(id int) (userBusiness entity.UserBusiness, err error)
 	FindAll() []entity.UserBusiness
 	Delete(userBusinessId int)
 	IsDuplicateEmail(email string) bool
@@ -35,9 +35,14 @@ func (conn *userBusinessConnection) InsertUserBusiness(user entity.UserBusiness)
 	return user, result.Error
 }
 
-func (conn *userBusinessConnection) FindById(userBusinessId int) (userBusinesss entity.UserBusiness, err error) {
+func (conn *userBusinessConnection) FindById(id int) (userBusinesss entity.UserBusiness, err error) {
 	var userBusiness entity.UserBusiness
-	result := conn.db.Find(&userBusiness, userBusinessId)
+	result := conn.db.
+		Preload("Role").
+		Preload("Business").
+		Preload("Business.BusinessType").
+		Preload("Membership").
+		Find(&userBusiness, id)
 	if result != nil {
 		return userBusiness, nil
 	} else {
@@ -62,12 +67,10 @@ func (conn *userBusinessConnection) IsDuplicateEmail(email string) bool {
 	var userBusiness entity.UserBusiness
 	err := conn.db.Where("email = ?", email).Take(&userBusiness).Error
 
-	// Perbaikan logika
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false // email belum ada → TIDAK duplikat
+		return false
 	}
 
-	// Kalau tidak error atau error lain (misalnya koneksi), anggap duplikat
 	return err == nil
 }
 
@@ -87,8 +90,7 @@ func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entit
 		Preload("Role").
 		Preload("Business").
 		Preload("Business.BusinessType").
-		Preload("Branch").
-		Preload("Memberships").
+		Preload("Membership").
 		Where("email = ? OR phone_number = ?", identifier, identifier).
 		First(&user).Error
 
@@ -106,5 +108,17 @@ func (conn *userBusinessConnection) FindByVerificationToken(token string) (entit
 }
 
 func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
-	return r.db.Save(user).Error
+	// Update User
+	if err := r.db.Save(user).Error; err != nil {
+		return err
+	}
+
+	// Update Business jika tersedia
+	if user.Business.Id != 0 {
+		if err := r.db.Save(user.Business).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

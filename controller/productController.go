@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -151,55 +152,79 @@ func (c *productController) FindById(ctx *gin.Context) {
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {
 	businessID := ctx.MustGet("business_id").(int)
-	pageStr := ctx.DefaultQuery("page", "1")
+	search := ctx.DefaultQuery("search", "")
 	limitStr := ctx.DefaultQuery("limit", "10")
+	pageStr := ctx.DefaultQuery("page", "1")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
-	search := ctx.DefaultQuery("search", "")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter page tidak valid", "INVALID_PARAM", "page", err.Error(), helper.EmptyObj{}))
-		return
-	}
+	categoryIDStr := ctx.Query("category_id") // Tambahkan ini
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	pagination := request.Pagination{
-		Page:    page,
-		Limit:   limit,
-		SortBy:  sortBy,
-		OrderBy: orderBy,
-		Search:  search,
+	var categoryID *int
+	if categoryIDStr != "" {
+		id, err := strconv.Atoi(categoryIDStr)
+		if err != nil || id <= 0 {
+			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("category_id tidak valid", "INVALID_PARAM", "category_id", err.Error(), helper.EmptyObj{}))
+			return
+		}
+		categoryID = &id
 	}
 
-	products, total, err := c.productService.FindWithPagination(businessID, pagination)
+	if strings.TrimSpace(search) == "" {
+		page, err := strconv.Atoi(pageStr)
+		if err != nil || page <= 0 {
+			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("page tidak valid", "INVALID_PARAM", "page", err.Error(), helper.EmptyObj{}))
+			return
+		}
+
+		pagination := request.Pagination{
+			Page:       page,
+			Limit:      limit,
+			SortBy:     sortBy,
+			OrderBy:    orderBy,
+			Search:     search,
+			CategoryID: categoryID, // Tambahkan ini
+		}
+
+		products, total, err := c.productService.FindWithPagination(businessID, pagination)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+			return
+		}
+
+		meta := response.PaginatedResponse{
+			Page:      page,
+			Limit:     limit,
+			Total:     total,
+			OrderBy:   sortBy,
+			SortOrder: orderBy,
+		}
+
+		ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data produk berhasil diambil", products, meta))
+		return
+	}
+
+	// Search pakai Redis tidak gunakan category (kecuali kamu implementasikan juga di Redis)
+	products, total, err := c.productService.SearchProducts(businessID, search, limit)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mencari produk", "SEARCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	paginationMeta := response.PaginatedResponse{
-		Page:      page,
+	meta := response.PaginatedResponse{
+		Page:      1,
 		Limit:     limit,
 		Total:     total,
-		OrderBy:   sortBy,
-		SortOrder: orderBy,
+		OrderBy:   "relevance",
+		SortOrder: "desc",
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
-		true,
-		"Data produk berhasil diambil",
-		products,
-		paginationMeta,
-	))
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data hasil pencarian berhasil diambil", products, meta))
 }
 
 func (c *productController) SetActive(ctx *gin.Context) {

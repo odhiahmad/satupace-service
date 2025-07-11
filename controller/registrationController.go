@@ -24,47 +24,35 @@ func NewRegistrationController(service service.RegistrationService) Registration
 	}
 }
 
-// Register handles user registration
 func (c *registrationController) Register(ctx *gin.Context) {
 	var req request.RegistrationRequest
 
+	// Validasi binding JSON dari body
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Gagal memproses data",
-			"bad_request",
+			"BAD_REQUEST",
 			"request_body",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	userResponse, err := c.registrationService.Register(req)
-	if err != nil {
-		statusCode := http.StatusBadRequest
-		errorCode := "bad_request"
-		field := "email"
-
-		if err.Error() == "email sudah digunakan" {
-			statusCode = http.StatusConflict // 409
-			errorCode = "conflict"
-		}
-
-		res := helper.BuildErrorResponse(
-			"Gagal melakukan registrasi",
-			errorCode,
-			field,
+	// Panggil service untuk proses registrasi
+	if err := c.registrationService.Register(req); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Pendaftaran gagal",
+			"REGISTER_FAILED",
+			"register",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(statusCode, res)
+		))
 		return
 	}
 
-	// ✅ Kirim data user saat registrasi berhasil
-	res := helper.BuildResponse(true, "Registrasi berhasil", userResponse)
-	ctx.JSON(http.StatusCreated, res)
+	// Response sukses tanpa data
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Pendaftaran berhasil", nil))
 }
 
 // CheckDuplicateEmail handles checking if email is already registered

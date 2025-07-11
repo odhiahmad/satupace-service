@@ -14,7 +14,6 @@ type ProductVariantController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	Delete(ctx *gin.Context)
-	DeleteByProductId(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindByProductId(ctx *gin.Context)
 	SetActive(ctx *gin.Context)
@@ -98,24 +97,6 @@ func (c *productVariantController) Delete(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Variant berhasil dihapus", helper.EmptyObj{}))
-}
-
-func (c *productVariantController) DeleteByProductId(ctx *gin.Context) {
-	productIdStr := ctx.Param("productId")
-	productId, err := strconv.Atoi(productIdStr)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Product ID tidak valid", "BAD_REQUEST", "product_id", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
-	if err := c.Service.DeleteByProductId(productId); err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal menghapus seluruh variant", "INTERNAL_ERROR", "product_variant", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Semua variant berhasil dihapus", helper.EmptyObj{}))
 }
 
 func (c *productVariantController) FindById(ctx *gin.Context) {

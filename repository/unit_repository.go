@@ -47,25 +47,20 @@ func (connection *unitConnection) FindWithPagination(businessId int, pagination 
 	var units []entity.Unit
 	var total int64
 
-	// Base query dengan preload relasi
 	baseQuery := connection.db.Model(&entity.Unit{}).
 		Where("business_id = ?", businessId)
 
-	// Filter pencarian
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
 		baseQuery = baseQuery.Where("name ILIKE ?", search)
 	}
 
-	// Hitung total data
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Siapkan paginator
 	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
-	// Jalankan paginasi
 	_, _, err := p.Paginate(baseQuery, &units)
 	if err != nil {
 		return nil, 0, err

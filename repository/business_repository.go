@@ -43,7 +43,7 @@ func (conn *businessConnection) Delete(business entity.Business) error {
 // FindById retrieves a business entity by its ID, with branches and business type preloaded.
 func (conn *businessConnection) FindById(id int) (entity.Business, error) {
 	var business entity.Business
-	err := conn.db.Preload("Branches").Preload("BusinessType").First(&business, id).Error
+	err := conn.db.Preload("BusinessType").First(&business, id).Error
 	return business, err
 }
 
@@ -54,7 +54,6 @@ func (conn *businessConnection) FindWithPagination(pagination request.Pagination
 
 	// Base query
 	baseQuery := conn.db.Model(&entity.Business{}).
-		Preload("Branches").
 		Preload("BusinessType")
 
 	// Apply search filter

@@ -15,7 +15,6 @@ type ProductRequest struct {
 	TrackStock   bool                    `json:"track_stock"`
 	MinimumSales *int                    `json:"minimum_sales,omitempty"`
 	DiscountId   *int                    `json:"discount_id,omitempty"`
-	PromoIds     []int                   `json:"promo_ids"`
 	BrandId      *int                    `json:"brand_id,omitempty"`
 	TaxId        *int                    `json:"tax_id,omitempty"`
 	UnitId       *int                    `json:"unit_id,omitempty"`
@@ -38,15 +37,4 @@ type ProductVariantRequest struct {
 	SKU        string   `json:"sku,omitempty"`
 	Stock      int      `json:"stock,omitempty"`
 	TrackStock *bool    `json:"track_stock,omitempty"`
-}
-
-type ProductPromoCreate struct {
-	BusinessId  int `json:"business_id" validate:"required"`
-	ProductId   int `json:"product_id" validate:"required"`
-	PromoId     int `json:"promo_id" validate:"required"`
-	MinQuantity int `json:"min_quantity"` // opsional
-}
-
-type ProductPromoUpdate struct {
-	MinQuantity int `json:"min_quantity"`
 }

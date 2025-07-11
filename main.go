@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/odhiahmad/kasirku-service/config"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/routes"
 )
@@ -31,11 +32,11 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	// Load .env file
+
 	_ = godotenv.Load(".env")
 
 	helper.InitWhatsApp()
-	// Get environment variables
+
 	mode := os.Getenv("GIN_MODE")
 	if mode == "" {
 		mode = "release"
@@ -46,7 +47,6 @@ func main() {
 		port = "8080"
 	}
 
-	// Set Gin mode
 	if mode == "debug" {
 		gin.SetMode(gin.DebugMode)
 		log.Println("🛠 GIN_MODE=debug")
@@ -55,17 +55,16 @@ func main() {
 		log.Println("🚀 GIN_MODE=release")
 	}
 
-	// Setup router and middleware
 	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
 
-	// Setup HTTP server
+	config.SetupWilayahDatabase()
+
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
 	}
 
-	// Start server
 	go func() {
 		log.Printf("✅ Server running on port %s...\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -73,7 +72,6 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal
 	gracefulShutdown(server)
 }
 
