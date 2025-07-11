@@ -52,7 +52,7 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-            -d text="✅ *Kasirku Service* berhasil dideploy ke VPS.*\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: ${{ github.actor }}\n🔁 Branch: \`${{ github.ref_name }}\`" \
+            -d text="✅ *Kasirku Service* berhasil dideploy ke VPS.\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: \`${{ github.actor }}\`\n🔁 Branch: \`${{ github.ref_name }}\`"
             -d parse_mode=Markdown
 
       - name: Send Telegram Notification on Failure
@@ -60,5 +60,5 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-            -d text="❌ *Kasirku Service* gagal dideploy ke VPS.*\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: ${{ github.actor }}\n🔁 Branch: \`${{ github.ref_name }}\`\n\n🪵 Cek GitHub Actions log untuk detail error." \
+            -d text="❌ *Kasirku Service* gagal dideploy ke VPS.\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: \`${{ github.actor }}\`\n🔁 Branch: \`${{ github.ref_name }}\`\n\n🪵 Cek GitHub Actions log untuk detail error."
             -d parse_mode=Markdown
