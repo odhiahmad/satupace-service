@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -51,40 +52,27 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, err
 	}
 
-	var imageURL *string
-	if req.Image != nil && *req.Image != "" {
-		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
-		if err != nil {
-			return response.ProductResponse{}, fmt.Errorf("gagal upload gambar produk: %w", err)
-		}
-		imageURL = &url
+	sku := req.SKU
+	if sku == nil || *sku == "" {
+		s := helper.GenerateSKU(req.Name)
+		sku = &s
 	}
 
-	sku := helper.StringOrDefault(req.SKU, "")
-
-	var trackStock bool
-	if req.Stock != nil {
-		trackStock = *req.Stock == 0
-	} else {
-		trackStock = true
-	}
-
-	if sku == "" {
-		sku = helper.GenerateSKU(req.Name)
-	}
+	hasVariant := len(req.Variants) > 0
+	trackStock := req.Stock == nil || *req.Stock == 0
 
 	product := entity.Product{
 		BusinessId:   req.BusinessId,
 		CategoryId:   *req.CategoryId,
 		Name:         req.Name,
 		Description:  req.Description,
-		Image:        imageURL,
+		Image:        nil, // sementara kosong
 		MinimumSales: req.MinimumSales,
 		BasePrice:    req.BasePrice,
 		SellPrice:    req.SellPrice,
-		SKU:          helper.StringPtr(sku),
+		SKU:          sku,
 		Stock:        req.Stock,
-		HasVariant:   len(req.Variants) > 0,
+		HasVariant:   hasVariant,
 		BrandId:      req.BrandId,
 		TaxId:        req.TaxId,
 		DiscountId:   req.DiscountId,
@@ -94,10 +82,13 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		IsActive:     true,
 	}
 
-	if product.HasVariant {
+	if hasVariant {
 		product.BasePrice = nil
+		product.SellPrice = nil
+		product.MinimumSales = nil
 		product.Stock = nil
 		product.SKU = nil
+		product.TrackStock = false
 	}
 
 	err := s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
@@ -107,27 +98,30 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		}
 		product = createdProduct
 
-		for _, v := range req.Variants {
-			skuVariant := v.SKU
-			if skuVariant == "" {
-				skuVariant = helper.GenerateSKU(v.Name)
+		if hasVariant {
+			var variants []entity.ProductVariant
+			for _, v := range req.Variants {
+				skuVariant := v.SKU
+				if skuVariant == "" {
+					skuVariant = helper.GenerateSKU(v.Name)
+				}
+
+				variants = append(variants, entity.ProductVariant{
+					BusinessId:  req.BusinessId,
+					ProductId:   product.Id,
+					Name:        v.Name,
+					BasePrice:   v.BasePrice,
+					SellPrice:   v.SellPrice,
+					SKU:         skuVariant,
+					Stock:       v.Stock,
+					TrackStock:  v.Stock == 0,
+					IsAvailable: true,
+					IsActive:    true,
+				})
 			}
 
-			variant := entity.ProductVariant{
-				BusinessId:  req.BusinessId,
-				ProductId:   product.Id,
-				Name:        v.Name,
-				BasePrice:   v.BasePrice,
-				SellPrice:   v.SellPrice,
-				SKU:         skuVariant,
-				Stock:       v.Stock,
-				TrackStock:  v.Stock == 0,
-				IsAvailable: true,
-				IsActive:    true,
-			}
-
-			if err := s.ProductVariantRepo.CreateWithTx(txRepo, &variant); err != nil {
-				return fmt.Errorf("gagal menyimpan variant '%s': %w", v.Name, err)
+			if err := s.ProductVariantRepo.CreateWithTx(txRepo, variants); err != nil {
+				return fmt.Errorf("gagal menyimpan variant produk: %w", err)
 			}
 		}
 
@@ -138,22 +132,31 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, err
 	}
 
+	if req.Image != nil && *req.Image != "" {
+		go func(productId int, businessId int, name string, imageBase64 string) {
+			url, err := helper.UploadBase64ToCloudinary(imageBase64, "product")
+			if err != nil {
+				log.Printf("Gagal upload gambar produk (background): %v", err)
+				return
+			}
+
+			err = s.ProductRepo.UpdateImage(productId, url)
+			if err != nil {
+				log.Printf("Gagal update gambar produk setelah upload: %v", err)
+			}
+
+			if err := helper.AddProductToAutocomplete(s.Redis, req.BusinessId, product.Id, product.Name, url); err != nil {
+				log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
+			}
+		}(product.Id, req.BusinessId, req.Name, *req.Image)
+	}
+
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah simpan: %w", err)
 	}
 
-	if createdProduct.Image != nil {
-		go func() {
-			err := helper.AddProductToAutocomplete(s.Redis, req.BusinessId, product.Id, product.Name, *createdProduct.Image)
-			if err != nil {
-				fmt.Printf("gagal menambahkan autocomplete Redis: %v\n", err)
-			}
-		}()
-	}
-
-	productResponse := helper.MapProductToResponse(createdProduct)
-	return productResponse, nil
+	return helper.MapProductToResponse(createdProduct), nil
 }
 
 func (s *productService) Update(id int, req request.ProductRequest) (response.ProductResponse, error) {

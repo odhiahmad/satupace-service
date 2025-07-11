@@ -22,6 +22,7 @@ type ProductRepository interface {
 	SetHasVariant(productId int) error
 	ResetVariantStateToFalse(productId int) error // ⬅️ Tambahkan ini
 	WithTransaction(fn func(conn ProductRepository) error) error
+	UpdateImage(productId int, imageURL string) error
 }
 
 type productConnection struct {
@@ -37,13 +38,11 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 }
 
 func (conn *productConnection) Create(product entity.Product) (entity.Product, error) {
-	// Buat data brand
 	err := conn.db.Create(&product).Error
 	if err != nil {
 		return entity.Product{}, err
 	}
 
-	// Ambil ulang dengan preload Business
 	err = conn.db.
 		Preload("Variants").
 		Preload("Brand").
@@ -60,7 +59,6 @@ func (conn *productConnection) Create(product entity.Product) (entity.Product, e
 }
 
 func (conn *productConnection) Update(product entity.Product) (entity.Product, error) {
-	// Kosongkan relasi agar GORM tidak abaikan update FK
 	product.Tax = nil
 	product.Discount = nil
 	product.Category = nil
@@ -110,7 +108,6 @@ func (r *productConnection) UpdateAll(product *entity.Product) (entity.Product, 
 		return entity.Product{}, err
 	}
 
-	// Reload product dari DB setelah update
 	var updated entity.Product
 	if err := r.db.
 		Preload("Variants").
@@ -164,7 +161,6 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 	var products []entity.Product
 	var total int64
 
-	// Base query dengan preload dan filter awal
 	query := conn.db.Model(&entity.Product{}).
 		Preload("Variants").
 		Preload("Brand").
@@ -174,17 +170,13 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 		Preload("Unit").
 		Where("business_id = ?", businessId)
 
-	// Tambahkan filter kategori jika ada
 	if pagination.CategoryID != nil {
 		query = query.Where("category_id = ?", *pagination.CategoryID)
 	}
-
-	// Hitung total hasil dengan filter yang sudah lengkap
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Apply pagination
 	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 	_, _, err := p.Paginate(query, &products)
 	if err != nil {
@@ -238,4 +230,13 @@ func (conn *productConnection) WithTransaction(fn func(conn ProductRepository) e
 		txRepo := &productConnection{db: tx}
 		return fn(txRepo)
 	})
+}
+
+func (conn *productConnection) UpdateImage(productId int, imageURL string) error {
+	return conn.db.Model(&entity.Product{}).
+		Where("id = ?", productId).
+		Updates(map[string]interface{}{
+			"image":    imageURL,
+			"is_ready": true,
+		}).Error
 }

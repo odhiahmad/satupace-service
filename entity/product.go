@@ -32,6 +32,7 @@ type Product struct {
 	Unit         *Unit            `gorm:"foreignKey:UnitId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"unit,omitempty"`
 	IsAvailable  bool             `gorm:"default:true" json:"is_available"`
 	IsActive     bool             `gorm:"default:true" json:"is_active"`
+	IsReady      bool             `gorm:"default:false" json:"is_ready"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`
 }

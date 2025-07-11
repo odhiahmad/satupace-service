@@ -17,7 +17,7 @@ type ProductVariantRepository interface {
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
 	IsSKUExists(sku string) (bool, error)
-	CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error
+	CreateWithTx(txRepo ProductRepository, variants []entity.ProductVariant) error
 	CountByProductId(productId int) (int64, error)
 }
 
@@ -91,9 +91,9 @@ func (conn *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
 	return count > 0, err
 }
 
-func (conn *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variant *entity.ProductVariant) error {
+func (conn *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variants []entity.ProductVariant) error {
 	tx := txRepo.(*productConnection).db
-	return tx.Create(variant).Error
+	return tx.Create(variants).Error
 }
 
 func (conn *ProductVariantConnection) CountByProductId(productId int) (int64, error) {
