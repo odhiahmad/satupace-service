@@ -38,7 +38,6 @@ func NewRegistrationService(repo repository.RegistrationRepository, membership r
 }
 
 func (s *registrationService) Register(req request.RegistrationRequest) error {
-	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return err
 	}
@@ -86,6 +85,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		IsActive:  true,
 		Type:      "weekly",
 	}
+
 	if _, err := s.membership.CreateMembership(membership); err != nil {
 		return err
 	}
@@ -101,7 +101,6 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
 	if err := helper.SendOTPViaWhatsApp(req.PhoneNumber, message); err != nil {
 		log.Println("Gagal mengirim OTP WhatsApp:", err)
-		// Tidak return error agar tidak mengganggu proses
 	}
 
 	return nil

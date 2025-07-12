@@ -54,20 +54,28 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 		return nil, helper.ErrUserNotFound
 	}
 
-	if !user.IsVerified {
-		return nil, helper.ErrEmailNotVerified
-	}
-
 	if !comparePassword(user.Password, []byte(password)) {
 		return nil, helper.ErrInvalidPassword
 	}
 
-	now := time.Now()
-	hasActiveMembership := false
+	if !user.IsVerified {
+		otpCode := helper.GenerateOTPCode(6)
 
-	if user.Membership.IsActive && user.Membership.EndDate.After(now) {
-		hasActiveMembership = true
+		err := service.redisHelper.SaveOTP("whatsapp", user.PhoneNumber, otpCode, 5*time.Minute)
+		if err != nil {
+			log.Println("Gagal menyimpan OTP di Redis:", err)
+		}
+
+		message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
+		if err := helper.SendOTPViaWhatsApp(user.PhoneNumber, message); err != nil {
+			log.Println("Gagal mengirim OTP WhatsApp:", err)
+		}
+
+		return nil, helper.ErrEmailNotVerified
 	}
+
+	now := time.Now()
+	hasActiveMembership := user.Membership.IsActive && user.Membership.EndDate.After(now)
 
 	if !hasActiveMembership {
 		return nil, helper.ErrMembershipInactive
