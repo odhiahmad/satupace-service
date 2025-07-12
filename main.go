@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/odhiahmad/kasirku-service/config"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/routes"
 )
@@ -58,7 +57,7 @@ func main() {
 	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
 
-	config.SetupWilayahDatabase()
+	// config.SetupWilayahDatabase()
 
 	server := &http.Server{
 		Addr:    ":" + port,
