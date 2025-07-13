@@ -44,7 +44,6 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 
 		claims := token.Claims.(jwt.MapClaims)
 
-		// Set semua ke context
 		c.Set("user_id", int(claims["user_id"].(float64)))
 		c.Set("business_id", int(claims["business_id"].(float64)))
 		if claims["branch_id"] != nil {

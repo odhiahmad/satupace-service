@@ -37,13 +37,8 @@ jobs:
             echo "===> Building project..."
             go build -o kasirku main.go
 
-            echo "===> Restarting PM2 process..."
-            pm2 describe kasirku-service > /dev/null
-            if [ $? -eq 0 ]; then
-              pm2 restart kasirku-service
-            else
-              pm2 start ./kasirku --name kasirku-service
-            fi
+            echo "===> Restarting systemd service..."
+            sudo systemctl restart kasirku
 
             echo "===> Deployment complete ✅"
 
