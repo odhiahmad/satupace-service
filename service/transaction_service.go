@@ -49,11 +49,11 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		Items:         req.Items,
 		AllProductIds: allProductIds,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate nomor bill
 	billNumber, err := helper.GenerateBillNumber(s.db)
 	if err != nil {
 		return nil, err

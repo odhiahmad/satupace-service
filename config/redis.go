@@ -11,7 +11,6 @@ var (
 	redisCtx = context.Background()
 )
 
-// SetupRedisClient mengembalikan instance *redis.Client
 func SetupRedisClient() *redis.Client {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",

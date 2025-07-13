@@ -8,7 +8,6 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
-	"github.com/redis/go-redis/v9"
 )
 
 type ProductVariantService interface {
@@ -25,15 +24,13 @@ type productVariantService struct {
 	repo        repository.ProductVariantRepository
 	productRepo repository.ProductRepository // Tambahkan ini
 	validate    *validator.Validate
-	redis       *redis.Client
 }
 
-func NewProductVariantService(repo repository.ProductVariantRepository, productRepo repository.ProductRepository, validate *validator.Validate, redis *redis.Client) ProductVariantService {
+func NewProductVariantService(repo repository.ProductVariantRepository, productRepo repository.ProductRepository, validate *validator.Validate) ProductVariantService {
 	return &productVariantService{
 		repo:        repo,
 		productRepo: productRepo,
 		validate:    validate,
-		redis:       redis,
 	}
 }
 
@@ -69,7 +66,6 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 		return nil, err
 	}
 
-	// Update status produk jika belum memiliki variant
 	if !product.HasVariant {
 		_ = s.productRepo.SetHasVariant(productId)
 	}
@@ -113,9 +109,6 @@ func (s *productVariantService) Delete(id int) error {
 	if err != nil {
 		return err
 	}
-
-	// ✅ Hapus dari Redis Autocomplete
-	_ = helper.DeleteProductFromAutocomplete(s.redis, variant.BusinessId, variant.Name)
 
 	if err := s.repo.Delete(id); err != nil {
 		return err

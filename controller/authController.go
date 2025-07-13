@@ -132,7 +132,6 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "OTP berhasil diverifikasi", userResponse))
 }
 
-// RetryOTP mengirim ulang kode OTP ke pengguna
 func (c *authController) RetryOTP(ctx *gin.Context) {
 	var req struct {
 		Phone string `json:"phone" binding:"required"`

@@ -1,6 +1,9 @@
 package helper
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 )
@@ -29,7 +32,7 @@ func MapProductToResponse(product entity.Product) response.ProductResponse {
 		IsAvailable:  product.IsAvailable,
 		IsActive:     product.IsActive,
 		HasVariant:   product.HasVariant,
-		Variants:     MapProductVariants(product.Variants),
+		Variants:     MapProductVariants(product.Variants, &product),
 		Brand:        MapBrand(product.Brand),
 		Category:     MapCategory(product.Category),
 		Tax:          MapTax(product.Tax),
@@ -38,14 +41,16 @@ func MapProductToResponse(product entity.Product) response.ProductResponse {
 	}
 }
 
-func MapProductVariants(variants []entity.ProductVariant) []response.ProductVariantResponse {
+func MapProductVariants(variants []entity.ProductVariant, product *entity.Product) []response.ProductVariantResponse {
 	var result []response.ProductVariantResponse
 	for _, v := range variants {
 		result = append(result, response.ProductVariantResponse{
-			Id:        v.Id,
-			Name:      v.Name,
-			BasePrice: v.BasePrice,
-			SKU:       v.SKU,
+			Id:         v.Id,
+			Name:       v.Name,
+			BasePrice:  v.BasePrice,
+			SellPrice:  v.SellPrice,
+			FinalPrice: Float64Ptr(CalculateFinalPriceFromVariant(&v, product)),
+			SKU:        v.SKU,
 		})
 	}
 	return result
@@ -123,7 +128,7 @@ func CalculateFinalPrice(p *entity.Product) float64 {
 
 	price := *p.SellPrice
 
-	if p.Discount != nil {
+	if p.Discount != nil && IsDiscountActive(p.Discount) {
 		if p.Discount.IsPercentage {
 			price -= price * p.Discount.Amount / 100
 		} else {
@@ -136,4 +141,50 @@ func CalculateFinalPrice(p *entity.Product) float64 {
 	}
 
 	return price
+}
+
+func CalculateFinalPriceFromVariant(v *entity.ProductVariant, product *entity.Product) float64 {
+	if v.SellPrice == nil {
+		return 0
+	}
+
+	price := *v.SellPrice
+
+	if product.Discount != nil && IsDiscountActive(product.Discount) {
+		if product.Discount.IsPercentage {
+			price -= price * product.Discount.Amount / 100
+		} else {
+			price -= product.Discount.Amount
+		}
+	}
+
+	if price < 0 {
+		price = 0
+	}
+
+	return price
+}
+
+func IsDiscountActive(d *entity.Discount) bool {
+	fmt.Printf("🔍 Cek diskon aktif: %+v\n", d)
+
+	if !d.IsActive {
+		fmt.Println("❌ Tidak aktif")
+		return false
+	}
+
+	now := time.Now()
+
+	if !d.StartAt.IsZero() && now.Before(d.StartAt) {
+		fmt.Println("❌ Belum dimulai")
+		return false
+	}
+
+	if !d.EndAt.IsZero() && now.After(d.EndAt) {
+		fmt.Println("❌ Sudah berakhir")
+		return false
+	}
+
+	fmt.Println("✅ Diskon aktif")
+	return true
 }

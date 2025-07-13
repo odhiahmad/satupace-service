@@ -66,7 +66,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		CategoryId:   *req.CategoryId,
 		Name:         req.Name,
 		Description:  req.Description,
-		Image:        nil, // sementara kosong
+		Image:        nil,
 		MinimumSales: req.MinimumSales,
 		BasePrice:    req.BasePrice,
 		SellPrice:    req.SellPrice,
@@ -272,7 +272,6 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 }
 
 func (s *productService) SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
-	// Ambil hasil autocomplete dari Redis
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
 		return nil, 0, err
@@ -281,7 +280,6 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 		return nil, 0, nil
 	}
 
-	// Parse hasil JSON dan ambil ID produk
 	var productIDs []int
 	autocompleteMap := make(map[int]response.ProductResponse)
 
@@ -290,19 +288,17 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 		autocompleteMap[product.Id] = product
 	}
 
-	// Ambil produk dari database
 	products, err := s.ProductRepo.FindByIds(businessId, productIDs)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Build hasil akhir, tambahkan image dari Redis jika ada
 	var finalResults []response.ProductResponse
 	for _, p := range products {
 		res := helper.MapProductToResponse(p)
 
 		if fromRedis, ok := autocompleteMap[p.Id]; ok && fromRedis.Image != nil && *fromRedis.Image != "" {
-			res.Image = fromRedis.Image // override jika ada image dari Redis
+			res.Image = fromRedis.Image
 		}
 
 		finalResults = append(finalResults, res)
@@ -312,18 +308,15 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 }
 
 func (s *productService) SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
-	// Ambil hasil autocomplete dari Redis
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Jika tidak ada hasil, langsung kembalikan kosong
 	if len(results) == 0 {
 		return nil, 0, nil
 	}
 
-	// Tidak perlu ambil ke database, cukup return hasil dari Redis
 	return results, int64(len(results)), nil
 }
 

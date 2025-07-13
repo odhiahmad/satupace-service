@@ -59,7 +59,7 @@ var (
 	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, validate)
 	discountService       service.DiscountService       = service.NewDiscountService(discountRepository, validate)
 	businessService       service.BusinessService       = service.NewBusinessService(businessRepository, validate)
-	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate, redisClient)
+	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
 	brandService          service.BrandService          = service.NewBrandService(brandRepository, validate)
 	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
 

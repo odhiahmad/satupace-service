@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// SetupDatabaseConnection menginisialisasi koneksi ke database PostgreSQL.
 func SetupDatabaseConnection() *gorm.DB {
 	appEnv := os.Getenv("APP_ENV") // development | release | staging
 
@@ -29,12 +28,10 @@ func SetupDatabaseConnection() *gorm.DB {
 	dbName := os.Getenv("DB_NAME")
 	dbPort := os.Getenv("DB_PORT")
 
-	// Validasi env
 	if dbUser == "" || dbPass == "" || dbHost == "" || dbName == "" || dbPort == "" {
 		log.Fatal("❌ Environment variable database tidak lengkap")
 	}
 
-	// Format DSN
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
 		dbHost, dbUser, dbPass, dbName, dbPort,
@@ -45,19 +42,6 @@ func SetupDatabaseConnection() *gorm.DB {
 		log.Fatalf("❌ Gagal terhubung ke database: %v", err)
 	}
 
-	// ENUM setup, bisa kamu pindahkan ke migration terpisah jika production
-	if err := db.Exec(`
-		DO $$
-		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_type') THEN
-				CREATE TYPE discount_type AS ENUM ('percent', 'fixed');
-			END IF;
-		END$$;
-	`).Error; err != nil {
-		log.Fatalf("❌ Gagal membuat ENUM 'discount_type': %v", err)
-	}
-
-	// AutoMigrate hanya saat development (opsional)
 	if appEnv != "release" {
 		if err := db.AutoMigrate(
 			&entity.UserBusiness{},
@@ -90,7 +74,6 @@ func SetupDatabaseConnection() *gorm.DB {
 	return db
 }
 
-// CloseDatabaseConnection menutup koneksi database.
 func CloseDatabaseConnection(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err != nil {

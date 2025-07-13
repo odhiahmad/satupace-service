@@ -86,3 +86,7 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 
 	return s.repo.Update(&user)
 }
+
+func (s *userBusinessService) Delete(userId int) {
+	s.Delete(userId)
+}
