@@ -10,6 +10,7 @@ type RegistrationRepository interface {
 	CreateBusiness(business entity.Business) (entity.Business, error)
 	CreateUser(user entity.UserBusiness) (entity.UserBusiness, error)
 	IsEmailExists(email string) (bool, error)
+	IsPhoneNumberExists(phone string) (bool, error)
 }
 
 // registrationConnection adalah implementasi dari RegistrationRepository.
@@ -49,6 +50,20 @@ func (conn *registrationConnection) CreateUser(user entity.UserBusiness) (entity
 func (conn *registrationConnection) IsEmailExists(email string) (bool, error) {
 	var user entity.UserBusiness
 	err := conn.db.Where("email = ?", email).First(&user).Error
+
+	switch {
+	case err == nil:
+		return true, nil
+	case err == gorm.ErrRecordNotFound:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (conn *registrationConnection) IsPhoneNumberExists(phone string) (bool, error) {
+	var user entity.UserBusiness
+	err := conn.db.Where("phone_number = ?", phone).First(&user).Error
 
 	switch {
 	case err == nil:

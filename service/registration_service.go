@@ -50,6 +50,14 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return errors.New("email sudah digunakan")
 	}
 
+	phoneExists, err := s.repo.IsPhoneNumberExists(req.PhoneNumber)
+	if err != nil {
+		return err
+	}
+	if phoneExists {
+		return errors.New("nomor telepon sudah digunakan")
+	}
+
 	business := entity.Business{
 		Name:           req.Name,
 		OwnerName:      req.OwnerName,
