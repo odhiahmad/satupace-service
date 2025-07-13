@@ -13,7 +13,7 @@ var (
 
 func SetupRedisClient() *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: "127.0.0.1:6379",
 	})
 
 	if _, err := client.Ping(redisCtx).Result(); err != nil {
