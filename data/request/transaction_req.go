@@ -51,8 +51,25 @@ type TransactionCreateRequest struct {
 type TransactionPaymentRequest struct {
 	Id              int      `json:"id"`
 	CustomerId      *int     `json:"customer_id,omitempty"`
+	CashierId       int      `json:"cashier_id,omitempty"`
 	PaymentMethodId *int     `json:"payment_method_id,omitempty"`
 	Rating          *float64 `json:"rating"`
 	Notes           *string  `json:"notes"`
 	AmountReceived  *float64 `json:"amount_received"`
+}
+
+type TransactionCancelRequest struct {
+	Id         int     `json:"id"`
+	CustomerId *int    `json:"customer_id,omitempty"`
+	BusinessId int     `json:"business_id" validate:"required"`
+	UserId     int     `json:"user_id,omitempty"`
+	Reason     *string `json:"reason"`
+}
+
+type TransactionRefundRequest struct {
+	Id         int     `json:"id"`
+	CustomerId *int    `json:"customer_id,omitempty"`
+	BusinessId int     `json:"business_id" validate:"required"`
+	UserId     int     `json:"user_id,omitempty"`
+	Reason     *string `json:"reason"`
 }

@@ -98,6 +98,10 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return err
 	}
 
+	if err := s.redisHelper.AllowRequest(req.PhoneNumber, 3, 5*time.Minute); err != nil {
+		return err
+	}
+
 	otpCode := helper.GenerateOTPCode(6)
 
 	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)

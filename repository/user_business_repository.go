@@ -108,12 +108,10 @@ func (conn *userBusinessConnection) FindByVerificationToken(token string) (entit
 }
 
 func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
-	// Update User
 	if err := r.db.Save(user).Error; err != nil {
 		return err
 	}
 
-	// Update Business jika tersedia
 	if user.Business.Id != 0 {
 		if err := r.db.Save(user.Business).Error; err != nil {
 			return err

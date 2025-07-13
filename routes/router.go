@@ -2,6 +2,7 @@ package routes
 
 import (
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -86,12 +87,14 @@ var (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	authRoutes := r.Group("auth")
+	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 5, time.Minute))
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
 		authRoutes.POST("/verify-otp", authController.VerifyOTP)
 		authRoutes.POST("/retry-otp", authController.RetryOTP)
 		authRoutes.POST("/registration", registrationController.Register)
+		authRoutes.POST("/request-forgot-password", authController.RequestForgotPassword)
+		authRoutes.POST("/reset-password", authController.ResetPassword)
 	}
 
 	userRoutes := r.Group("user", middleware.AuthorizeJWT(jwtService))
@@ -130,7 +133,7 @@ func SetupRouter() *gin.Engine {
 		paymentMethodRoutes.DELETE("/:id", paymentMethodController.Delete)
 	}
 
-	libRoutes := r.Group("lib", middleware.AuthorizeJWT(jwtService))
+	libRoutes := r.Group("lib", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 5, time.Minute))
 	{
 		libRoutes.POST("/category", categoryController.Create)
 		libRoutes.POST("/brand", brandController.Create)
@@ -166,7 +169,7 @@ func SetupRouter() *gin.Engine {
 
 	}
 
-	productRoutes := r.Group("product", middleware.AuthorizeJWT(jwtService))
+	productRoutes := r.Group("product", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 1, time.Minute))
 	{
 		productRoutes.POST("", productController.Create)
 		productRoutes.PUT("/:id", productController.Update)
@@ -185,7 +188,7 @@ func SetupRouter() *gin.Engine {
 		productRoutes.PUT("/variant/:id/available", productVariantController.SetAvailable)
 	}
 
-	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService))
+	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 1, time.Minute))
 	{
 		bundleRoutes.POST("", bundleController.Create)
 		bundleRoutes.PUT("/:id", bundleController.Update)
@@ -196,25 +199,26 @@ func SetupRouter() *gin.Engine {
 		bundleRoutes.PUT("/:id/available", bundleController.SetIsAvailable)
 	}
 
-	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService))
+	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 10, time.Minute))
 	{
 		transactionRoutes.POST("", transactionController.Create)
 		transactionRoutes.PUT("/:id/payment", transactionController.Payment)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
 		transactionRoutes.PUT("/:id/items", transactionController.AddOrUpdateItem)
+		transactionRoutes.PUT("/:id/refund", transactionController.Refund)
+		transactionRoutes.PUT("/:id/canceled", transactionController.Cancel)
 	}
 
-	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService))
+	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 5, time.Minute))
 	{
 		businessRoutes.POST("", businessController.Create)
-
 		businessRoutes.GET("/:id", businessController.FindById)
 		businessRoutes.DELETE("/:id", businessController.Delete)
 		businessRoutes.GET("", businessController.FindWithPagination)
 	}
 
-	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService))
+	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 10, time.Minute))
 	{
 		locationRoutes.GET("/provinces", locationController.GetProvinces)
 		locationRoutes.GET("/cities", locationController.GetCities)

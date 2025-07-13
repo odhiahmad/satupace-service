@@ -45,8 +45,6 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 	}
 
 	sku := req.SKU
-	trackStock := req.Stock == 0
-
 	if sku == "" {
 		sku = helper.GenerateSKU(req.Name)
 	}
@@ -56,9 +54,10 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
 		BasePrice:  req.BasePrice,
+		SellPrice:  req.SellPrice,
 		SKU:        sku,
 		Stock:      req.Stock,
-		TrackStock: trackStock,
+		TrackStock: req.Stock > 0,
 	}
 
 	err = s.repo.Create(&variant)
@@ -88,13 +87,12 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 		sku = helper.GenerateSKU(req.Name)
 	}
 
-	trackStock := req.Stock == 0
-
 	existing.Name = req.Name
 	existing.BasePrice = req.BasePrice
+	existing.SellPrice = req.SellPrice
 	existing.SKU = sku
 	existing.Stock = req.Stock
-	existing.TrackStock = trackStock
+	existing.TrackStock = req.Stock > 0
 
 	err = s.repo.Update(&existing)
 	if err != nil {

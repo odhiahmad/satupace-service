@@ -24,6 +24,7 @@ type TransactionItemInputUpdate struct {
 
 type TransactionItemResult struct {
 	Items         []entity.TransactionItem
+	SellPrice     float64
 	BasePrice     float64
 	FinalPrice    float64
 	TotalDiscount float64
@@ -45,7 +46,6 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 
 		productId := IntOrDefault(item.ProductId, 0)
 		if productId != 0 {
-			// Produk biasa
 			var product entity.Product
 			err := input.DB.Preload("Variants").
 				Preload("Discount").
@@ -55,13 +55,18 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				return result, err
 			}
 
+			if item.Quantity < *product.MinimumSales {
+				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			}
+
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
 			if err != nil {
 				return result, err
 			}
 
 			subtotal := (pricing.TotalPrice + pricing.Tax) - pricing.Discount
-			result.BasePrice += pricing.TotalPrice
+			result.SellPrice += (pricing.SellPrice * float64(item.Quantity))
+			result.BasePrice += (pricing.BasePrice * float64(item.Quantity))
 			result.FinalPrice += subtotal
 			result.TotalDiscount += pricing.Discount
 			result.TotalTax += pricing.Tax
@@ -72,17 +77,17 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				ProductAttributeId: item.ProductAttributeId,
 				ProductVariantId:   item.ProductVariantId,
 				Quantity:           item.Quantity,
-				UnitPrice:          pricing.BasePrice,
+				BasePrice:          pricing.BasePrice,
+				SellPrice:          pricing.SellPrice,
 				Total:              subtotal,
 				Discount:           pricing.Discount,
 				Tax:                pricing.Tax,
 				Rating:             item.Rating,
 				Attributes:         attrs,
-				Product:            &product, // untuk akses ulang promo minimum_spend
+				Product:            &product,
 			})
 
 		} else if item.BundleId != nil {
-			// Bundle
 			var bundle entity.Bundle
 			err := input.DB.First(&bundle, "id = ?", item.BundleId).Error
 			if err != nil {
@@ -95,7 +100,8 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 			}
 
 			subtotal := (pricing.Total + pricing.Tax) * float64(item.Quantity)
-			result.BasePrice += pricing.BasePrice
+			result.SellPrice += (pricing.SellPrice * float64(item.Quantity))
+			result.BasePrice += (pricing.BasePrice * float64(item.Quantity))
 			result.FinalPrice += subtotal
 			result.TotalTax += pricing.Tax * float64(item.Quantity)
 
@@ -105,7 +111,8 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				ProductAttributeId: item.ProductAttributeId,
 				ProductVariantId:   item.ProductVariantId,
 				Quantity:           item.Quantity,
-				UnitPrice:          pricing.BasePrice,
+				BasePrice:          pricing.BasePrice,
+				SellPrice:          pricing.SellPrice,
 				Total:              subtotal,
 				Tax:                pricing.Tax,
 				Rating:             item.Rating,
@@ -116,7 +123,6 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 		}
 	}
 
-	// ✅ Diskon global (setelah total dihitung)
 	var globalDiscount entity.Discount
 	err := input.DB.Where("is_global = ? AND is_active = ?", true, true).
 		Where("start_at <= ? AND end_at >= ?", time.Now(), time.Now()).
@@ -157,7 +163,6 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 
 		productId := IntOrDefault(item.ProductId, 0)
 		if productId != 0 {
-			// Produk biasa
 			var product entity.Product
 			err := input.DB.Preload("Variants").
 				Preload("Discount").
@@ -167,13 +172,18 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				return result, err
 			}
 
+			if item.Quantity < *product.MinimumSales {
+				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			}
+
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
 			if err != nil {
 				return result, err
 			}
 
 			subtotal := (pricing.TotalPrice + pricing.Tax) - pricing.Discount
-			result.BasePrice += pricing.TotalPrice
+			result.SellPrice += (pricing.SellPrice * float64(item.Quantity))
+			result.BasePrice += (pricing.BasePrice * float64(item.Quantity))
 			result.FinalPrice += subtotal
 			result.TotalDiscount += pricing.Discount
 			result.TotalTax += pricing.Tax
@@ -184,17 +194,17 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				ProductAttributeId: item.ProductAttributeId,
 				ProductVariantId:   item.ProductVariantId,
 				Quantity:           item.Quantity,
-				UnitPrice:          pricing.BasePrice,
+				BasePrice:          pricing.BasePrice,
+				SellPrice:          pricing.SellPrice,
 				Total:              subtotal,
 				Discount:           pricing.Discount,
 				Tax:                pricing.Tax,
 				Rating:             item.Rating,
 				Attributes:         attrs,
-				Product:            &product, // untuk akses ulang promo minimum_spend
+				Product:            &product,
 			})
 
 		} else if item.BundleId != nil {
-			// Bundle
 			var bundle entity.Bundle
 			err := input.DB.First(&bundle, "id = ?", item.BundleId).Error
 			if err != nil {
@@ -207,7 +217,8 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 			}
 
 			subtotal := (pricing.Total + pricing.Tax) * float64(item.Quantity)
-			result.BasePrice += pricing.BasePrice
+			result.SellPrice += (pricing.SellPrice * float64(item.Quantity))
+			result.BasePrice += (pricing.BasePrice * float64(item.Quantity))
 			result.FinalPrice += subtotal
 			result.TotalTax += pricing.Tax * float64(item.Quantity)
 
@@ -217,7 +228,8 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				ProductAttributeId: item.ProductAttributeId,
 				ProductVariantId:   item.ProductVariantId,
 				Quantity:           item.Quantity,
-				UnitPrice:          pricing.BasePrice,
+				BasePrice:          pricing.BasePrice,
+				SellPrice:          pricing.SellPrice,
 				Total:              subtotal,
 				Tax:                pricing.Tax,
 				Rating:             item.Rating,
@@ -228,7 +240,6 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 		}
 	}
 
-	// ✅ Diskon global (setelah total dihitung)
 	var globalDiscount entity.Discount
 	err := input.DB.Where("is_global = ? AND is_active = ?", true, true).
 		Where("start_at <= ? AND end_at >= ?", time.Now(), time.Now()).

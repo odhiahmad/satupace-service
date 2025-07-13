@@ -9,7 +9,8 @@ type Bundle struct {
 	Name        string   `gorm:"type:varchar(255)"`
 	Description *string  `gorm:"type:varchar(255)"`
 	Image       *string  `gorm:"type:text"`
-	BasePrice   float64
+	BasePrice   *float64 `json:"base_price,omitempty"`
+	SellPrice   *float64 `json:"sell_price,omitempty"`
 	Stock       int
 	Items       []BundleItem `gorm:"foreignKey:BundleId"`
 	TaxId       *int         `gorm:"index" json:"tax_id,omitempty"`

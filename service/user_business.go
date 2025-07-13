@@ -70,8 +70,12 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 		return err
 	}
 
+	if err := s.redisHelper.AllowRequest("retry:"+*req.PhoneNumber, 3, 5*time.Minute); err != nil {
+		return err
+	}
+
 	user.PhoneNumber = *req.PhoneNumber
-	otpCode := helper.GenerateOTPCode(6) // misal "123456"
+	otpCode := helper.GenerateOTPCode(6)
 
 	err = s.redisHelper.SaveOTP("whatsapp", *req.PhoneNumber, otpCode, 5*time.Minute)
 	if err != nil {

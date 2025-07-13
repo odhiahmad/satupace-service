@@ -59,7 +59,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	hasVariant := len(req.Variants) > 0
-	trackStock := req.Stock == nil || *req.Stock == 0
 
 	product := entity.Product{
 		BusinessId:   req.BusinessId,
@@ -77,7 +76,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		TaxId:        req.TaxId,
 		DiscountId:   req.DiscountId,
 		UnitId:       req.UnitId,
-		TrackStock:   trackStock,
+		TrackStock:   req.Stock != nil && *req.Stock > 0,
 		IsAvailable:  true,
 		IsActive:     true,
 	}
@@ -88,7 +87,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		product.MinimumSales = nil
 		product.Stock = nil
 		product.SKU = nil
-		product.TrackStock = false
 	}
 
 	err := s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
@@ -114,7 +112,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 					SellPrice:   v.SellPrice,
 					SKU:         skuVariant,
 					Stock:       v.Stock,
-					TrackStock:  v.Stock == 0,
+					TrackStock:  v.Stock > 0,
 					IsAvailable: true,
 					IsActive:    true,
 				})
@@ -171,13 +169,6 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 
 	hasVariants := len(req.Variants) > 0
 
-	var trackStock bool
-	if req.Stock != nil {
-		trackStock = *req.Stock == 0
-	} else {
-		trackStock = true
-	}
-
 	oldName := product.Name
 	product.CategoryId = *req.CategoryId
 	product.Name = req.Name
@@ -188,7 +179,6 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 	product.BrandId = req.BrandId
 	product.TaxId = req.TaxId
 	product.UnitId = req.UnitId
-	product.TrackStock = trackStock
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
 
@@ -197,11 +187,13 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
+		product.TrackStock = false
 	} else {
 		product.BasePrice = req.BasePrice
 		product.SellPrice = req.SellPrice
 		product.Stock = req.Stock
 		product.SKU = req.SKU
+		product.TrackStock = req.Stock != nil && *req.Stock > 0
 	}
 
 	updatedProduct, err := s.ProductRepo.Update(product)
@@ -326,13 +318,26 @@ func (s *productService) UpdateImage(id int, base64Image string) (response.Produ
 		return response.ProductResponse{}, fmt.Errorf("produk tidak ditemukan: %w", err)
 	}
 
-	var oldImageURL *string = product.Image
+	oldImageURL := product.Image
 
-	newImageURL, err := helper.UploadBase64ToCloudinary(base64Image, "product")
-	if err != nil {
-		return response.ProductResponse{}, fmt.Errorf("gagal upload gambar baru: %w", err)
+	resultChan := make(chan struct {
+		url string
+		err error
+	})
+
+	go func() {
+		url, err := helper.UploadBase64ToCloudinary(base64Image, "product")
+		resultChan <- struct {
+			url string
+			err error
+		}{url, err}
+	}()
+
+	result := <-resultChan
+	if result.err != nil {
+		return response.ProductResponse{}, fmt.Errorf("gagal upload gambar baru: %w", result.err)
 	}
-	product.Image = &newImageURL
+	product.Image = &result.url
 
 	updatedProduct, err := s.ProductRepo.UpdateAll(&product)
 	if err != nil {
@@ -340,10 +345,11 @@ func (s *productService) UpdateImage(id int, base64Image string) (response.Produ
 	}
 
 	if oldImageURL != nil {
-		publicID, err := helper.ExtractPublicIDFromURL(*oldImageURL)
-		if err == nil {
-			_ = helper.DeleteFromCloudinary(publicID)
-		}
+		go func(url string) {
+			if publicID, err := helper.ExtractPublicIDFromURL(url); err == nil {
+				_ = helper.DeleteFromCloudinary(publicID)
+			}
+		}(*oldImageURL)
 	}
 
 	return helper.MapProductToResponse(updatedProduct), nil

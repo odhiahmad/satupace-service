@@ -18,6 +18,8 @@ type AuthService interface {
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
 	VerifyOTPToken(phone string, token string) (*response.AuthResponse, error)
 	RetryOTP(phone string) error
+	RequestForgotPassword(phone string) error
+	ResetPassword(phone string, otp string, newPassword string) error
 }
 
 type authService struct {
@@ -131,25 +133,76 @@ func (s *authService) VerifyOTPToken(phone string, token string) (*response.Auth
 }
 
 func (s *authService) RetryOTP(phone string) error {
-	otpCode, err := s.redisHelper.GetOTP("whatsapp", phone)
+	if err := s.redisHelper.AllowRequest("retry:"+phone, 3, 5*time.Minute); err != nil {
+		return err
+	}
+
+	_ = s.redisHelper.DeleteOTP("whatsapp", phone)
+
+	newOTP := helper.GenerateOTPCode(6)
+
+	if err := s.redisHelper.SaveOTP("whatsapp", phone, newOTP, 5*time.Minute); err != nil {
+		return errors.New("gagal menyimpan OTP baru")
+	}
+
+	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", newOTP)
+	if err := helper.SendOTPViaWhatsApp(phone, message); err != nil {
+		log.Println("Gagal mengirim ulang OTP:", err)
+		return errors.New("gagal mengirim ulang OTP")
+	}
+
+	return nil
+}
+
+func (s *authService) RequestForgotPassword(phone string) error {
+	_, err := s.userBusinessRepository.FindByEmailOrPhone(phone)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	if err := s.redisHelper.AllowRequest(phone, 3, 5*time.Minute); err != nil {
+		return err
+	}
+
+	otpCode := helper.GenerateOTPCode(6)
+	err = s.redisHelper.SaveOTP("forgot_password", phone, otpCode, 5*time.Minute)
+	if err != nil {
+		log.Println("Gagal menyimpan OTP lupa password di Redis:", err)
+		return err
+	}
+
+	message := fmt.Sprintf("Kode reset password kamu adalah: %s", otpCode)
+	if err := helper.SendOTPViaWhatsApp(phone, message); err != nil {
+		log.Println("Gagal mengirim OTP reset password:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *authService) ResetPassword(phone string, otp string, newPassword string) error {
+	savedOTP, err := s.redisHelper.GetOTP("forgot_password", phone)
 	if err != nil {
 		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
 	}
 
-	message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", otpCode)
-
-	err = s.redisHelper.RetryUntilRedisKeyExpired(
-		"whatsapp",
-		phone,
-		2*time.Second,
-		func() error {
-			return helper.SendOTPViaWhatsApp(phone, message)
-		},
-	)
-	if err != nil {
-		log.Println("Gagal mengirim ulang OTP:", err)
-		return errors.New("gagal mengirim ulang OTP")
+	if savedOTP != otp {
+		return errors.New("OTP tidak valid")
 	}
+
+	user, err := s.userBusinessRepository.FindByEmailOrPhone(phone)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	hashedPassword := helper.HashAndSalt([]byte(newPassword))
+	user.Password = hashedPassword
+
+	if err := s.userBusinessRepository.Update(&user); err != nil {
+		return errors.New("gagal mengubah password")
+	}
+
+	_ = s.redisHelper.DeleteOTP("forgot_password", phone)
 
 	return nil
 }

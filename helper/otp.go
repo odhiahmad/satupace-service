@@ -23,6 +23,25 @@ func NewRedisHelper(client *redis.Client) *RedisHelper {
 	}
 }
 
+func (r *RedisHelper) AllowRequest(identifier string, maxTry int, window time.Duration) error {
+	key := fmt.Sprintf("rate_limit:otp:%s", identifier)
+
+	count, err := r.Client.Incr(r.Ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("gagal mengecek rate limit OTP: %v", err)
+	}
+
+	if count == 1 {
+		r.Client.Expire(r.Ctx, key, window)
+	}
+
+	if int(count) > maxTry {
+		return fmt.Errorf("Terlalu sering meminta OTP. Silakan coba lagi nanti.")
+	}
+
+	return nil
+}
+
 func (r *RedisHelper) SaveOTP(prefix, identifier, otp string, expiration time.Duration) error {
 	key := fmt.Sprintf("otp:%s:%s", prefix, identifier)
 	err := r.Client.Set(r.Ctx, key, otp, expiration).Err()

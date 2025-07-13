@@ -17,6 +17,8 @@ type TransactionController interface {
 	AddOrUpdateItem(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
+	Cancel(ctx *gin.Context)
+	Refund(ctx *gin.Context)
 }
 
 type transactionController struct {
@@ -32,11 +34,15 @@ func NewTransactionController(transactionService service.TransactionService, jwt
 }
 
 func (c *transactionController) Create(ctx *gin.Context) {
+	businessId := ctx.MustGet("business_id").(int)
+
 	var input request.TransactionCreateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
 		return
 	}
+
+	input.BusinessId = businessId
 
 	transaction, err := c.transactionService.Create(input)
 	if err != nil {
@@ -48,7 +54,9 @@ func (c *transactionController) Create(ctx *gin.Context) {
 }
 
 func (c *transactionController) Payment(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(int)
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
@@ -60,6 +68,7 @@ func (c *transactionController) Payment(ctx *gin.Context) {
 		return
 	}
 
+	input.CashierId = userId
 	transaction, err := c.transactionService.Payment(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
@@ -165,4 +174,64 @@ func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 		response,
 		paginationMeta,
 	))
+}
+
+func (c *transactionController) Refund(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(int)
+	businessId := ctx.MustGet("business_id").(int)
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))
+		return
+	}
+
+	var input request.TransactionRefundRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
+		return
+	}
+
+	input.Id = id
+	input.UserId = userId
+	input.BusinessId = businessId
+
+	transaction, err := c.transactionService.Refund(input)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal melakukan refund", "INTERNAL_ERROR", "transaction", err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Transaksi berhasil direfund", transaction))
+}
+
+func (c *transactionController) Cancel(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(int)
+	businessId := ctx.MustGet("business_id").(int)
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))
+		return
+	}
+
+	var input request.TransactionRefundRequest
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
+		return
+	}
+
+	input.Id = id
+	input.UserId = userId
+	input.BusinessId = businessId
+
+	transaction, err := c.transactionService.Cancel(input)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membatalkan transaksi", "INTERNAL_ERROR", "transaction", err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Transaksi berhasil dibatalkan", transaction))
 }

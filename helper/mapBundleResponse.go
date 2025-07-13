@@ -11,8 +11,14 @@ func MapBundleToResponse(p entity.Bundle) response.BundleResponse {
 		product := i.Product
 
 		var basePrice float64
+		var sellPrice float64
+
 		if product.BasePrice != nil {
 			basePrice = *product.BasePrice
+		}
+
+		if product.SellPrice != nil {
+			sellPrice = *product.SellPrice
 		}
 
 		var sku *string
@@ -26,7 +32,8 @@ func MapBundleToResponse(p entity.Bundle) response.BundleResponse {
 			Name:        product.Name,
 			Description: product.Description,
 			Image:       product.Image,
-			BasePrice:   basePrice,
+			BasePrice:   &basePrice,
+			SellPrice:   &sellPrice,
 			SKU:         sku,
 			Quantity:    i.Quantity,
 		})

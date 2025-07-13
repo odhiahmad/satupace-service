@@ -10,6 +10,7 @@ import (
 
 type TransactionPricing struct {
 	TotalPrice float64
+	SellPrice  float64
 	BasePrice  float64
 	Discount   float64
 	Tax        float64
@@ -22,39 +23,37 @@ func HitungHargaTransaksi(
 	quantity int,
 	allProductIds []int,
 ) (*TransactionPricing, error) {
-	log.Printf("[HargaTransaksi] Menghitung harga untuk produk ID: %d, Qty: %d", product.Id, quantity)
-
 	var price float64
+	var sellPrice float64
+	var basePrice float64
 
 	if product.HasVariant {
 		if productVariantId == nil {
 			return nil, errors.New("product variant ID is required for product with variants")
 		}
-		log.Printf("[HargaTransaksi] Produk memiliki variant. Mencari variant ID: %d", *productVariantId)
 
 		var found bool
 		for _, variant := range product.Variants {
 			if variant.Id == *productVariantId {
-				price = *variant.BasePrice
-				log.Printf("[HargaTransaksi] Variant ditemukan. Base price: %.2f", price)
+				price = *variant.SellPrice
+				sellPrice = *variant.SellPrice
+				basePrice = *variant.BasePrice
 				found = true
 				break
 			}
 		}
 		if !found {
-			log.Printf("[HargaTransaksi] Variant ID %d tidak ditemukan pada produk ini", *productVariantId)
 			return nil, errors.New("variant not found for this product")
 		}
 	} else {
-		price = *product.BasePrice
-		log.Printf("[HargaTransaksi] Produk tanpa variant. Base price: %.2f", price)
+		price = *product.SellPrice
+		sellPrice = *product.SellPrice
+		basePrice = *product.BasePrice
 	}
 
 	var discount float64
 	if product.Discount != nil && product.Discount.IsActive {
 		now := time.Now()
-		log.Printf("[HargaTransaksi] Diskon tersedia. ID: %d, Amount: %.2f, IsPercentage: %t, IsMultiple: %t", product.Discount.Id, product.Discount.Amount, product.Discount.IsPercentage, product.Discount.IsMultiple)
-		log.Printf("[HargaTransaksi] StartAt: %s, EndAt: %s, Now: %s", product.Discount.StartAt.Format(time.RFC3339), product.Discount.EndAt.Format(time.RFC3339), now.Format(time.RFC3339))
 
 		if (product.Discount.StartAt.IsZero() || now.After(product.Discount.StartAt)) &&
 			(product.Discount.EndAt.IsZero() || now.Before(product.Discount.EndAt)) {
@@ -71,12 +70,7 @@ func HitungHargaTransaksi(
 			} else {
 				discount = singleDiscount
 			}
-			log.Printf("[HargaTransaksi] Diskon dihitung: %.2f", discount)
-		} else {
-			log.Printf("[HargaTransaksi] Diskon tidak berlaku untuk waktu sekarang.")
 		}
-	} else {
-		log.Printf("[HargaTransaksi] Tidak ada diskon aktif untuk produk.")
 	}
 
 	var totalTax float64
@@ -86,9 +80,6 @@ func HitungHargaTransaksi(
 		} else {
 			totalTax += product.Tax.Amount
 		}
-		log.Printf("[HargaTransaksi] Pajak dihitung: %.2f", totalTax)
-	} else {
-		log.Printf("[HargaTransaksi] Tidak ada pajak aktif untuk produk.")
 	}
 
 	totalPrice := price * float64(quantity)
@@ -96,7 +87,8 @@ func HitungHargaTransaksi(
 
 	return &TransactionPricing{
 		TotalPrice: totalPrice,
-		BasePrice:  price,
+		SellPrice:  sellPrice,
+		BasePrice:  basePrice,
 		Discount:   discount,
 		Tax:        totalTax * float64(quantity),
 	}, nil

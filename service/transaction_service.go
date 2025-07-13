@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -19,6 +20,8 @@ type TransactionService interface {
 	FindById(id int) (*response.TransactionResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]*response.TransactionResponse, int64, error)
 	AddOrUpdateItem(transactionId int, item request.TransactionItemCreate) (*response.TransactionResponse, error)
+	Refund(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error)
+	Cancel(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error)
 }
 
 type transactionService struct {
@@ -64,9 +67,10 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		CustomerId: req.CustomerId,
 		BillNumber: billNumber,
 		Items:      res.Items,
-		Status:     "cart",
+		Status:     "unpaid",
 		FinalPrice: res.FinalPrice,
 		BasePrice:  res.BasePrice,
+		SellPrice:  res.SellPrice,
 		Discount:   res.TotalDiscount,
 		Tax:        res.TotalTax,
 		CreatedAt:  time.Now(),
@@ -80,37 +84,82 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
-// UPDATE
 func (s *transactionService) Payment(id int, req request.TransactionPaymentRequest) (*response.TransactionResponse, error) {
-	// Ambil transaksi dari database
 	transaction, err := s.transactionRepo.FindById(id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Hitung kembalian jika AmountReceived tersedia
-	var change float64
-	if req.AmountReceived != nil {
-		change = *req.AmountReceived - transaction.FinalPrice
+	if req.AmountReceived == nil {
+		return nil, errors.New("amountReceived harus diisi")
 	}
 
-	// Update field transaksi
+	amount := *req.AmountReceived
+	finalPrice := transaction.FinalPrice
+	totalReceived := amount
+
+	if transaction.AmountReceived != nil {
+		totalReceived += *transaction.AmountReceived
+	}
+
+	var change float64
+	var status string
+
+	switch {
+	case totalReceived >= finalPrice:
+		status = "paid"
+		change = totalReceived - finalPrice
+	case totalReceived > 0 && totalReceived < finalPrice:
+		status = "partial_paid"
+		change = 0
+	default:
+		return nil, errors.New("jumlah pembayaran tidak valid")
+	}
+
+	now := time.Now().UTC()
+
 	transaction.CustomerId = req.CustomerId
 	transaction.PaymentMethodId = req.PaymentMethodId
 	transaction.Rating = req.Rating
 	transaction.Notes = req.Notes
-	transaction.AmountReceived = req.AmountReceived
+	transaction.AmountReceived = &totalReceived
 	transaction.Change = &change
-	transaction.Status = "paid"
-	transaction.PaidAt = time.Now().UTC()
+	transaction.Status = status
+	transaction.PaidAt = &now
 
-	// Simpan perubahan ke database
+	if status == "paid" {
+		for _, item := range transaction.Items {
+			qty := item.Quantity
+
+			if item.ProductVariant != nil && item.ProductVariant.TrackStock {
+				newStock := item.ProductVariant.Stock - qty
+				if newStock < 0 {
+					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", item.ProductVariant.SKU)
+				}
+				if err := s.db.Model(&entity.ProductVariant{}).
+					Where("id = ?", item.ProductVariant.Id).
+					Update("stock", newStock).Error; err != nil {
+					return nil, err
+				}
+			} else if item.Product != nil && item.Product.TrackStock {
+				newStock := *item.Product.Stock - qty
+				if newStock < 0 {
+					return nil, fmt.Errorf("stok produk tidak mencukupi: %s", item.Product.Name)
+				}
+				if err := s.db.Model(&entity.Product{}).
+					Where("id = ?", item.Product.Id).
+					Update("stock", newStock).Error; err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	savedTx, err := s.transactionRepo.Update(&transaction)
 	if err != nil {
 		return nil, err
 	}
 
-	// Kembalikan response
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
@@ -119,7 +168,6 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		return nil, errors.New("item harus memiliki product_id atau bundle_id")
 	}
 
-	// Konversi atribut
 	var attrs []entity.TransactionItemAttribute
 	for _, attr := range itemReq.Attributes {
 		attrs = append(attrs, entity.TransactionItemAttribute{
@@ -128,7 +176,6 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		})
 	}
 
-	// Buat entity
 	item := entity.TransactionItem{
 		ProductId:          itemReq.ProductId,
 		BundleId:           itemReq.BundleId,
@@ -138,18 +185,15 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		Attributes:         attrs,
 	}
 
-	// Tambah atau update item di DB
 	if err := s.transactionRepo.AddOrReplaceItem(transactionId, item); err != nil {
 		return nil, err
 	}
 
-	// Ambil ulang semua item setelah update
 	items, err := s.transactionRepo.FindItemsByTransactionId(transactionId)
 	if err != nil {
 		return nil, err
 	}
 
-	// Ambil semua product_id
 	var allProductIds []int
 	for _, itm := range items {
 		if itm.ProductId != nil {
@@ -157,7 +201,6 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		}
 	}
 
-	// Hitung ulang untuk promo, diskon, dan harga final
 	prepared, err := helper.PrepareTransactionItemsUpdate(helper.TransactionItemInputUpdate{
 		DB:            s.db,
 		Items:         helper.ToTransactionItemRequests(items),
@@ -167,18 +210,17 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		return nil, err
 	}
 
-	// Update masing-masing item
 	for _, updatedItem := range prepared.Items {
 		if err := s.transactionRepo.UpdateItemFields(transactionId, updatedItem); err != nil {
 			return nil, err
 		}
 	}
 
-	// Update total transaksi saja
 	update := &entity.Transaction{
 		Id:         transactionId,
 		FinalPrice: prepared.FinalPrice,
-		BasePrice:  prepared.BasePrice,
+		SellPrice:  prepared.SellPrice,
+		BasePrice:  prepared.SellPrice,
 		Discount:   prepared.TotalDiscount,
 		Promo:      prepared.TotalPromo,
 		Tax:        prepared.TotalTax,
@@ -191,7 +233,6 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
-// FINDBYID
 func (s *transactionService) FindById(id int) (*response.TransactionResponse, error) {
 	transaction, err := s.transactionRepo.FindById(id)
 	if err != nil {
@@ -201,7 +242,6 @@ func (s *transactionService) FindById(id int) (*response.TransactionResponse, er
 	return helper.MapTransactionResponse(&transaction), nil
 }
 
-// FINDWITHPAGINATION
 func (s *transactionService) FindWithPagination(businessId int, pagination request.Pagination) ([]*response.TransactionResponse, int64, error) {
 	transactions, total, err := s.transactionRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
@@ -214,4 +254,60 @@ func (s *transactionService) FindWithPagination(businessId int, pagination reque
 	}
 
 	return responses, total, nil
+}
+
+func (s *transactionService) Refund(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error) {
+	transaction, err := s.transactionRepo.FindById(itemReq.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if transaction.Status != "paid" && transaction.Status != "partial_paid" {
+		return nil, errors.New("hanya transaksi dengan status 'paid' atau 'partial_paid' yang bisa direfund")
+	}
+
+	now := time.Now().UTC()
+
+	transaction.Status = "refunded"
+	transaction.IsRefunded = helper.BoolPtr(true)
+	transaction.RefundReason = itemReq.Reason
+	transaction.RefundedBy = &itemReq.UserId
+	transaction.RefundedAt = &now
+
+	savedTx, err := s.transactionRepo.Update(&transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	return helper.MapTransactionResponse(savedTx), nil
+}
+
+func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error) {
+	transaction, err := s.transactionRepo.FindById(itemReq.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if transaction.Status == "canceled" || transaction.Status == "refunded" {
+		return nil, errors.New("transaksi sudah dibatalkan atau direfund sebelumnya")
+	}
+
+	if transaction.Status == "paid" {
+		return nil, errors.New("transaksi yang sudah dibayar harus direfund, bukan dibatalkan")
+	}
+
+	now := time.Now().UTC()
+
+	transaction.Status = "canceled"
+	transaction.IsCanceled = helper.BoolPtr(true)
+	transaction.CanceledReason = itemReq.Reason
+	transaction.CanceledBy = &itemReq.UserId
+	transaction.CanceledAt = &now
+
+	savedTx, err := s.transactionRepo.Update(&transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	return helper.MapTransactionResponse(savedTx), nil
 }

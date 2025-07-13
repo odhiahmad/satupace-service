@@ -45,6 +45,7 @@ func (conn *ProductVariantConnection) Update(variant *entity.ProductVariant) err
 		"name":        variant.Name,
 		"sku":         variant.SKU,
 		"base_price":  variant.BasePrice,
+		"sell_price":  variant.SellPrice,
 		"stock":       variant.Stock,
 		"track_stock": variant.TrackStock,
 		"is_active":   variant.IsActive,
