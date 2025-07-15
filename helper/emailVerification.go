@@ -64,8 +64,8 @@ func NewEmailHelper() *EmailHelper {
 		SMTPHost: os.Getenv("EMAIL_SMTP_HOST"),
 		SMTPPort: 587,
 		Username: os.Getenv("EMAIL_USERNAME"),
-		Password: os.Getenv("EMAIL_SMTP_HOST"),
-		FromName: os.Getenv("EMAIL_SMTP_HOST"),
+		Password: os.Getenv("EMAIL_PASSWORD"),
+		FromName: os.Getenv("EMAIL_FROM"),
 	}
 }
 
