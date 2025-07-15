@@ -27,14 +27,16 @@ type authService struct {
 	userBusinessRepository repository.UserBusinessRepository
 	jwtService             JWTService
 	redisHelper            *helper.RedisHelper
+	emailHelper            *helper.EmailHelper
 }
 
-func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper) AuthService {
+func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper) AuthService {
 	return &authService{
 		userRepository:         userRep,
 		userBusinessRepository: userBusinessRepository,
 		jwtService:             jwtSvc,
 		redisHelper:            redisHelper,
+		emailHelper:            emailHelper,
 	}
 }
 
@@ -154,27 +156,35 @@ func (s *authService) RetryOTP(phone string) error {
 	return nil
 }
 
-func (s *authService) RequestForgotPassword(phone string) error {
-	_, err := s.userBusinessRepository.FindByEmailOrPhone(phone)
+func (s *authService) RequestForgotPassword(phoneOrEmail string) error {
+	user, err := s.userBusinessRepository.FindByEmailOrPhone(phoneOrEmail)
 	if err != nil {
 		return errors.New("user tidak ditemukan")
 	}
 
-	if err := s.redisHelper.AllowRequest(phone, 3, 5*time.Minute); err != nil {
+	if err := s.redisHelper.AllowRequest(phoneOrEmail, 3, 5*time.Minute); err != nil {
 		return err
 	}
 
 	otpCode := helper.GenerateOTPCode(6)
-	err = s.redisHelper.SaveOTP("forgot_password", phone, otpCode, 5*time.Minute)
+	err = s.redisHelper.SaveOTP("forgot_password", phoneOrEmail, otpCode, 5*time.Minute)
 	if err != nil {
 		log.Println("Gagal menyimpan OTP lupa password di Redis:", err)
 		return err
 	}
 
-	message := fmt.Sprintf("Kode reset password kamu adalah: %s", otpCode)
-	if err := helper.SendOTPViaWhatsApp(phone, message); err != nil {
-		log.Println("Gagal mengirim OTP reset password:", err)
-		return err
+	if helper.IsEmail(phoneOrEmail) {
+		subject, text, html := helper.BuildVerificationEmail(*user.Email, otpCode)
+		if err := s.emailHelper.Send(phoneOrEmail, subject, text, html); err != nil {
+			log.Println("Gagal mengirim OTP reset password ke email:", err)
+			return err
+		}
+	} else {
+		message := fmt.Sprintf("Kode reset password kamu adalah: %s", otpCode)
+		if err := helper.SendOTPViaWhatsApp(phoneOrEmail, message); err != nil {
+			log.Println("Gagal mengirim OTP reset password ke WhatsApp:", err)
+			return err
+		}
 	}
 
 	return nil

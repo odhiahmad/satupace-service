@@ -20,20 +20,18 @@ type RegistrationService interface {
 }
 
 type registrationService struct {
-	repo         repository.RegistrationRepository
-	membership   repository.MembershipRepository
-	validate     *validator.Validate
-	emailService EmailService
-	redisHelper  *helper.RedisHelper
+	repo        repository.RegistrationRepository
+	membership  repository.MembershipRepository
+	validate    *validator.Validate
+	redisHelper *helper.RedisHelper
 }
 
-func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, emailService EmailService, validate *validator.Validate, redisHelper *helper.RedisHelper) RegistrationService {
+func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, validate *validator.Validate, redisHelper *helper.RedisHelper) RegistrationService {
 	return &registrationService{
-		repo:         repo,
-		membership:   membership,
-		validate:     validate,
-		emailService: emailService,
-		redisHelper:  redisHelper,
+		repo:        repo,
+		membership:  membership,
+		validate:    validate,
+		redisHelper: redisHelper,
 	}
 }
 

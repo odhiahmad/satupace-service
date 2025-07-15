@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +16,7 @@ import (
 )
 
 var (
-	emailService service.EmailService = service.NewEmailService(
-		os.Getenv("RESEND_FROM"),    // e.g. "Kasirku <noreply@kasirku.com>"
-		os.Getenv("RESEND_API_KEY"), // API key dari Resend
-	)
+	emailHelper              *helper.EmailHelper                 = helper.NewEmailHelper()
 	redisClient              *redis.Client                       = config.SetupRedisClient()
 	redisHelper              *helper.RedisHelper                 = helper.NewRedisHelper(redisClient)
 	validate                 *validator.Validate                 = validator.New()
@@ -45,14 +41,14 @@ var (
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
-	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper)
+	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper)
 	userService           service.UserService           = service.NewUserService(userRepository, validate)
 	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate, redisClient)
-	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, emailService, validate, redisHelper)
+	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, validate, redisHelper)
 	productService        service.ProductService        = service.NewProductService(productRepository, productVariantRepository, validate, redisClient)
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
