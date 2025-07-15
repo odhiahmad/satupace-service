@@ -23,7 +23,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "===> Deploying kasirku-service"
-
+            
+            export PATH=$PATH:/usr/local/go/bin  # tambahkan ini
+  
             cd /home/kasirku-service || exit 1
 
             echo "===> Pulling latest code..."
