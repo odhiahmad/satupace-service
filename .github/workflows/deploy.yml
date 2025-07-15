@@ -24,7 +24,7 @@ jobs:
           script: |
             echo "===> Deploying kasirku-service"
 
-            cd /var/www/html/kasirku-service || exit 1
+            cd /home/kasirku-service || exit 1
 
             echo "===> Pulling latest code..."
             git reset --hard
@@ -38,7 +38,7 @@ jobs:
             go build -o kasirku main.go
 
             echo "===> Restarting systemd service..."
-            sudo systemctl restart kasirku
+            sudo systemctl restart kasirku.service
 
             echo "===> Deployment complete ✅"
 
