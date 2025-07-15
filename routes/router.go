@@ -87,7 +87,7 @@ var (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 5, time.Minute))
+	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
 		authRoutes.POST("/verify-otp", authController.VerifyOTP)
@@ -97,7 +97,7 @@ func SetupRouter() *gin.Engine {
 		authRoutes.POST("/reset-password", authController.ResetPassword)
 	}
 
-	userRoutes := r.Group("user", middleware.AuthorizeJWT(jwtService))
+	userRoutes := r.Group("user", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		userRoutes.GET("/profile", userBusinessController.FindById)
 		userRoutes.PUT("/change-phone", userBusinessController.ChangePhone)
@@ -106,7 +106,7 @@ func SetupRouter() *gin.Engine {
 		userRoutes.PUT("/business", businessController.Update)
 	}
 
-	roleRoutes := r.Group("role")
+	roleRoutes := r.Group("role", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		roleRoutes.POST("", roleController.CreateRole)
 		roleRoutes.PATCH("/:roleId", roleController.UpdateRole)
@@ -115,7 +115,7 @@ func SetupRouter() *gin.Engine {
 		roleRoutes.DELETE("/:roleId", roleController.DeleteRole)
 	}
 
-	businessTypeRoutes := r.Group("business-type")
+	businessTypeRoutes := r.Group("business-type", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		businessTypeRoutes.POST("", businessTypeController.CreateBusinessType)
 		businessTypeRoutes.PATCH("/:id", businessTypeController.UpdateBusinessType)
@@ -124,7 +124,7 @@ func SetupRouter() *gin.Engine {
 		businessTypeRoutes.DELETE("/:id", businessTypeController.DeleteBusinessType)
 	}
 
-	paymentMethodRoutes := r.Group("payment-method")
+	paymentMethodRoutes := r.Group("payment-method", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		paymentMethodRoutes.POST("", paymentMethodController.Create)
 		paymentMethodRoutes.PATCH("/:id", paymentMethodController.Update)
@@ -133,7 +133,7 @@ func SetupRouter() *gin.Engine {
 		paymentMethodRoutes.DELETE("/:id", paymentMethodController.Delete)
 	}
 
-	libRoutes := r.Group("lib", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 5, time.Minute))
+	libRoutes := r.Group("lib", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		libRoutes.POST("/category", categoryController.Create)
 		libRoutes.POST("/brand", brandController.Create)
@@ -169,7 +169,7 @@ func SetupRouter() *gin.Engine {
 
 	}
 
-	productRoutes := r.Group("product", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 1, time.Minute))
+	productRoutes := r.Group("product", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		productRoutes.POST("", productController.Create)
 		productRoutes.PUT("/:id", productController.Update)
@@ -188,7 +188,7 @@ func SetupRouter() *gin.Engine {
 		productRoutes.PUT("/variant/:id/available", productVariantController.SetAvailable)
 	}
 
-	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 1, time.Minute))
+	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		bundleRoutes.POST("", bundleController.Create)
 		bundleRoutes.PUT("/:id", bundleController.Update)
@@ -199,7 +199,7 @@ func SetupRouter() *gin.Engine {
 		bundleRoutes.PUT("/:id/available", bundleController.SetIsAvailable)
 	}
 
-	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 10, time.Minute))
+	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		transactionRoutes.POST("", transactionController.Create)
 		transactionRoutes.PUT("/:id/payment", transactionController.Payment)
@@ -210,7 +210,7 @@ func SetupRouter() *gin.Engine {
 		transactionRoutes.PUT("/:id/canceled", transactionController.Cancel)
 	}
 
-	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 5, time.Minute))
+	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		businessRoutes.POST("", businessController.Create)
 		businessRoutes.GET("/:id", businessController.FindById)
@@ -218,7 +218,7 @@ func SetupRouter() *gin.Engine {
 		businessRoutes.GET("", businessController.FindWithPagination)
 	}
 
-	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 10, time.Minute))
+	locationRoutes := r.Group("location", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		locationRoutes.GET("/provinces", locationController.GetProvinces)
 		locationRoutes.GET("/cities", locationController.GetCities)
