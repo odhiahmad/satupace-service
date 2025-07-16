@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type Membership struct {
-	Id        int       `gorm:"primaryKey"`
+	Id        int       `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserId    int       `gorm:"not null"`
 	StartDate time.Time `gorm:"not null"`
 	EndDate   time.Time `gorm:"not null"`

@@ -5,7 +5,7 @@ import (
 )
 
 type TransactionItem struct {
-	Id                 int                        `gorm:"primaryKey" json:"id"`
+	Id                 int                        `gorm:"primaryKey;autoIncrement" json:"id"`
 	TransactionId      int                        `json:"transaction_id"`
 	ProductId          *int                       `json:"product_id"`
 	Product            *Product                   `gorm:"foreignKey:ProductId"`

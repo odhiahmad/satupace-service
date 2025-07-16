@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type BundleItem struct {
-	Id        int `gorm:"type:int;primary_key"`
+	Id        int `gorm:"primaryKey;autoIncrement" json:"id"`
 	BundleId  int `gorm:"index"`
 	ProductId int `gorm:"index"`
 	Quantity  int

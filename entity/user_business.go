@@ -5,7 +5,7 @@ import (
 )
 
 type UserBusiness struct {
-	Id           int `gorm:"primaryKey;autoIncrement"`
+	Id           int `gorm:"primaryKey;autoIncrement" json:"id"`
 	RoleId       int
 	Role         Role `gorm:"foreignKey:RoleId"`
 	BusinessId   int

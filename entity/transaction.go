@@ -5,7 +5,7 @@ import (
 )
 
 type Transaction struct {
-	Id              int `gorm:"primaryKey" json:"id"`
+	Id              int `gorm:"primaryKey;autoIncrement" json:"id"`
 	BusinessId      int
 	Business        Business `gorm:"foreignKey:BusinessId"`
 	CustomerId      *int

@@ -5,7 +5,7 @@ import (
 )
 
 type ProductAttribute struct {
-	Id          int       `gorm:"type:int;primary_key"`
+	Id          int       `gorm:"primaryKey;autoIncrement" json:"id"`
 	ProductId   int       `gorm:"null" json:"product_id"`
 	Name        string    `gorm:"type:varchar(255)" json:"name"`
 	Price       float64   `json:"price"`

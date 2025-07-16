@@ -6,7 +6,7 @@ import (
 )
 
 type Product struct {
-	Id           int              `gorm:"primaryKey" json:"id"`
+	Id           int              `gorm:"primaryKey;autoIncrement" json:"id"`
 	BusinessId   int              `gorm:"not null" json:"business_id"`
 	Business     *Business        `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	CategoryId   int              `gorm:"not null" json:"category_id"`

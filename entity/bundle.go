@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type Bundle struct {
-	Id          int `gorm:"primaryKey"`
+	Id          int `gorm:"primaryKey;autoIncrement" json:"id"`
 	BusinessId  int
 	Business    Business `gorm:"foreignKey:BusinessId"`
 	Name        string   `gorm:"type:varchar(255)"`

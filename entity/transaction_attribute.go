@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type TransactionItemAttribute struct {
-	Id                 int `gorm:"type:int;primary_key"`
+	Id                 int `gorm:"primaryKey;autoIncrement" json:"id"`
 	TransactionItemId  int
 	ProductAttributeId int
 	ProductAttribute   ProductAttribute

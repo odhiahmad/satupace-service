@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type Discount struct {
-	Id           int       `gorm:"primaryKey" json:"id"`
+	Id           int       `gorm:"primaryKey;autoIncrement" json:"id"`
 	BusinessId   int       `gorm:"not null" json:"business_id"`
 	Name         string    `gorm:"not null" json:"name"`
 	Description  string    `json:"description"`
