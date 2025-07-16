@@ -62,13 +62,13 @@ func NewEmailHelper() *EmailHelper {
 		SMTPPort: 587,
 		Username: "support@lokakasir.id",
 		Password: "Kreativita#123",
-		FromName: "Support Loka Kasir <support@lokakasir.id>",
+		FromName: "Support Loka Kasir",
 	}
 }
 
 func (e *EmailHelper) Send(to string, subject string, bodyPlain string, bodyHTML string) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", m.FormatAddress(e.Username, e.FromName))
+	m.SetAddressHeader("From", e.Username, e.FromName)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", bodyPlain)
