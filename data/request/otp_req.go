@@ -6,7 +6,7 @@ type VerifyOTPRequest struct {
 }
 
 type RetryOTPRequest struct {
-	Value string `json:"value"`
+	Identifier string `json:"identifier"`
 }
 
 type ForgotPasswordRequest struct {

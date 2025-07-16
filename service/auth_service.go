@@ -143,26 +143,26 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 }
 
 func (s *authService) RetryOTP(req request.RetryOTPRequest) error {
-	if err := s.redisHelper.AllowRequest("retry:"+req.Value, 3, 5*time.Minute); err != nil {
+	if err := s.redisHelper.AllowRequest("retry:"+req.Identifier, 3, 5*time.Minute); err != nil {
 		return err
 	}
 
-	_ = s.redisHelper.DeleteOTP("otp", req.Value)
+	_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
 
 	newOTP := helper.GenerateOTPCode(6)
 
-	if err := s.redisHelper.SaveOTP("otp", req.Value, newOTP, 5*time.Minute); err != nil {
+	if err := s.redisHelper.SaveOTP("otp", req.Identifier, newOTP, 5*time.Minute); err != nil {
 		return errors.New("gagal menyimpan OTP baru")
 	}
 
-	if req.Via == "email" {
-		subject, text, html := helper.BuildVerificationEmail(req.Value, newOTP)
-		if err := s.emailHelper.Send(req.Value, subject, text, html); err != nil {
+	if helper.IsEmail(req.Identifier) {
+		subject, text, html := helper.BuildVerificationEmail(req.Identifier, newOTP)
+		if err := s.emailHelper.Send(req.Identifier, subject, text, html); err != nil {
 			return errors.New("gagal mengirim ulang OTP ke email")
 		}
 	} else {
 		message := fmt.Sprintf("Kode verifikasi akun kamu adalah: %s", newOTP)
-		if err := helper.SendOTPViaWhatsApp(req.Value, message); err != nil {
+		if err := helper.SendOTPViaWhatsApp(req.Identifier, message); err != nil {
 			return errors.New("gagal mengirim ulang OTP ke WhatsApp")
 		}
 	}
