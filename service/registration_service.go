@@ -104,7 +104,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 
 	otpCode := helper.GenerateOTPCode(6)
 
-	err = s.redisHelper.SaveOTP("whatsapp", req.PhoneNumber, otpCode, 5*time.Minute)
+	err = s.redisHelper.SaveOTP("otp", req.PhoneNumber, otpCode, 5*time.Minute)
 	if err != nil {
 		log.Println("Gagal simpan OTP:", err)
 		return err
