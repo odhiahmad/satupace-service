@@ -103,10 +103,7 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 }
 
 func (c *authController) VerifyOTP(ctx *gin.Context) {
-	var req struct {
-		Phone string `json:"phone" binding:"required"`
-		Token string `json:"token" binding:"required"`
-	}
+	var req request.VerifyOTPRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -119,7 +116,7 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
-	userResponse, err := c.authService.VerifyOTPToken(req.Phone, req.Token)
+	userResponse, err := c.authService.VerifyOTPToken(req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Verifikasi OTP gagal",
@@ -135,102 +132,85 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 }
 
 func (c *authController) RetryOTP(ctx *gin.Context) {
-	var req struct {
-		Phone string `json:"phone" binding:"required"`
-	}
+	var req request.RetryOTPRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
 			"bad_request",
 			"request_body",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	if err := c.authService.RetryOTP(req.Phone); err != nil {
-		res := helper.BuildErrorResponse(
+	if err := c.authService.RetryOTP(req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengirim ulang OTP",
 			"retry_failed",
-			"phone",
+			"identifier",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusInternalServerError, res)
+		))
 		return
 	}
 
-	res := helper.BuildResponse(true, "OTP berhasil dikirim ulang", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "OTP berhasil dikirim ulang", helper.EmptyObj{}))
 }
 
 func (c *authController) RequestForgotPassword(ctx *gin.Context) {
-	var req struct {
-		Phone string `json:"phone" binding:"required"`
-	}
+	var req request.ForgotPasswordRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
 			"bad_request",
 			"request_body",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	if err := c.authService.RequestForgotPassword(req.Phone); err != nil {
-		res := helper.BuildErrorResponse(
+	if err := c.authService.RequestForgotPassword(req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengirim OTP reset password",
 			"request_otp_failed",
-			"phone",
+			"identifier",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusInternalServerError, res)
+		))
 		return
 	}
 
-	res := helper.BuildResponse(true, "Kode OTP reset password berhasil dikirim", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Kode OTP reset password berhasil dikirim", helper.EmptyObj{}))
 }
 
 func (c *authController) ResetPassword(ctx *gin.Context) {
-	var req struct {
-		Phone       string `json:"phone" binding:"required"`
-		OTP         string `json:"otp" binding:"required"`
-		NewPassword string `json:"password" binding:"required,min=6"`
-	}
+	var req request.ResetPasswordRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse(
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
 			"bad_request",
 			"request_body",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
+		))
 		return
 	}
 
-	if err := c.authService.ResetPassword(req.Phone, req.OTP, req.NewPassword); err != nil {
-		res := helper.BuildErrorResponse(
+	if err := c.authService.ResetPassword(req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengatur ulang password",
 			"reset_password_failed",
-			"otp_or_phone",
+			"otp_or_identifier",
 			err.Error(),
 			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusInternalServerError, res)
+		))
 		return
 	}
 
-	res := helper.BuildResponse(true, "Password berhasil diatur ulang", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Password berhasil diatur ulang", helper.EmptyObj{}))
 }

@@ -22,10 +22,11 @@ type UserBusinessService interface {
 type userBusinessService struct {
 	repo        repository.UserBusinessRepository
 	redisHelper *helper.RedisHelper
+	emailHelper *helper.EmailHelper
 }
 
-func NewUserBusinessService(repo repository.UserBusinessRepository, redisHelper *helper.RedisHelper) UserBusinessService {
-	return &userBusinessService{repo: repo, redisHelper: redisHelper}
+func NewUserBusinessService(repo repository.UserBusinessRepository, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper) UserBusinessService {
+	return &userBusinessService{repo: repo, redisHelper: redisHelper, emailHelper: emailHelper}
 }
 
 func (s *userBusinessService) FindById(id int) (response.UserBusinessResponse, error) {
@@ -60,7 +61,21 @@ func (s *userBusinessService) ChangeEmail(req request.ChangeEmailRequest) error 
 		return err
 	}
 
-	user.Email = req.Email
+	otpCode := helper.GenerateOTPCode(6)
+
+	err = s.redisHelper.SaveOTP("change_email", *req.Email, otpCode, 5*time.Minute)
+	if err != nil {
+		log.Println("Gagal menyimpan OTP verifikasi email baru di Redis:", err)
+		return err
+	}
+
+	subject, text, html := helper.BuildLinkEmailVerification(*req.Email, otpCode)
+	if err := s.emailHelper.Send(*req.Email, subject, text, html); err != nil {
+		log.Println("Gagal mengirim OTP verifikasi email baru:", err)
+		return err
+	}
+
+	user.PendingEmail = req.Email
 	return s.repo.Update(&user)
 }
 

@@ -43,7 +43,7 @@ var (
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper)
 	userService           service.UserService           = service.NewUserService(userRepository, validate)
-	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper)
+	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper, emailHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
