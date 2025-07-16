@@ -91,7 +91,7 @@ func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entit
 		Preload("Business").
 		Preload("Business.BusinessType").
 		Preload("Membership").
-		Where("email = ? OR phone_number = ?", identifier, identifier).
+		Where("email = ? OR phone_number = ? or pending_email = ?", identifier, identifier, identifier).
 		First(&user).Error
 
 	if err != nil {
