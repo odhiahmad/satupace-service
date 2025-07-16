@@ -39,8 +39,11 @@ jobs:
             echo "===> Building..."
             /usr/local/go/bin/go build -o kasirku main.go
 
+            echo "===> Menambahkan sudoers rule (jika belum)"
+            echo 'root ALL=(ALL) NOPASSWD: /bin/systemctl restart kasirku' > /etc/sudoers.d/github-actions
+
             echo "===> Restarting service..."
-            systemctl restart kasirku
+            /bin/systemctl restart kasirku
 
             echo "✅ Deployment finished!"
 
