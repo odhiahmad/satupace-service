@@ -3,12 +3,10 @@ package helper
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"gopkg.in/gomail.v2"
 )
 
-// BuildVerificationEmail membangun subjek dan isi email verifikasi
 func BuildVerificationEmail(recipientEmail string, token string) (subject string, bodyPlain string, bodyHTML string) {
 	subject = "Kode Verifikasi Email Anda - Loka Kasir"
 
@@ -53,19 +51,18 @@ Tim Loka Kasir`, token)
 type EmailHelper struct {
 	SMTPHost string
 	SMTPPort int
-	Username string // Email address used to send
-	Password string // SMTP App Password
+	Username string
+	Password string
 	FromName string
 }
 
-// NewEmailHelper inisialisasi helper
 func NewEmailHelper() *EmailHelper {
 	return &EmailHelper{
-		SMTPHost: os.Getenv("EMAIL_SMTP_HOST"),
+		SMTPHost: "smtp.zoho.com",
 		SMTPPort: 587,
-		Username: os.Getenv("EMAIL_USERNAME"),
-		Password: os.Getenv("EMAIL_PASSWORD"),
-		FromName: os.Getenv("EMAIL_FROM"),
+		Username: "support@lokakasir.id",
+		Password: "Kreativita#123",
+		FromName: "Support Loka Kasir <support@lokakasir.id>",
 	}
 }
 
