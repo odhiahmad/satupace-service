@@ -23,6 +23,8 @@ type ProductRepository interface {
 	ResetVariantStateToFalse(productId int) error // ⬅️ Tambahkan ini
 	WithTransaction(fn func(conn ProductRepository) error) error
 	UpdateImage(productId int, imageURL string) error
+	IsSKUExist(sku string, businessId int) (bool, error)
+	IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error)
 }
 
 type productConnection struct {
@@ -239,4 +241,26 @@ func (conn *productConnection) UpdateImage(productId int, imageURL string) error
 			"image":    imageURL,
 			"is_ready": true,
 		}).Error
+}
+
+func (conn *productConnection) IsSKUExist(sku string, businessId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.Product{}).
+		Where("business_id = ? AND sku = ?", businessId, sku).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *productConnection) IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error) {
+	var count int64
+	err := conn.db.
+		Model(&entity.Product{}).
+		Where("business_id = ? AND sku = ? AND id != ?", businessId, sku, exceptProductId).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

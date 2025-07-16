@@ -1,7 +1,7 @@
 package request
 
 type ProductRequest struct {
-	BusinessId   int                     `json:"business_id" validate:"required"`
+	BusinessId   *int                    `json:"business_id" validate:"required"`
 	CategoryId   *int                    `json:"category_id" validate:"required"`
 	Name         string                  `json:"name" validate:"required"`
 	HasVariant   bool                    `json:"has_variant"`
@@ -30,11 +30,11 @@ type CategoryRequest struct {
 }
 
 type ProductVariantRequest struct {
-	BusinessId int      `json:"business_id" validate:"required"`
+	BusinessId *int     `json:"business_id" validate:"required"`
 	Name       string   `json:"name" validate:"required"`
 	BasePrice  *float64 `json:"base_price,omitempty"`
 	SellPrice  *float64 `json:"sell_price,omitempty"`
-	SKU        string   `json:"sku,omitempty"`
+	SKU        *string  `json:"sku,omitempty"`
 	Stock      int      `json:"stock,omitempty"`
 	TrackStock *bool    `json:"track_stock,omitempty"`
 }

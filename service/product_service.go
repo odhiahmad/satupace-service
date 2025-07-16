@@ -52,17 +52,50 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, err
 	}
 
-	sku := req.SKU
-	if sku == nil || *sku == "" {
-		s := helper.GenerateSKU(req.Name)
-		sku = &s
-	}
-
 	hasVariant := len(req.Variants) > 0
+	sku := req.SKU
+
+	if hasVariant {
+		if sku != nil && *sku != "" {
+			return response.ProductResponse{}, fmt.Errorf("SKU produk harus kosong jika memiliki varian")
+		}
+
+		skuMap := map[string]bool{}
+		for _, v := range req.Variants {
+			if v.SKU == nil || *v.SKU == "" {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian tidak boleh kosong")
+			}
+			if skuMap[*v.SKU] {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *v.SKU)
+			}
+			skuMap[*v.SKU] = true
+
+			exist, err := s.ProductVariantRepo.IsSKUExist(*v.SKU, *req.BusinessId)
+			if err != nil {
+				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU varian di database: %w", err)
+			}
+			if exist {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian sudah digunakan: %s", *v.SKU)
+			}
+		}
+	} else {
+		if sku == nil || *sku == "" {
+			sGenerated := helper.GenerateSKU(req.Name)
+			sku = &sGenerated
+		}
+
+		exist, err := s.ProductRepo.IsSKUExist(*sku, *req.BusinessId)
+		if err != nil {
+			return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk di database: %w", err)
+		}
+		if exist {
+			return response.ProductResponse{}, fmt.Errorf("SKU produk sudah digunakan")
+		}
+	}
 
 	product := entity.Product{
 		BusinessId:   req.BusinessId,
-		CategoryId:   *req.CategoryId,
+		CategoryId:   req.CategoryId,
 		Name:         req.Name,
 		Description:  req.Description,
 		Image:        nil,
@@ -99,18 +132,13 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		if hasVariant {
 			var variants []entity.ProductVariant
 			for _, v := range req.Variants {
-				skuVariant := v.SKU
-				if skuVariant == "" {
-					skuVariant = helper.GenerateSKU(v.Name)
-				}
-
 				variants = append(variants, entity.ProductVariant{
 					BusinessId:  req.BusinessId,
-					ProductId:   product.Id,
+					ProductId:   &product.Id,
 					Name:        v.Name,
 					BasePrice:   v.BasePrice,
 					SellPrice:   v.SellPrice,
-					SKU:         skuVariant,
+					SKU:         v.SKU,
 					Stock:       v.Stock,
 					TrackStock:  v.Stock > 0,
 					IsAvailable: true,
@@ -143,10 +171,10 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 				log.Printf("Gagal update gambar produk setelah upload: %v", err)
 			}
 
-			if err := helper.AddProductToAutocomplete(s.Redis, req.BusinessId, product.Id, product.Name, url); err != nil {
+			if err := helper.AddProductToAutocomplete(s.Redis, businessId, productId, name, url); err != nil {
 				log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
 			}
-		}(product.Id, req.BusinessId, req.Name, *req.Image)
+		}(product.Id, *req.BusinessId, req.Name, *req.Image)
 	}
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
@@ -167,41 +195,45 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 		return response.ProductResponse{}, err
 	}
 
-	hasVariants := len(req.Variants) > 0
-
 	oldName := product.Name
-	product.CategoryId = *req.CategoryId
+
+	// Validasi dan auto-generate SKU
+	if req.SKU == nil || *req.SKU == "" {
+		sku := helper.GenerateSKU(req.Name)
+		req.SKU = &sku
+	}
+
+	if product.SKU == nil || *product.SKU != *req.SKU {
+		exist, err := s.ProductRepo.IsSKUExistExcept(*req.SKU, *req.BusinessId, id)
+		if err != nil {
+			return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk: %w", err)
+		}
+		if exist {
+			return response.ProductResponse{}, fmt.Errorf("SKU produk sudah digunakan")
+		}
+	}
+
+	product.CategoryId = req.CategoryId
 	product.Name = req.Name
 	product.Description = req.Description
-	product.HasVariant = hasVariants
-	product.IsAvailable = true
-	product.IsActive = true
 	product.BrandId = req.BrandId
 	product.TaxId = req.TaxId
 	product.UnitId = req.UnitId
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
-
-	if hasVariants {
-		product.BasePrice = nil
-		product.SellPrice = nil
-		product.Stock = nil
-		product.SKU = nil
-		product.TrackStock = false
-	} else {
-		product.BasePrice = req.BasePrice
-		product.SellPrice = req.SellPrice
-		product.Stock = req.Stock
-		product.SKU = req.SKU
-		product.TrackStock = req.Stock != nil && *req.Stock > 0
-	}
+	product.BasePrice = req.BasePrice
+	product.SellPrice = req.SellPrice
+	product.Stock = req.Stock
+	product.SKU = req.SKU
+	product.TrackStock = req.Stock != nil && *req.Stock > 0
+	product.HasVariant = false
 
 	updatedProduct, err := s.ProductRepo.Update(product)
 	if err != nil {
 		return response.ProductResponse{}, err
 	}
 
-	_ = helper.UpdateProductAutocomplete(s.Redis, product.BusinessId, oldName, product.Name, product.Id, *product.Image)
+	_ = helper.UpdateProductAutocomplete(s.Redis, *product.BusinessId, oldName, product.Name, product.Id, *product.Image)
 
 	productResponse := helper.MapProductToResponse(updatedProduct)
 
@@ -220,12 +252,12 @@ func (s *productService) Delete(id int) error {
 		return err
 	}
 
-	if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, product.Name); err != nil {
+	if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, product.Name); err != nil {
 		fmt.Printf("gagal menghapus autocomplete produk: %v\n", err)
 	}
 
 	for _, variant := range product.Variants {
-		if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, variant.Name); err != nil {
+		if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, variant.Name); err != nil {
 			fmt.Printf("gagal menghapus autocomplete variant: %v\n", err)
 		}
 	}

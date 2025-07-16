@@ -2,7 +2,7 @@ package response
 
 type ProductVariantResponse struct {
 	Id          int      `json:"id"`
-	SKU         string   `json:"sku,omitempty"`
+	SKU         *string  `json:"sku,omitempty"`
 	Name        string   `json:"nama"`
 	Image       string   `json:"image"`
 	BasePrice   *float64 `json:"base_price,omitempty"`

@@ -19,6 +19,8 @@ type ProductVariantRepository interface {
 	IsSKUExists(sku string) (bool, error)
 	CreateWithTx(txRepo ProductRepository, variants []entity.ProductVariant) error
 	CountByProductId(productId int) (int64, error)
+	IsSKUExist(sku string, businessId int) (bool, error)
+	IsSKUExistExcept(sku string, businessId int, exceptId int) (bool, error)
 }
 
 type ProductVariantConnection struct {
@@ -101,4 +103,26 @@ func (conn *ProductVariantConnection) CountByProductId(productId int) (int64, er
 	var count int64
 	err := conn.db.Model(&entity.ProductVariant{}).Where("product_id = ?", productId).Count(&count).Error
 	return count, err
+}
+
+func (conn *ProductVariantConnection) IsSKUExist(sku string, businessId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.ProductVariant{}).
+		Where("business_id = ? AND sku = ?", businessId, sku).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *ProductVariantConnection) IsSKUExistExcept(sku string, businessId int, exceptId int) (bool, error) {
+	var count int64
+	err := conn.db.
+		Model(&entity.ProductVariant{}).
+		Where("business_id = ? AND sku = ? AND id != ?", businessId, sku, exceptId).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

@@ -45,7 +45,7 @@ func (c *productController) Create(ctx *gin.Context) {
 		return
 	}
 
-	input.BusinessId = businessId
+	input.BusinessId = &businessId
 	res, err := c.productService.Create(input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat product", "internal_error", "product", err.Error(), nil))
@@ -73,7 +73,7 @@ func (c *productController) Update(ctx *gin.Context) {
 		return
 	}
 
-	input.BusinessId = businessId
+	input.BusinessId = &businessId
 	result, err := c.productService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(

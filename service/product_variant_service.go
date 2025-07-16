@@ -45,12 +45,21 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 	}
 
 	sku := req.SKU
-	if sku == "" {
-		sku = helper.GenerateSKU(req.Name)
+	if sku == nil || *sku == "" {
+		s := helper.GenerateSKU(req.Name)
+		sku = &s
+	}
+
+	exist, err := s.repo.IsSKUExist(*sku, *req.BusinessId)
+	if err != nil {
+		return nil, fmt.Errorf("gagal cek SKU: %w", err)
+	}
+	if exist {
+		return nil, fmt.Errorf("SKU sudah digunakan oleh variant lain")
 	}
 
 	variant := entity.ProductVariant{
-		ProductId:  productId,
+		ProductId:  &productId,
 		BusinessId: req.BusinessId,
 		Name:       req.Name,
 		BasePrice:  req.BasePrice,
@@ -79,12 +88,21 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 
 	existing, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("variant tidak ditemukan: %w", err)
 	}
 
 	sku := req.SKU
-	if sku == "" {
-		sku = helper.GenerateSKU(req.Name)
+	if sku == nil || *sku == "" {
+		s := helper.GenerateSKU(req.Name)
+		sku = &s
+	}
+
+	exist, err := s.repo.IsSKUExistExcept(*sku, *req.BusinessId, id)
+	if err != nil {
+		return nil, fmt.Errorf("gagal cek SKU: %w", err)
+	}
+	if exist {
+		return nil, fmt.Errorf("SKU sudah digunakan oleh variant lain")
 	}
 
 	existing.Name = req.Name
@@ -94,12 +112,11 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 	existing.Stock = req.Stock
 	existing.TrackStock = req.Stock > 0
 
-	err = s.repo.Update(&existing)
-	if err != nil {
-		return nil, err
+	if err := s.repo.Update(&existing); err != nil {
+		return nil, fmt.Errorf("gagal update variant: %w", err)
 	}
 
-	return &existing, err
+	return &existing, nil
 }
 
 func (s *productVariantService) Delete(id int) error {
@@ -112,13 +129,13 @@ func (s *productVariantService) Delete(id int) error {
 		return err
 	}
 
-	count, err := s.repo.CountByProductId(variant.ProductId)
+	count, err := s.repo.CountByProductId(*variant.ProductId)
 	if err != nil {
 		return err
 	}
 
 	if count == 0 {
-		if err := s.productRepo.ResetVariantStateToFalse(variant.ProductId); err != nil {
+		if err := s.productRepo.ResetVariantStateToFalse(*variant.ProductId); err != nil {
 			return err
 		}
 	}

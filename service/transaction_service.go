@@ -134,7 +134,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 			if item.ProductVariant != nil && item.ProductVariant.TrackStock {
 				newStock := item.ProductVariant.Stock - qty
 				if newStock < 0 {
-					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", item.ProductVariant.SKU)
+					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", *item.ProductVariant.SKU)
 				}
 				if err := s.db.Model(&entity.ProductVariant{}).
 					Where("id = ?", item.ProductVariant.Id).
