@@ -23,26 +23,26 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "===> Deploying kasirku-service"
-            
-            export PATH=$PATH:/usr/local/go/bin  # tambahkan ini
-  
-            cd /home/kasirku-service || exit 1
+
+            export PATH=$PATH:/usr/local/go/bin
+
+            cd /home/lokakasir/kasirku-service || exit 1
 
             echo "===> Pulling latest code..."
             git reset --hard
             git clean -fd
             git pull origin main
 
-            echo "===> Tidying go modules..."
-            go mod tidy
+            echo "===> Go mod tidy..."
+            /usr/local/go/bin/go mod tidy
 
-            echo "===> Building project..."
-            go build -o kasirku main.go
+            echo "===> Building..."
+            /usr/local/go/bin/go build -o kasirku main.go
 
-            echo "===> Restarting systemd service..."
-            sudo systemctl restart kasirku.service
+            echo "===> Restarting service..."
+            systemctl restart kasirku
 
-            echo "===> Deployment complete ✅"
+            echo "✅ Deployment finished!"
 
       - name: Send Telegram Notification on Success
         if: success()
