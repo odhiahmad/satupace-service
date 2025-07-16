@@ -66,7 +66,7 @@ func (c *productController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var input request.ProductRequest
+	var input request.ProductUpdateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Gagal bind data update", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))

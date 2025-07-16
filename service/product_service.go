@@ -21,7 +21,7 @@ type AutocompleteProduct struct {
 
 type ProductService interface {
 	Create(req request.ProductRequest) (response.ProductResponse, error)
-	Update(id int, req request.ProductRequest) (response.ProductResponse, error)
+	Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error)
 	Delete(id int) error
 	FindById(id int) (response.ProductResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
@@ -117,7 +117,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	if hasVariant {
 		product.BasePrice = nil
 		product.SellPrice = nil
-		product.MinimumSales = nil
 		product.Stock = nil
 		product.SKU = nil
 	}
@@ -185,31 +184,58 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	return helper.MapProductToResponse(createdProduct), nil
 }
 
-func (s *productService) Update(id int, req request.ProductRequest) (response.ProductResponse, error) {
+func (s *productService) Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error) {
 	if err := s.Validate.Struct(req); err != nil {
 		return response.ProductResponse{}, err
 	}
 
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
-		return response.ProductResponse{}, err
+		return response.ProductResponse{}, fmt.Errorf("produk tidak ditemukan: %w", err)
 	}
 
+	hasVariant := len(req.Variants) > 0
+	sku := req.SKU
 	oldName := product.Name
 
-	// Validasi dan auto-generate SKU
-	if req.SKU == nil || *req.SKU == "" {
-		sku := helper.GenerateSKU(req.Name)
-		req.SKU = &sku
-	}
-
-	if product.SKU == nil || *product.SKU != *req.SKU {
-		exist, err := s.ProductRepo.IsSKUExistExcept(*req.SKU, *req.BusinessId, id)
-		if err != nil {
-			return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk: %w", err)
+	if hasVariant {
+		if sku != nil && *sku != "" {
+			return response.ProductResponse{}, fmt.Errorf("SKU produk harus kosong jika memiliki varian")
 		}
-		if exist {
-			return response.ProductResponse{}, fmt.Errorf("SKU produk sudah digunakan")
+
+		skuMap := map[string]bool{}
+		for _, v := range req.Variants {
+			if v.SKU == nil || *v.SKU == "" {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian tidak boleh kosong")
+			}
+			if skuMap[*v.SKU] {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *v.SKU)
+			}
+			skuMap[*v.SKU] = true
+
+			fmt.Printf("SKU varian duplikat: %d", v.Id)
+
+			exist, err := s.ProductVariantRepo.IsSKUExistExcept(*v.SKU, *req.BusinessId, v.Id)
+			if err != nil {
+				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU varian di database: %w", err)
+			}
+			if exist {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian sudah digunakan: %s", *v.SKU)
+			}
+		}
+	} else {
+		if sku == nil || *sku == "" {
+			sGenerated := helper.GenerateSKU(req.Name)
+			sku = &sGenerated
+		}
+		if product.SKU == nil || *product.SKU != *sku {
+			exist, err := s.ProductRepo.IsSKUExistExcept(*sku, *req.BusinessId, id)
+			if err != nil {
+				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk: %w", err)
+			}
+			if exist {
+				return response.ProductResponse{}, fmt.Errorf("SKU produk sudah digunakan")
+			}
 		}
 	}
 
@@ -221,23 +247,70 @@ func (s *productService) Update(id int, req request.ProductRequest) (response.Pr
 	product.UnitId = req.UnitId
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
-	product.BasePrice = req.BasePrice
-	product.SellPrice = req.SellPrice
-	product.Stock = req.Stock
-	product.SKU = req.SKU
-	product.TrackStock = req.Stock != nil && *req.Stock > 0
-	product.HasVariant = false
+	product.HasVariant = hasVariant
+	product.IsAvailable = true
+	product.IsActive = true
 
-	updatedProduct, err := s.ProductRepo.Update(product)
+	if hasVariant {
+		product.BasePrice = nil
+		product.SellPrice = nil
+		product.Stock = nil
+		product.SKU = nil
+		product.TrackStock = false
+	} else {
+		product.BasePrice = req.BasePrice
+		product.SellPrice = req.SellPrice
+		product.Stock = req.Stock
+		product.SKU = sku
+		product.TrackStock = req.Stock != nil && *req.Stock > 0
+	}
+
+	err = s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
+		if _, err := txRepo.Update(product); err != nil {
+			return fmt.Errorf("gagal update produk: %w", err)
+		}
+
+		if hasVariant {
+			var updatedVariants []entity.ProductVariant
+			for _, v := range req.Variants {
+				updatedVariants = append(updatedVariants, entity.ProductVariant{
+					Id:          v.Id,
+					ProductId:   &product.Id,
+					BusinessId:  req.BusinessId,
+					Name:        v.Name,
+					BasePrice:   v.BasePrice,
+					SellPrice:   v.SellPrice,
+					SKU:         v.SKU,
+					Stock:       v.Stock,
+					TrackStock:  v.Stock > 0,
+					IsAvailable: true,
+					IsActive:    true,
+				})
+			}
+
+			if err := s.ProductVariantRepo.UpdateWithTx(txRepo, updatedVariants); err != nil {
+				return fmt.Errorf("gagal update variant produk: %w", err)
+			}
+		} else {
+			if err := s.ProductVariantRepo.DeleteByProductId(product.Id); err != nil {
+				return fmt.Errorf("gagal menghapus variant lama: %w", err)
+			}
+		}
+
+		return nil
+	})
 	if err != nil {
 		return response.ProductResponse{}, err
 	}
 
 	_ = helper.UpdateProductAutocomplete(s.Redis, *product.BusinessId, oldName, product.Name, product.Id, *product.Image)
 
-	productResponse := helper.MapProductToResponse(updatedProduct)
+	createdProduct, err := s.ProductRepo.FindById(product.Id)
+	if err != nil {
+		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah update: %w", err)
+	}
 
-	return productResponse, nil
+	return helper.MapProductToResponse(createdProduct), nil
 }
 
 func (s *productService) Delete(id int) error {

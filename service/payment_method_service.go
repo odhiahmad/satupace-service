@@ -9,8 +9,8 @@ import (
 )
 
 type PaymentMethodService interface {
-	CreatePaymentMethod(req request.PaymentMethodCreate) (entity.PaymentMethod, error)
-	UpdatePaymentMethod(id int, req request.PaymentMethodUpdate) (entity.PaymentMethod, error)
+	CreatePaymentMethod(req request.PaymentMethodRequest) (entity.PaymentMethod, error)
+	UpdatePaymentMethod(id int, req request.PaymentMethodRequest) (entity.PaymentMethod, error)
 	FindById(id int) (response.PaymentMethodResponse, error)
 	FindAll() ([]response.PaymentMethodResponse, error)
 	Delete(id int) error
@@ -28,7 +28,7 @@ func NewPaymentMethodService(repo repository.PaymentMethodRepository, validate *
 	}
 }
 
-func (s *paymentMethodService) CreatePaymentMethod(req request.PaymentMethodCreate) (entity.PaymentMethod, error) {
+func (s *paymentMethodService) CreatePaymentMethod(req request.PaymentMethodRequest) (entity.PaymentMethod, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.PaymentMethod{}, err
 	}
@@ -40,7 +40,7 @@ func (s *paymentMethodService) CreatePaymentMethod(req request.PaymentMethodCrea
 	return s.repo.InsertPaymentMethod(method)
 }
 
-func (s *paymentMethodService) UpdatePaymentMethod(id int, req request.PaymentMethodUpdate) (entity.PaymentMethod, error) {
+func (s *paymentMethodService) UpdatePaymentMethod(id int, req request.PaymentMethodRequest) (entity.PaymentMethod, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.PaymentMethod{}, err
 	}

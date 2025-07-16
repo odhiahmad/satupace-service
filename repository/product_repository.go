@@ -25,6 +25,7 @@ type ProductRepository interface {
 	UpdateImage(productId int, imageURL string) error
 	IsSKUExist(sku string, businessId int) (bool, error)
 	IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error)
+	GetTx() *gorm.DB
 }
 
 type productConnection struct {
@@ -263,4 +264,8 @@ func (conn *productConnection) IsSKUExistExcept(sku string, businessId int, exce
 	}
 
 	return count > 0, nil
+}
+
+func (conn *productConnection) GetTx() *gorm.DB {
+	return conn.db
 }

@@ -8,7 +8,7 @@ import (
 type Product struct {
 	Id           int              `gorm:"primaryKey;autoIncrement" json:"id"`
 	BusinessId   *int             `gorm:"not null;index:idx_business_sku,unique"`
-	SKU          *string          `gorm:"not null;index:idx_business_sku,unique"`
+	SKU          *string          `gorm:"index:idx_business_sku,unique"`
 	Business     *Business        `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	CategoryId   *int             `gorm:"not null" json:"category_id"`
 	Category     *Category        `gorm:"foreignKey:CategoryId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
@@ -21,7 +21,7 @@ type Product struct {
 	SellPrice    *float64         `json:"sell_price,omitempty"`
 	Stock        *int             `gorm:"default:0" json:"stock,omitempty"`
 	TrackStock   bool             `gorm:"default:false" json:"track_stock"`
-	MinimumSales *int             `gorm:"default:1" json:"minimum_sales,omitempty"`
+	MinimumSales *int             `json:"minimum_sales,omitempty"`
 	DiscountId   *int             `gorm:"index" json:"discount_id,omitempty"`
 	Discount     *Discount        `gorm:"foreignKey:DiscountId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"discount,omitempty"`
 	BrandId      *int             `gorm:"index" json:"brand_id,omitempty"`

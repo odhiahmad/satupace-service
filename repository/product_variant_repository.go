@@ -21,6 +21,7 @@ type ProductVariantRepository interface {
 	CountByProductId(productId int) (int64, error)
 	IsSKUExist(sku string, businessId int) (bool, error)
 	IsSKUExistExcept(sku string, businessId int, exceptId int) (bool, error)
+	UpdateWithTx(txRepo ProductRepository, variant []entity.ProductVariant) error
 }
 
 type ProductVariantConnection struct {
@@ -95,8 +96,7 @@ func (conn *ProductVariantConnection) IsSKUExists(sku string) (bool, error) {
 }
 
 func (conn *ProductVariantConnection) CreateWithTx(txRepo ProductRepository, variants []entity.ProductVariant) error {
-	tx := txRepo.(*productConnection).db
-	return tx.Create(variants).Error
+	return txRepo.GetTx().Create(&variants).Error
 }
 
 func (conn *ProductVariantConnection) CountByProductId(productId int) (int64, error) {
@@ -113,16 +113,38 @@ func (conn *ProductVariantConnection) IsSKUExist(sku string, businessId int) (bo
 	return count > 0, err
 }
 
-func (conn *ProductVariantConnection) IsSKUExistExcept(sku string, businessId int, exceptId int) (bool, error) {
+func (r *ProductVariantConnection) IsSKUExistExcept(sku string, businessID int, excludeID int) (bool, error) {
 	var count int64
-	err := conn.db.
-		Model(&entity.ProductVariant{}).
-		Where("business_id = ? AND sku = ? AND id != ?", businessId, sku, exceptId).
+	err := r.db.Model(&entity.ProductVariant{}).
+		Where("sku = ? AND business_id = ? AND id != ?", sku, businessID, excludeID).
 		Count(&count).Error
+	return count > 0, err
+}
 
-	if err != nil {
-		return false, err
+func (conn *ProductVariantConnection) UpdateWithTx(txRepo ProductRepository, variants []entity.ProductVariant) error {
+	tx := txRepo.(*productConnection).db
+
+	for _, variant := range variants {
+		// Hindari relasi tak perlu
+		variant.Product = nil
+
+		updateData := map[string]interface{}{
+			"name":         variant.Name,
+			"base_price":   variant.BasePrice,
+			"sell_price":   variant.SellPrice,
+			"sku":          variant.SKU,
+			"stock":        variant.Stock,
+			"track_stock":  variant.TrackStock,
+			"is_available": variant.IsAvailable,
+			"is_active":    variant.IsActive,
+		}
+
+		if err := tx.Model(&entity.ProductVariant{}).
+			Where("id = ?", variant.Id).
+			Updates(updateData).Error; err != nil {
+			return err
+		}
 	}
 
-	return count > 0, nil
+	return nil
 }

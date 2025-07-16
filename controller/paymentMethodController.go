@@ -31,7 +31,7 @@ func NewPaymentMethodController(paymentMethodService service.PaymentMethodServic
 }
 
 func (c *paymentMethodController) Create(ctx *gin.Context) {
-	var input request.PaymentMethodCreate
+	var input request.PaymentMethodRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
@@ -83,7 +83,7 @@ func (c *paymentMethodController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var input request.PaymentMethodUpdate
+	var input request.PaymentMethodRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Input tidak valid",
