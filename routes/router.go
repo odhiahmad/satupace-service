@@ -100,6 +100,7 @@ func SetupRouter() *gin.Engine {
 		userRoutes.PUT("/change-email", userBusinessController.ChangeEmail)
 		userRoutes.PUT("/change-password", userBusinessController.ChangePassword)
 		userRoutes.PUT("/business", businessController.Update)
+		userRoutes.POST("/verify-otp", authController.VerifyOTP)
 	}
 
 	roleRoutes := r.Group("role", middleware.RateLimit(redisHelper, 20, time.Minute))

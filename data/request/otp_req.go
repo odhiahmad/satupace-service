@@ -1,22 +1,20 @@
 package request
 
 type VerifyOTPRequest struct {
-	Via        string `json:"via"`        // "whatsapp", "email", atau "change_email"
-	Identifier string `json:"identifier"` // No HP atau Email (tergantung via)
-	Token      string `json:"token"`      // Kode OTP
+	Identifier string `json:"identifier"`
+	Token      string `json:"token"`
 }
 
 type RetryOTPRequest struct {
-	Via   string `json:"via"`   // "whatsapp" atau "email"
-	Value string `json:"value"` // nomor WA atau alamat email
+	Value string `json:"value"`
 }
 
 type ForgotPasswordRequest struct {
-	Identifier string `json:"identifier"` // email atau no HP
+	Identifier string `json:"identifier"`
 }
 
 type ResetPasswordRequest struct {
-	Identifier  string `json:"identifier"`   // email atau no HP
-	OTP         string `json:"otp"`          // kode OTP
-	NewPassword string `json:"new_password"` // password baru
+	Identifier  string `json:"identifier"`
+	OTP         string `json:"otp"`
+	NewPassword string `json:"new_password"`
 }

@@ -63,7 +63,7 @@ func (s *userBusinessService) ChangeEmail(req request.ChangeEmailRequest) error 
 
 	otpCode := helper.GenerateOTPCode(6)
 
-	err = s.redisHelper.SaveOTP("change_email", *req.Email, otpCode, 5*time.Minute)
+	err = s.redisHelper.SaveOTP("otp", *req.Email, otpCode, 5*time.Minute)
 	if err != nil {
 		log.Println("Gagal menyimpan OTP verifikasi email baru di Redis:", err)
 		return err
@@ -92,7 +92,7 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 	user.PhoneNumber = *req.PhoneNumber
 	otpCode := helper.GenerateOTPCode(6)
 
-	err = s.redisHelper.SaveOTP("whatsapp", *req.PhoneNumber, otpCode, 5*time.Minute)
+	err = s.redisHelper.SaveOTP("otp", *req.PhoneNumber, otpCode, 5*time.Minute)
 	if err != nil {
 		log.Println("Gagal simpan OTP:", err)
 		return err
