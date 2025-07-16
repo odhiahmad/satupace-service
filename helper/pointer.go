@@ -19,3 +19,10 @@ func Float64Ptr(f float64) *float64 {
 func BoolPtr(b bool) *bool {
 	return &b
 }
+
+func SafeString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

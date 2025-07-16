@@ -9,12 +9,6 @@ import (
 )
 
 // SafeString digunakan untuk menghindari panic jika pointer string nil
-func SafeString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
 
 func MapProductToResponse(product entity.Product) response.ProductResponse {
 	return response.ProductResponse{

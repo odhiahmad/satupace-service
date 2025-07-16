@@ -27,7 +27,7 @@ func MapAuthResponse(user *entity.UserBusiness, token string) *response.AuthResp
 
 	return &response.AuthResponse{
 		Id:          user.Id,
-		Email:       *user.Email,
+		Email:       SafeString(user.Email),
 		PhoneNumber: user.PhoneNumber,
 		Token:       token,
 		IsVerified:  user.IsVerified,
