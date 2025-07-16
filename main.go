@@ -57,8 +57,6 @@ func main() {
 	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
 
-	// config.SetupWilayahDatabase()
-
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
