@@ -11,7 +11,6 @@ import (
 
 type RegistrationController interface {
 	Register(ctx *gin.Context)
-	CheckDuplicateEmail(ctx *gin.Context)
 }
 
 type registrationController struct {
@@ -53,41 +52,4 @@ func (c *registrationController) Register(ctx *gin.Context) {
 
 	// Response sukses tanpa data
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Pendaftaran berhasil", nil))
-}
-
-// CheckDuplicateEmail handles checking if email is already registered
-func (c *registrationController) CheckDuplicateEmail(ctx *gin.Context) {
-	email := ctx.Query("email")
-	if email == "" {
-		res := helper.BuildErrorResponse(
-			"Parameter email wajib diisi",
-			"bad_request",
-			"email",
-			"email query parameter is missing",
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	duplicate, err := c.registrationService.IsDuplicateEmail(email)
-	if err != nil {
-		res := helper.BuildErrorResponse(
-			"Gagal memeriksa email",
-			"internal_error",
-			"email",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusInternalServerError, res)
-		return
-	}
-
-	response := map[string]interface{}{
-		"email":         email,
-		"is_duplicated": duplicate,
-	}
-
-	res := helper.BuildResponse(true, "Pemeriksaan email berhasil", response)
-	ctx.JSON(http.StatusOK, res)
 }

@@ -40,12 +40,14 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return err
 	}
 
-	exists, err := s.repo.IsEmailExists(*req.Email)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return errors.New("email sudah digunakan")
+	if req.Email != nil && strings.TrimSpace(*req.Email) != "" {
+		exists, err := s.repo.IsEmailExists(*req.Email)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return errors.New("email sudah digunakan")
+		}
 	}
 
 	phoneExists, err := s.repo.IsPhoneNumberExists(req.PhoneNumber)
