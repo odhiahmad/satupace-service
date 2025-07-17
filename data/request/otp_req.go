@@ -15,6 +15,5 @@ type ForgotPasswordRequest struct {
 
 type ResetPasswordRequest struct {
 	Identifier  string `json:"identifier"`
-	OTP         string `json:"otp"`
 	NewPassword string `json:"password"`
 }

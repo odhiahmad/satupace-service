@@ -177,15 +177,6 @@ func (s *authService) RequestForgotPassword(req request.ForgotPasswordRequest) e
 }
 
 func (s *authService) ResetPassword(req request.ResetPasswordRequest) error {
-	savedOTP, err := s.redisHelper.GetOTP("otp", req.Identifier)
-	if err != nil {
-		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
-	}
-
-	if savedOTP != req.OTP {
-		return errors.New("OTP tidak valid")
-	}
-
 	user, err := s.userBusinessRepository.FindByEmailOrPhone(req.Identifier)
 	if err != nil {
 		return errors.New("user tidak ditemukan")
@@ -197,8 +188,6 @@ func (s *authService) ResetPassword(req request.ResetPasswordRequest) error {
 	if err := s.userBusinessRepository.Update(&user); err != nil {
 		return errors.New("gagal mengubah password")
 	}
-
-	_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
 
 	return nil
 }
