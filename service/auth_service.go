@@ -8,14 +8,11 @@ import (
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/repository"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
-	VerifyCredential(email string, password string) interface{}
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
 	VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error)
 	RetryOTP(req request.RetryOTPRequest) error
@@ -41,25 +38,13 @@ func NewAuthService(userRep repository.UserRepository, userBusinessRepository re
 	}
 }
 
-func (service *authService) VerifyCredential(email string, password string) interface{} {
-	res := service.userRepository.VerifyCredential(email, password)
-	if v, ok := res.(entity.User); ok {
-		comparedPassword := comparePassword(v.Password, []byte(password))
-		if v.Email == email && comparedPassword {
-			return res
-		}
-		return false
-	}
-	return false
-}
-
 func (service *authService) VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error) {
 	user, err := service.userBusinessRepository.FindByEmailOrPhone(identifier)
 	if err != nil {
 		return nil, helper.ErrUserNotFound
 	}
 
-	if !comparePassword(user.Password, []byte(password)) {
+	if !helper.ComparePassword(user.Password, password) {
 		return nil, helper.ErrInvalidPassword
 	}
 
@@ -90,16 +75,6 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	res := helper.MapAuthResponse(&user, token)
 
 	return res, nil
-}
-
-func comparePassword(hashedPwd string, plainPassword []byte) bool {
-	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPassword)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-	return true
 }
 
 func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error) {
