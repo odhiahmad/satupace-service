@@ -1,8 +1,9 @@
 package request
 
 type VerifyOTPRequest struct {
-	Identifier string `json:"identifier"`
-	Token      string `json:"token"`
+	Identifier      string `json:"identifier"`
+	Token           string `json:"token"`
+	IsResetPassword bool   `json:"is_reset_password"`
 }
 
 type RetryOTPRequest struct {

@@ -128,6 +128,11 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
+	if req.IsResetPassword {
+		ctx.JSON(http.StatusOK, helper.BuildResponse(true, "OTP berhasil diverifikasi", helper.EmptyObj{}))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "OTP berhasil diverifikasi", userResponse))
 }
 

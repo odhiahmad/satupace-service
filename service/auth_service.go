@@ -78,6 +78,7 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 }
 
 func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error) {
+
 	savedOTP, err := s.redisHelper.GetOTP("otp", req.Identifier)
 	if err != nil {
 		return nil, errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
@@ -85,6 +86,12 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 
 	if savedOTP != req.Token {
 		return nil, errors.New("OTP tidak valid")
+	}
+
+	_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
+
+	if req.IsResetPassword {
+		return nil, nil
 	}
 
 	user, err := s.userBusinessRepository.FindByEmailOrPhone(req.Identifier)
@@ -187,6 +194,25 @@ func (s *authService) ResetPassword(req request.ResetPasswordRequest) error {
 
 	if err := s.userBusinessRepository.Update(&user); err != nil {
 		return errors.New("gagal mengubah password")
+	}
+
+	return nil
+}
+
+func (s *authService) VerifyOTPBasic(req request.VerifyOTPRequest) error {
+	savedOTP, err := s.redisHelper.GetOTP("otp", req.Identifier)
+	if err != nil {
+		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
+	}
+
+	if savedOTP != req.Token {
+		return errors.New("OTP tidak valid")
+	}
+
+	// Hapus OTP setelah diverifikasi
+	err = s.redisHelper.DeleteOTP("otp", req.Identifier)
+	if err != nil {
+		return errors.New("gagal menghapus OTP setelah verifikasi")
 	}
 
 	return nil
