@@ -17,7 +17,7 @@ type AuthService interface {
 	VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error)
 	RetryOTP(req request.RetryOTPRequest) error
 	RequestForgotPassword(req request.ForgotPasswordRequest) error
-	ResetPassword(req request.ResetPasswordRequest) error
+	ResetPassword(req request.ResetPasswordRequest) (*response.AuthResponse, error)
 }
 
 type authService struct {
@@ -183,20 +183,22 @@ func (s *authService) RequestForgotPassword(req request.ForgotPasswordRequest) e
 	return nil
 }
 
-func (s *authService) ResetPassword(req request.ResetPasswordRequest) error {
+func (s *authService) ResetPassword(req request.ResetPasswordRequest) (*response.AuthResponse, error) {
 	user, err := s.userBusinessRepository.FindByEmailOrPhone(req.Identifier)
 	if err != nil {
-		return errors.New("user tidak ditemukan")
+		return nil, errors.New("user tidak ditemukan")
 	}
 
 	hashedPassword := helper.HashAndSalt([]byte(req.NewPassword))
 	user.Password = hashedPassword
 
 	if err := s.userBusinessRepository.Update(&user); err != nil {
-		return errors.New("gagal mengubah password")
+		return nil, errors.New("gagal mengubah password")
 	}
 
-	return nil
+	jwtToken := s.jwtService.GenerateToken(user)
+	res := helper.MapAuthResponse(&user, jwtToken)
+	return res, nil
 }
 
 func (s *authService) VerifyOTPBasic(req request.VerifyOTPRequest) error {

@@ -206,7 +206,8 @@ func (c *authController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.authService.ResetPassword(req); err != nil {
+	userResponse, err := c.authService.ResetPassword(req)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengatur ulang password",
 			"reset_password_failed",
@@ -217,5 +218,5 @@ func (c *authController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Password berhasil diatur ulang", helper.EmptyObj{}))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Password berhasil diatur ulang", userResponse))
 }
