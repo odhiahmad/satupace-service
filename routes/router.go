@@ -157,6 +157,10 @@ func SetupRouter() *gin.Engine {
 		libRoutes.GET("/discount", discountController.FindWithPagination)
 
 		libRoutes.GET("/brand/cursor", brandController.FindWithPaginationCursor)
+		libRoutes.GET("/category/cursor", categoryController.FindWithPaginationCursor)
+		libRoutes.GET("/tax/cursor", taxController.FindWithPaginationCursor)
+		libRoutes.GET("/unit/cursor", unitController.FindWithPaginationCursor)
+		libRoutes.GET("/discount/cursor", discountController.FindWithPaginationCursor)
 
 		libRoutes.DELETE("/category/:id", categoryController.Delete)
 		libRoutes.DELETE("/brand/:id", brandController.Delete)
@@ -176,6 +180,7 @@ func SetupRouter() *gin.Engine {
 		productRoutes.GET("/:id", productController.FindById)
 		productRoutes.DELETE("/:id", productController.Delete)
 		productRoutes.GET("", productController.FindWithPagination)
+		productRoutes.GET("/cursor", productController.FindWithPaginationCursor)
 		productRoutes.POST("/:id/variant", productVariantController.Create)
 		productRoutes.PATCH("/:id/variant", productVariantController.Update)
 		productRoutes.DELETE("/variant/:id", productVariantController.Delete)
@@ -194,6 +199,7 @@ func SetupRouter() *gin.Engine {
 		bundleRoutes.GET("/:id", bundleController.FindById)
 		bundleRoutes.DELETE("/:id", bundleController.Delete)
 		bundleRoutes.GET("", bundleController.FindWithPagination)
+		bundleRoutes.GET("/cursor", bundleController.FindWithPaginationCursor)
 		bundleRoutes.PUT("/:id/active", bundleController.SetIsActive)
 		bundleRoutes.PUT("/:id/available", bundleController.SetIsAvailable)
 	}
