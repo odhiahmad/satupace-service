@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -16,9 +17,10 @@ type BundleRepository interface {
 	Delete(bundleId int) error
 	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
 	DeleteItemsByBundleId(bundleId int) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
 	SetIsActive(id int, isActive bool) error
 	SetIsAvailable(id int, isActive bool) error
+	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, error)
 }
 
 type bundleConnection struct {
@@ -81,36 +83,6 @@ func (conn *bundleConnection) DeleteItemsByBundleId(bundleId int) error {
 	return result.Error
 }
 
-func (conn *bundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
-	var bundles []entity.Bundle
-	var total int64
-
-	// Base query untuk count
-	baseQuery := conn.db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
-
-	// Apply search filter
-	if pagination.Search != "" {
-		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
-	}
-
-	// Hitung total data (tanpa cursor pagination)
-	if err := baseQuery.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// Siapkan paginator
-	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
-
-	// Query utama dengan paginator
-	_, _, err := p.Paginate(baseQuery, &bundles)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return bundles, total, nil
-}
-
 func (conn *bundleConnection) SetIsActive(id int, isActive bool) error {
 	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
@@ -121,4 +93,85 @@ func (conn *bundleConnection) SetIsAvailable(id int, isAvailable bool) error {
 	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
 		Update("is_available", isAvailable).Error
+}
+
+func (conn *bundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
+	var bundles []entity.Bundle
+	var total int64
+
+	baseQuery := conn.db.Model(&entity.Bundle{}).Preload("Items.Product").Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
+	}
+
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
+
+	_, _, err := p.Paginate(baseQuery, &bundles)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return bundles, total, nil
+}
+
+func (conn *bundleConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, error) {
+	var bundles []entity.Bundle
+
+	query := conn.db.Model(&entity.Bundle{}).
+		Preload("Items.Product").
+		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", search, search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&bundles).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(bundles) > limit {
+		last := bundles[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		bundles = bundles[:limit]
+	}
+
+	return bundles, nextCursor, nil
 }

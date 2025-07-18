@@ -19,6 +19,7 @@ type BundleController interface {
 	SetIsActive(ctx *gin.Context)
 	SetIsAvailable(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
+	FindWithPaginationCursor(ctx *gin.Context)
 }
 
 type bundleController struct {
@@ -280,6 +281,51 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
+		true,
+		"Data bundle berhasil diambil",
+		bundles,
+		paginationMeta,
+	))
+}
+
+func (c *bundleController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	search := ctx.DefaultQuery("search", "")
+	cursor := ctx.DefaultQuery("cursor", "")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid", "INVALID_QUERY_PARAM", "limit", err.Error(), nil))
+		return
+	}
+
+	pagination := request.Pagination{
+		Cursor:  cursor,
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
+	}
+
+	bundles, nextCursor, err := c.bundleService.FindWithPaginationCursor(businessID, pagination)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data bundle", "BUNDLE_FETCH_FAILED", "bundle", err.Error(), nil))
+		return
+	}
+
+	paginationMeta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
 		"Data bundle berhasil diambil",
 		bundles,

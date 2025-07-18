@@ -19,8 +19,9 @@ type CategoryService interface {
 	Create(category request.CategoryRequest) (response.CategoryResponse, error)
 	Update(id int, category request.CategoryRequest) (response.CategoryResponse, error)
 	FindById(brandId int) response.CategoryResponse
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
 	Delete(id int) error
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, error)
 }
 
 type categoryService struct {
@@ -97,6 +98,27 @@ func (s *categoryService) FindById(brandId int) response.CategoryResponse {
 	return *category
 }
 
+func (s *categoryService) Delete(id int) error {
+	category, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	s.Redis.Del(ctx, fmt.Sprintf("category:%d", id))
+
+	pattern := fmt.Sprintf("categories:business:%d*", category.BusinessId)
+	go helper.DeleteKeysByPattern(ctx, s.Redis, pattern)
+
+	return nil
+}
+
 func (s *categoryService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("categories:business:%d:page:%d:limit:%d:cat:%v", businessId, pagination.Page, pagination.Limit, pagination.CategoryID)
@@ -122,23 +144,16 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 	return result, total, nil
 }
 
-func (s *categoryService) Delete(id int) error {
-	category, err := s.repo.FindById(id)
+func (s *categoryService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, error) {
+	categories, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 
-	err = s.repo.Delete(id)
-	if err != nil {
-		return err
+	var result []response.CategoryResponse
+	for _, category := range categories {
+		result = append(result, *helper.MapCategory(&category))
 	}
 
-	ctx := context.Background()
-
-	s.Redis.Del(ctx, fmt.Sprintf("category:%d", id))
-
-	pattern := fmt.Sprintf("categories:business:%d*", category.BusinessId)
-	go helper.DeleteKeysByPattern(ctx, s.Redis, pattern)
-
-	return nil
+	return result, nextCursor, nil
 }

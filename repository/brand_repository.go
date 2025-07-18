@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -15,6 +16,7 @@ type BrandRepository interface {
 	Delete(brand entity.Brand) error
 	FindById(brandId int) (brandes entity.Brand, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Brand, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, error)
 }
 
 type brandConnection struct {
@@ -26,13 +28,11 @@ func NewBrandRepository(db *gorm.DB) BrandRepository {
 }
 
 func (conn *brandConnection) Create(brand entity.Brand) (entity.Brand, error) {
-	// Buat data brand
 	err := conn.db.Create(&brand).Error
 	if err != nil {
 		return entity.Brand{}, err
 	}
 
-	// Ambil ulang dengan preload Business
 	err = conn.db.First(&brand, brand.Id).Error
 	if err != nil {
 		return entity.Brand{}, err
@@ -70,29 +70,79 @@ func (conn *brandConnection) FindWithPagination(businessId int, pagination reque
 	var brand []entity.Brand
 	var total int64
 
-	// Base query dengan preload relasi
 	baseQuery := conn.db.Model(&entity.Brand{}).
 		Where("business_id = ?", businessId)
 
-	// Search filter
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
 		baseQuery = baseQuery.Where("name ILIKE ?", search)
 	}
 
-	// Hitung total sebelum paginasi
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Siapkan paginator
 	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
-	// Jalankan paginasi
 	_, _, err := p.Paginate(baseQuery, &brand)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return brand, total, nil
+}
+
+func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, error) {
+	var brands []entity.Brand
+
+	query := conn.db.Model(&entity.Brand{}).
+		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ?", search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&brands).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(brands) > limit {
+		last := brands[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		brands = brands[:limit]
+	}
+
+	return brands, nextCursor, nil
 }

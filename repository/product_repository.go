@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -14,9 +15,6 @@ type ProductRepository interface {
 	Update(product entity.Product) (entity.Product, error)
 	UpdateAll(product *entity.Product) (entity.Product, error)
 	Delete(id int) error
-	FindById(id int) (entity.Product, error)
-	FindByIds(businessId int, ids []int) ([]entity.Product, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
 	SetHasVariant(productId int) error
@@ -26,6 +24,10 @@ type ProductRepository interface {
 	IsSKUExist(sku string, businessId int) (bool, error)
 	IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error)
 	GetTx() *gorm.DB
+	FindById(id int) (entity.Product, error)
+	FindByIds(businessId int, ids []int) ([]entity.Product, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, error)
 }
 
 type productConnection struct {
@@ -132,63 +134,6 @@ func (conn *productConnection) Delete(id int) error {
 	return result.Error
 }
 
-func (conn *productConnection) FindById(id int) (entity.Product, error) {
-	var product entity.Product
-	err := conn.db.
-		Preload("Variants").
-		Preload("Brand").
-		Preload("Category").
-		Preload("Tax").
-		Preload("Discount").
-		Preload("Unit").
-		First(&product, id).Error
-	return product, err
-}
-
-func (conn *productConnection) FindByIds(businessId int, ids []int) ([]entity.Product, error) {
-	var products []entity.Product
-	err := conn.db.
-		Preload("Variants").
-		Preload("Brand").
-		Preload("Category").
-		Preload("Tax").
-		Preload("Discount").
-		Preload("Unit").
-		Where("business_id = ? AND id IN ?", businessId, ids).
-		Find(&products).Error
-
-	return products, err
-}
-
-func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
-	var products []entity.Product
-	var total int64
-
-	query := conn.db.Model(&entity.Product{}).
-		Preload("Variants").
-		Preload("Brand").
-		Preload("Category").
-		Preload("Tax").
-		Preload("Discount").
-		Preload("Unit").
-		Where("business_id = ?", businessId)
-
-	if pagination.CategoryID != nil {
-		query = query.Where("category_id = ?", *pagination.CategoryID)
-	}
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
-	_, _, err := p.Paginate(query, &products)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return products, total, nil
-}
-
 func (conn *productConnection) SetActive(id int, active bool) error {
 	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", id).
@@ -268,4 +213,126 @@ func (conn *productConnection) IsSKUExistExcept(sku string, businessId int, exce
 
 func (conn *productConnection) GetTx() *gorm.DB {
 	return conn.db
+}
+
+func (conn *productConnection) FindById(id int) (entity.Product, error) {
+	var product entity.Product
+	err := conn.db.
+		Preload("Variants").
+		Preload("Brand").
+		Preload("Category").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
+		First(&product, id).Error
+	return product, err
+}
+
+func (conn *productConnection) FindByIds(businessId int, ids []int) ([]entity.Product, error) {
+	var products []entity.Product
+	err := conn.db.
+		Preload("Variants").
+		Preload("Brand").
+		Preload("Category").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
+		Where("business_id = ? AND id IN ?", businessId, ids).
+		Find(&products).Error
+
+	return products, err
+}
+
+func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
+	var products []entity.Product
+	var total int64
+
+	query := conn.db.Model(&entity.Product{}).
+		Preload("Variants").
+		Preload("Brand").
+		Preload("Category").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
+		Where("business_id = ?", businessId)
+
+	if pagination.CategoryID != nil {
+		query = query.Where("category_id = ?", *pagination.CategoryID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
+	_, _, err := p.Paginate(query, &products)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
+}
+
+func (conn *productConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, error) {
+	var products []entity.Product
+
+	query := conn.db.Model(&entity.Product{}).
+		Preload("Variants").
+		Preload("Brand").
+		Preload("Category").
+		Preload("Tax").
+		Preload("Discount").
+		Preload("Unit").
+		Where("business_id = ?", businessId)
+
+	if pagination.CategoryID != nil {
+		query = query.Where("category_id = ?", *pagination.CategoryID)
+	}
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("products.name ILIKE ?", search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("products.id > ?", cursorID)
+		} else {
+			query = query.Where("products.id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("products.%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&products).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(products) > limit {
+		last := products[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		products = products[:limit]
+	}
+
+	return products, nextCursor, nil
 }

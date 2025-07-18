@@ -16,8 +16,9 @@ type DiscountController interface {
 	Update(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
-	FindWithPagination(ctx *gin.Context)
 	SetIsActive(ctx *gin.Context)
+	FindWithPagination(ctx *gin.Context)
+	FindWithPaginationCursor(ctx *gin.Context)
 }
 
 type discountController struct {
@@ -171,6 +172,63 @@ func (c *discountController) FindById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil diskon", res))
 }
 
+func (c *discountController) SetIsActive(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id wajib diisi",
+			"MISSING_ID",
+			"id",
+			"Parameter 'id' tidak ditemukan dalam path",
+			helper.EmptyObj{},
+		))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter id tidak valid",
+			"INVALID_ID",
+			"id",
+			err.Error(),
+			helper.EmptyObj{},
+		))
+		return
+	}
+
+	var input request.IsActive
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid",
+			"INVALID_REQUEST",
+			"body",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	err = c.discountService.SetIsActive(id, input.IsActive)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengubah status diskon",
+			"UPDATE_STATUS_FAILED",
+			"internal",
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	statusMsg := "dinonaktifkan"
+	if input.IsActive {
+		statusMsg = "diaktifkan"
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Diskon berhasil "+statusMsg, nil))
+}
+
 func (c *discountController) FindWithPagination(ctx *gin.Context) {
 	businessID := ctx.MustGet("business_id").(int)
 	pageStr := ctx.DefaultQuery("page", "1")
@@ -239,59 +297,57 @@ func (c *discountController) FindWithPagination(ctx *gin.Context) {
 	))
 }
 
-func (c *discountController) SetIsActive(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	if idStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id wajib diisi",
-			"MISSING_ID",
-			"id",
-			"Parameter 'id' tidak ditemukan dalam path",
-			helper.EmptyObj{},
-		))
-		return
-	}
+func (c *discountController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	search := ctx.DefaultQuery("search", "")
+	cursor := ctx.DefaultQuery("cursor", "")
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id tidak valid",
-			"INVALID_ID",
-			"id",
+			"Parameter limit tidak valid",
+			"INVALID_LIMIT",
+			"limit",
 			err.Error(),
 			helper.EmptyObj{},
 		))
 		return
 	}
 
-	var input request.IsActive
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Input tidak valid",
-			"INVALID_REQUEST",
-			"body",
-			err.Error(),
-			nil,
-		))
-		return
+	pagination := request.Pagination{
+		Cursor:  cursor,
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
 	}
 
-	err = c.discountService.SetIsActive(id, input.IsActive)
+	discounts, nextCursor, err := c.discountService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengubah status diskon",
-			"UPDATE_STATUS_FAILED",
-			"internal",
+			"Gagal mengambil data diskon",
+			"FETCH_FAILED",
+			"discount",
 			err.Error(),
-			nil,
+			helper.EmptyObj{},
 		))
 		return
 	}
 
-	statusMsg := "dinonaktifkan"
-	if input.IsActive {
-		statusMsg = "diaktifkan"
+	paginationMeta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Diskon berhasil "+statusMsg, nil))
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
+		true,
+		"Berhasil mengambil data diskon",
+		discounts,
+		paginationMeta,
+	))
 }

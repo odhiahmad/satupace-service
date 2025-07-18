@@ -24,12 +24,13 @@ type ProductService interface {
 	Create(req request.ProductRequest) (response.ProductResponse, error)
 	Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error)
 	Delete(id int) error
-	FindById(id int) (response.ProductResponse, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
 	SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error)
 	SetActive(id int, isActive bool) error
 	SetAvailable(id int, isAvailable bool) error
 	UpdateImage(id int, base64Image string) (response.ProductResponse, error)
+	FindById(id int) (response.ProductResponse, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, error)
 }
 
 type productService struct {
@@ -347,28 +348,6 @@ func (s *productService) SetAvailable(id int, isAvailable bool) error {
 	return s.ProductRepo.SetAvailable(id, isAvailable)
 }
 
-func (s *productService) FindById(id int) (response.ProductResponse, error) {
-	product, err := s.ProductRepo.FindById(id)
-	if err != nil {
-		return response.ProductResponse{}, err
-	}
-	res := helper.MapProductToResponse(product)
-	return res, nil
-}
-
-func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
-	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	var result []response.ProductResponse
-	for _, p := range products {
-		result = append(result, helper.MapProductToResponse(p))
-	}
-	return result, total, nil
-}
-
 func (s *productService) SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
@@ -459,4 +438,40 @@ func (s *productService) UpdateImage(id int, base64Image string) (response.Produ
 	}
 
 	return helper.MapProductToResponse(updatedProduct), nil
+}
+
+func (s *productService) FindById(id int) (response.ProductResponse, error) {
+	product, err := s.ProductRepo.FindById(id)
+	if err != nil {
+		return response.ProductResponse{}, err
+	}
+	res := helper.MapProductToResponse(product)
+	return res, nil
+}
+
+func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
+	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var result []response.ProductResponse
+	for _, p := range products {
+		result = append(result, helper.MapProductToResponse(p))
+	}
+	return result, total, nil
+}
+
+func (s *productService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, error) {
+	products, nextCursor, err := s.ProductRepo.FindWithPaginationCursor(businessId, pagination)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var result []response.ProductResponse
+	for _, p := range products {
+		result = append(result, helper.MapProductToResponse(p))
+	}
+
+	return result, nextCursor, nil
 }

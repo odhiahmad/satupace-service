@@ -18,9 +18,10 @@ type ProductController interface {
 	UpdateImage(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
-	FindWithPagination(ctx *gin.Context)
 	SetActive(ctx *gin.Context)
 	SetAvailable(ctx *gin.Context)
+	FindWithPagination(ctx *gin.Context)
+	FindWithPaginationCursor(ctx *gin.Context)
 }
 
 type productController struct {
@@ -150,83 +151,6 @@ func (c *productController) FindById(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Produk ditemukan", product))
 }
 
-func (c *productController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
-	search := ctx.DefaultQuery("search", "")
-	limitStr := ctx.DefaultQuery("limit", "10")
-	pageStr := ctx.DefaultQuery("page", "1")
-	sortBy := ctx.DefaultQuery("sort_by", "created_at")
-	orderBy := ctx.DefaultQuery("order_by", "desc")
-	categoryIDStr := ctx.Query("category_id") // Tambahkan ini
-
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
-	var categoryID *int
-	if categoryIDStr != "" {
-		id, err := strconv.Atoi(categoryIDStr)
-		if err != nil || id <= 0 {
-			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("category_id tidak valid", "INVALID_PARAM", "category_id", err.Error(), helper.EmptyObj{}))
-			return
-		}
-		categoryID = &id
-	}
-
-	if strings.TrimSpace(search) == "" {
-		page, err := strconv.Atoi(pageStr)
-		if err != nil || page <= 0 {
-			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("page tidak valid", "INVALID_PARAM", "page", err.Error(), helper.EmptyObj{}))
-			return
-		}
-
-		pagination := request.Pagination{
-			Page:       page,
-			Limit:      limit,
-			SortBy:     sortBy,
-			OrderBy:    orderBy,
-			Search:     search,
-			CategoryID: categoryID, // Tambahkan ini
-		}
-
-		products, total, err := c.productService.FindWithPagination(businessID, pagination)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
-			return
-		}
-
-		meta := response.PaginatedResponse{
-			Page:      page,
-			Limit:     limit,
-			Total:     total,
-			OrderBy:   sortBy,
-			SortOrder: orderBy,
-		}
-
-		ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data produk berhasil diambil", products, meta))
-		return
-	}
-
-	// Search pakai Redis tidak gunakan category (kecuali kamu implementasikan juga di Redis)
-	products, total, err := c.productService.SearchProducts(businessID, search, limit)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mencari produk", "SEARCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
-		return
-	}
-
-	meta := response.PaginatedResponse{
-		Page:      1,
-		Limit:     limit,
-		Total:     total,
-		OrderBy:   "relevance",
-		SortOrder: "desc",
-	}
-
-	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data hasil pencarian berhasil diambil", products, meta))
-}
-
 func (c *productController) SetActive(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -289,4 +213,130 @@ func (c *productController) SetAvailable(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status produk sekarang ini "+statusMsg, helper.EmptyObj{}))
+}
+
+func (c *productController) FindWithPagination(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	search := ctx.DefaultQuery("search", "")
+	limitStr := ctx.DefaultQuery("limit", "10")
+	pageStr := ctx.DefaultQuery("page", "1")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	categoryIDStr := ctx.Query("category_id") // Tambahkan ini
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	var categoryID *int
+	if categoryIDStr != "" {
+		id, err := strconv.Atoi(categoryIDStr)
+		if err != nil || id <= 0 {
+			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("category_id tidak valid", "INVALID_PARAM", "category_id", err.Error(), helper.EmptyObj{}))
+			return
+		}
+		categoryID = &id
+	}
+
+	if strings.TrimSpace(search) == "" {
+		page, err := strconv.Atoi(pageStr)
+		if err != nil || page <= 0 {
+			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("page tidak valid", "INVALID_PARAM", "page", err.Error(), helper.EmptyObj{}))
+			return
+		}
+
+		pagination := request.Pagination{
+			Page:       page,
+			Limit:      limit,
+			SortBy:     sortBy,
+			OrderBy:    orderBy,
+			Search:     search,
+			CategoryID: categoryID,
+		}
+
+		products, total, err := c.productService.FindWithPagination(businessID, pagination)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+			return
+		}
+
+		meta := response.PaginatedResponse{
+			Page:      page,
+			Limit:     limit,
+			Total:     total,
+			OrderBy:   sortBy,
+			SortOrder: orderBy,
+		}
+
+		ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data produk berhasil diambil", products, meta))
+		return
+	}
+
+	products, total, err := c.productService.SearchProducts(businessID, search, limit)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mencari produk", "SEARCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	meta := response.PaginatedResponse{
+		Page:      1,
+		Limit:     limit,
+		Total:     total,
+		OrderBy:   "relevance",
+		SortOrder: "desc",
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data hasil pencarian berhasil diambil", products, meta))
+}
+
+func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	search := ctx.DefaultQuery("search", "")
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	cursor := ctx.DefaultQuery("cursor", "")
+	categoryIDStr := ctx.Query("category_id")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("limit tidak valid", "INVALID_PARAM", "limit", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	var categoryID *int
+	if categoryIDStr != "" {
+		id, err := strconv.Atoi(categoryIDStr)
+		if err != nil || id <= 0 {
+			ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("category_id tidak valid", "INVALID_PARAM", "category_id", err.Error(), helper.EmptyObj{}))
+			return
+		}
+		categoryID = &id
+	}
+
+	pagination := request.Pagination{
+		Cursor:     cursor,
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		Search:     search,
+		CategoryID: categoryID,
+	}
+
+	products, nextCursor, err := c.productService.FindWithPaginationCursor(businessID, pagination)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	meta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(true, "Data produk berhasil diambil", products, meta))
 }

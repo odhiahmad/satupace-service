@@ -7,3 +7,10 @@ type PaginatedResponse struct {
 	OrderBy   string `json:"order_by"`
 	SortOrder string `json:"sort_by"`
 }
+
+type CursorPaginatedResponse struct {
+	Limit      int    `json:"limit"`
+	SortBy     string `json:"sort_by"`
+	OrderBy    string `json:"order_by"`
+	NextCursor string `json:"next_cursor,omitempty"`
+}

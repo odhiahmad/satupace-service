@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -12,9 +13,10 @@ import (
 type CategoryRepository interface {
 	InsertCategory(category entity.Category) (entity.Category, error)
 	UpdateCategory(category entity.Category) (entity.Category, error)
+	Delete(categoryId int) error
 	FindById(categoryId int) (entity.Category, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Category, int64, error)
-	Delete(categoryId int) error
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, error)
 }
 
 type categoryConnection struct {
@@ -26,7 +28,6 @@ func NewCategoryRepository(Db *gorm.DB) CategoryRepository {
 }
 
 func (conn *categoryConnection) InsertCategory(category entity.Category) (entity.Category, error) {
-	// Validasi keberadaan business
 	var business entity.Business
 	if err := conn.Db.First(&business, category.BusinessId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -41,8 +42,7 @@ func (conn *categoryConnection) InsertCategory(category entity.Category) (entity
 		return entity.Category{}, err
 	}
 
-	// Ambil ulang dengan preload relasi Business
-	err = conn.Db.Preload("Business").First(&category, category.Id).Error
+	err = conn.Db.First(&category, category.Id).Error
 	if err != nil {
 		return entity.Category{}, err
 	}
@@ -59,13 +59,17 @@ func (conn *categoryConnection) UpdateCategory(category entity.Category) (entity
 		return entity.Category{}, err
 	}
 
-	// Ambil ulang dengan preload relasi Business
-	err = conn.Db.Preload("Business").First(&category, category.Id).Error
+	err = conn.Db.First(&category, category.Id).Error
 	if err != nil {
 		return entity.Category{}, err
 	}
 
 	return category, nil
+}
+
+func (conn *categoryConnection) Delete(categoryId int) error {
+	result := conn.Db.Delete(&entity.Category{}, categoryId)
+	return result.Error
 }
 
 func (conn *categoryConnection) FindById(categoryId int) (entity.Category, error) {
@@ -103,7 +107,57 @@ func (conn *categoryConnection) FindWithPagination(businessId int, pagination re
 	return category, total, nil
 }
 
-func (conn *categoryConnection) Delete(categoryId int) error {
-	result := conn.Db.Delete(&entity.Category{}, categoryId)
-	return result.Error
+func (conn *categoryConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, error) {
+	var categories []entity.Category
+
+	query := conn.Db.Model(&entity.Category{}).
+		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ?", search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&categories).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(categories) > limit {
+		last := categories[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		categories = categories[:limit]
+	}
+
+	return categories, nextCursor, nil
 }

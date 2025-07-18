@@ -31,6 +31,13 @@ type ResponsePagination struct {
 	Pagination interface{} `json:"pagination"`
 }
 
+type CursorPaginatedResponse struct {
+	Limit      int    `json:"limit"`
+	SortBy     string `json:"sort_by"`
+	OrderBy    string `json:"order_by"`
+	NextCursor string `json:"next_cursor,omitempty"`
+}
+
 // EmptyObj is used when data should not be null in JSON
 type EmptyObj struct{}
 
@@ -74,5 +81,18 @@ func BuildErrorResponse(message string, code string, field string, details strin
 			Details: details,
 		},
 		Data: data,
+	}
+}
+
+func BuildResponseCursorPagination(status bool, message string, data interface{}, pagination response.CursorPaginatedResponse) ResponsePagination {
+	if data == nil {
+		data = EmptyObj{}
+	}
+	return ResponsePagination{
+		Status:     status,
+		Message:    message,
+		Errors:     nil,
+		Data:       data,
+		Pagination: pagination,
 	}
 }

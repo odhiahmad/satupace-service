@@ -156,6 +156,8 @@ func SetupRouter() *gin.Engine {
 		libRoutes.GET("/unit", unitController.FindWithPagination)
 		libRoutes.GET("/discount", discountController.FindWithPagination)
 
+		libRoutes.GET("/brand/cursor", brandController.FindWithPaginationCursor)
+
 		libRoutes.DELETE("/category/:id", categoryController.Delete)
 		libRoutes.DELETE("/brand/:id", brandController.Delete)
 		libRoutes.DELETE("/tax/:id", taxController.Delete)

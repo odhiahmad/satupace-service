@@ -17,6 +17,7 @@ type TaxService interface {
 	Delete(id int) error
 	FindById(roleId int) response.TaxResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, error)
 }
 
 type taxService struct {
@@ -32,14 +33,12 @@ func NewTaxService(repo repository.TaxRepository, validate *validator.Validate) 
 }
 
 func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error) {
-	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.TaxResponse{}, err
 	}
 
 	isPercentageVal := helper.DeterminePromoType(req.Amount)
 
-	// Buat entity Tax
 	tax := entity.Tax{
 		BusinessId:   req.BusinessId,
 		Name:         strings.ToLower(req.Name),
@@ -52,7 +51,6 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 		return response.TaxResponse{}, err
 	}
 
-	// Mapping ke response
 	taxResponse := helper.MapTax(&createdTax)
 
 	return *taxResponse, nil
@@ -77,7 +75,6 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 		return response.TaxResponse{}, err
 	}
 
-	// Mapping ke response
 	taxResponse := helper.MapTax(&updatedTax)
 
 	return *taxResponse, nil
@@ -111,4 +108,18 @@ func (s *taxService) FindWithPagination(businessId int, pagination request.Pagin
 	}
 
 	return result, total, nil
+}
+
+func (s *taxService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, error) {
+	taxes, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var result []response.TaxResponse
+	for _, tax := range taxes {
+		result = append(result, *helper.MapTax(&tax))
+	}
+
+	return result, nextCursor, nil
 }

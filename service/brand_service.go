@@ -17,6 +17,7 @@ type BrandService interface {
 	Delete(id int) error
 	FindById(roleId int) response.BrandResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BrandResponse, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, error)
 }
 
 type brandService struct {
@@ -103,4 +104,18 @@ func (s *brandService) FindWithPagination(businessId int, pagination request.Pag
 	}
 
 	return result, total, nil
+}
+
+func (s *brandService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, error) {
+	brands, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var result []response.BrandResponse
+	for _, brand := range brands {
+		result = append(result, *helper.MapBrand(&brand))
+	}
+
+	return result, nextCursor, nil
 }

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,6 +15,7 @@ type UnitRepository interface {
 	Delete(id int) error
 	FindById(id int) (entity.Unit, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, error)
 }
 
 type unitConnection struct {
@@ -67,4 +70,59 @@ func (connection *unitConnection) FindWithPagination(businessId int, pagination 
 	}
 
 	return units, total, nil
+}
+
+func (connection *unitConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, error) {
+	var units []entity.Unit
+
+	query := connection.db.Model(&entity.Unit{}).
+		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ?", search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&units).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(units) > limit {
+		last := units[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		units = units[:limit]
+	}
+
+	return units, nextCursor, nil
 }

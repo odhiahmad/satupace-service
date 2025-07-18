@@ -15,8 +15,9 @@ type CategoryController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	FindById(ctx *gin.Context)
-	FindWithPagination(ctx *gin.Context)
 	Delete(ctx *gin.Context)
+	FindWithPagination(ctx *gin.Context)
+	FindWithPaginationCursor(ctx *gin.Context)
 }
 
 type categoryController struct {
@@ -31,7 +32,6 @@ func NewCategoryController(categoryService service.CategoryService, jwtService s
 	}
 }
 
-// Create
 func (c *categoryController) Create(ctx *gin.Context) {
 	businessId := ctx.MustGet("business_id").(int)
 	var input request.CategoryRequest
@@ -55,7 +55,6 @@ func (c *categoryController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, res)
 }
 
-// Update
 func (c *categoryController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	businessId := ctx.MustGet("business_id").(int)
@@ -90,7 +89,6 @@ func (c *categoryController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-// FindById
 func (c *categoryController) FindById(ctx *gin.Context) {
 	brandIdParam := ctx.Param("id")
 	brandId, err := strconv.Atoi(brandIdParam)
@@ -106,14 +104,32 @@ func (c *categoryController) FindById(ctx *gin.Context) {
 		return
 	}
 
-	// hanya satu return value
 	brandResponse := c.categoryService.FindById(brandId)
 
 	response := helper.BuildResponse(true, "Berhasil mengambil data brand", brandResponse)
 	ctx.JSON(http.StatusOK, response)
 }
 
-// FindAll
+func (c *categoryController) Delete(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	err = c.categoryService.Delete(id)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal menghapus kategori", "DELETE_FAILED", "internal", err.Error(), nil)
+		ctx.JSON(http.StatusInternalServerError, res)
+		return
+	}
+
+	res := helper.BuildResponse(true, "Berhasil menghapus kategori produk", helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
+}
+
 func (c *categoryController) FindWithPagination(ctx *gin.Context) {
 	businessID := ctx.MustGet("business_id").(int)
 	limitStr := ctx.DefaultQuery("limit", "10")
@@ -156,23 +172,57 @@ func (c *categoryController) FindWithPagination(ctx *gin.Context) {
 	))
 }
 
-// Delete
-func (c *categoryController) Delete(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil)
-		ctx.JSON(http.StatusBadRequest, res)
+func (c *categoryController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	search := ctx.DefaultQuery("search", "")
+	cursor := ctx.DefaultQuery("cursor", "")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid",
+			"invalid_parameter",
+			"limit",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	err = c.categoryService.Delete(id)
+	pagination := request.Pagination{
+		Cursor:  cursor,
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
+	}
+
+	categories, nextCursor, err := c.categoryService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal menghapus kategori", "DELETE_FAILED", "internal", err.Error(), nil)
-		ctx.JSON(http.StatusInternalServerError, res)
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data category",
+			"internal_error",
+			"category",
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	res := helper.BuildResponse(true, "Berhasil menghapus kategori produk", helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, res)
+	paginationMeta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
+		true,
+		"Data category berhasil diambil",
+		categories,
+		paginationMeta,
+	))
 }

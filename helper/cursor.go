@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,18 @@ func DecodeCursor(encoded string) (string, error) {
 		return "", err
 	}
 	return string(decoded), nil
+}
+
+func EncodeCursorID(id int64) string {
+	return base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(id, 10)))
+}
+
+func DecodeCursorID(cursor string) (int64, error) {
+	decoded, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(string(decoded), 10, 64)
 }
 
 func GetFieldValue(obj interface{}, field string) interface{} {

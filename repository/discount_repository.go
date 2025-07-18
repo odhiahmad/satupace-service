@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -13,10 +14,11 @@ type DiscountRepository interface {
 	Create(discount entity.Discount) (entity.Discount, error)
 	Update(discount entity.Discount) (entity.Discount, error)
 	Delete(id int) error
+	SetIsActive(id int, isActive bool) error
 	FindById(id int) (entity.Discount, error)
 	FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error)
-	SetIsActive(id int, isActive bool) error
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, error)
 }
 
 type discountConnection struct {
@@ -42,6 +44,12 @@ func (conn *discountConnection) Update(discount entity.Discount) (entity.Discoun
 
 func (conn *discountConnection) Delete(id int) error {
 	return conn.db.Delete(&entity.Discount{}, id).Error
+}
+
+func (conn *discountConnection) SetIsActive(id int, isActive bool) error {
+	return conn.db.Model(&entity.Discount{}).
+		Where("id = ?", id).
+		Update("is_active", isActive).Error
 }
 
 func (conn *discountConnection) FindById(id int) (entity.Discount, error) {
@@ -73,25 +81,20 @@ func (conn *discountConnection) FindWithPagination(businessId int, pagination re
 	var discounts []entity.Discount
 	var total int64
 
-	// Base query
 	baseQuery := conn.db.Model(&entity.Discount{}).
 		Where("business_id = ?", businessId)
 
-	// Search
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
+		baseQuery = baseQuery.Where("name ILIKE ?", search)
 	}
 
-	// Hitung total data sebelum pagination
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Siapkan paginator
 	p := helper.Paginate(pagination, []string{"id", "name", "created_at", "updated_at"})
 
-	// Paginate query
 	_, _, err := p.Paginate(baseQuery, &discounts)
 	if err != nil {
 		return nil, 0, err
@@ -100,8 +103,57 @@ func (conn *discountConnection) FindWithPagination(businessId int, pagination re
 	return discounts, total, nil
 }
 
-func (conn *discountConnection) SetIsActive(id int, isActive bool) error {
-	return conn.db.Model(&entity.Discount{}).
-		Where("id = ?", id).
-		Update("is_active", isActive).Error
+func (conn *discountConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, error) {
+	var discounts []entity.Discount
+
+	query := conn.db.Model(&entity.Discount{}).
+		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", search, search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&discounts).Error; err != nil {
+		return nil, "", err
+	}
+
+	var nextCursor string
+	if len(discounts) > limit {
+		last := discounts[limit-1]
+		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		discounts = discounts[:limit]
+	}
+
+	return discounts, nextCursor, nil
 }

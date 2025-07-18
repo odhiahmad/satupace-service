@@ -17,6 +17,7 @@ type UnitController interface {
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
+	FindWithPaginationCursor(ctx *gin.Context)
 }
 
 type unitController struct {
@@ -166,6 +167,51 @@ func (c *unitController) FindWithPagination(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
+		true,
+		"Berhasil mengambil data unit produk",
+		units,
+		paginationMeta,
+	))
+}
+
+func (c *unitController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessID := ctx.MustGet("business_id").(int)
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	search := ctx.DefaultQuery("search", "")
+	cursor := ctx.DefaultQuery("cursor", "")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Parameter limit tidak valid", "BAD_REQUEST", "limit", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	pagination := request.Pagination{
+		Cursor:  cursor,
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
+	}
+
+	units, nextCursor, err := c.service.FindWithPaginationCursor(businessID, pagination)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal mengambil data unit produk", "INTERNAL_ERROR", "unit", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	paginationMeta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
 		"Berhasil mengambil data unit produk",
 		units,
