@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -38,7 +40,7 @@ func (s *brandService) Create(req request.BrandRequest) (response.BrandResponse,
 	// Buat entity Brand
 	brand := entity.Brand{
 		BusinessId: req.BusinessId,
-		Name:       req.Name,
+		Name:       strings.ToLower(req.Name),
 	}
 
 	createdBrand, err := s.repo.Create(brand)
@@ -59,7 +61,7 @@ func (s *brandService) Update(id int, req request.BrandRequest) (response.BrandR
 
 	brand := entity.Brand{
 		Id:   id,
-		Name: req.Name,
+		Name: strings.ToLower(req.Name),
 	}
 
 	updatedBrand, err := s.repo.Update(brand)

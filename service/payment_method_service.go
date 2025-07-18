@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -34,7 +36,7 @@ func (s *paymentMethodService) CreatePaymentMethod(req request.PaymentMethodRequ
 	}
 
 	method := entity.PaymentMethod{
-		Name: req.Name,
+		Name: strings.ToLower(req.Name),
 	}
 
 	return s.repo.InsertPaymentMethod(method)
@@ -50,7 +52,7 @@ func (s *paymentMethodService) UpdatePaymentMethod(id int, req request.PaymentMe
 		return entity.PaymentMethod{}, err
 	}
 
-	method.Name = req.Name
+	method.Name = strings.ToLower(req.Name)
 
 	return s.repo.UpdatePaymentMethod(method)
 }

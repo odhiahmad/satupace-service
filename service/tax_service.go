@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -40,7 +42,7 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 	// Buat entity Tax
 	tax := entity.Tax{
 		BusinessId:   req.BusinessId,
-		Name:         req.Name,
+		Name:         strings.ToLower(req.Name),
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 	}
@@ -65,7 +67,7 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 
 	tax := entity.Tax{
 		Id:           id,
-		Name:         req.Name,
+		Name:         strings.ToLower(req.Name),
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 	}

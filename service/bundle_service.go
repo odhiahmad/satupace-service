@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -50,7 +51,7 @@ func (s *bundleService) CreateBundle(req request.BundleRequest) (response.Bundle
 
 	bundle := entity.Bundle{
 		BusinessId:  req.BusinessId,
-		Name:        req.Name,
+		Name:        strings.ToLower(req.Name),
 		Description: req.Description,
 		Image:       imageURL,
 		BasePrice:   req.BasePrice,
@@ -95,7 +96,7 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleRequest) (respons
 	}
 
 	bundle.BusinessId = req.BusinessId
-	bundle.Name = req.Name
+	bundle.Name = strings.ToLower(req.Name)
 	bundle.Description = req.Description
 	bundle.BasePrice = req.BasePrice
 	bundle.Stock = req.Stock

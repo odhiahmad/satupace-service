@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -80,7 +81,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		}
 	} else {
 		if sku == nil || *sku == "" {
-			sGenerated := helper.GenerateSKU(req.Name)
+			sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
 			sku = &sGenerated
 		}
 
@@ -96,7 +97,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	product := entity.Product{
 		BusinessId:   req.BusinessId,
 		CategoryId:   req.CategoryId,
-		Name:         req.Name,
+		Name:         strings.ToLower(req.Name),
 		Description:  req.Description,
 		Image:        nil,
 		MinimumSales: req.MinimumSales,
@@ -173,7 +174,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			if err := helper.AddProductToAutocomplete(s.Redis, businessId, productId, name, url); err != nil {
 				log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
 			}
-		}(product.Id, *req.BusinessId, req.Name, *req.Image)
+		}(product.Id, *req.BusinessId, strings.ToLower(req.Name), *req.Image)
 	}
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
@@ -225,7 +226,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		}
 	} else {
 		if sku == nil || *sku == "" {
-			sGenerated := helper.GenerateSKU(req.Name)
+			sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
 			sku = &sGenerated
 		}
 		if product.SKU == nil || *product.SKU != *sku {
@@ -240,7 +241,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	}
 
 	product.CategoryId = req.CategoryId
-	product.Name = req.Name
+	product.Name = strings.ToLower(req.Name)
 	product.Description = req.Description
 	product.BrandId = req.BrandId
 	product.TaxId = req.TaxId

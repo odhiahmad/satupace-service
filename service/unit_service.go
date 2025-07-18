@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -36,7 +38,7 @@ func (s *unitService) Create(req request.UnitRequest) (entity.Unit, error) {
 
 	unit := entity.Unit{
 		BusinessId: req.BusinessId,
-		Name:       req.Name,
+		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
 		Multiplier: req.Multiplier,
 	}
@@ -52,7 +54,7 @@ func (s *unitService) Update(id int, req request.UnitRequest) (entity.Unit, erro
 	unit := entity.Unit{
 		Id:         id,
 		BusinessId: req.BusinessId,
-		Name:       req.Name,
+		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
 		Multiplier: req.Multiplier,
 	}

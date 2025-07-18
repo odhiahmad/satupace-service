@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -47,7 +48,7 @@ func (s *discountService) Create(req request.DiscountRequest) (entity.Discount, 
 
 	discount := entity.Discount{
 		BusinessId:   req.BusinessId,
-		Name:         req.Name,
+		Name:         strings.ToLower(req.Name),
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 		StartAt:      req.StartAt,
@@ -75,7 +76,7 @@ func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Di
 
 	discount := entity.Discount{
 		Id:           id,
-		Name:         req.Name,
+		Name:         strings.ToLower(req.Name),
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 		StartAt:      req.StartAt,

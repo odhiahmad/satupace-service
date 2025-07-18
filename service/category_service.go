@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -43,7 +44,7 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 	}
 
 	category := entity.Category{
-		Name:       req.Name,
+		Name:       strings.ToLower(req.Name),
 		ParentId:   req.ParentId,
 		BusinessId: req.BusinessId,
 		IsActive:   true,
@@ -72,7 +73,7 @@ func (s *categoryService) Update(id int, req request.CategoryRequest) (response.
 		return response.CategoryResponse{}, err
 	}
 
-	category.Name = req.Name
+	category.Name = strings.ToLower(req.Name)
 	category.BusinessId = req.BusinessId
 	category.ParentId = req.ParentId
 

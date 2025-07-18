@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -46,7 +47,7 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 
 	sku := req.SKU
 	if sku == nil || *sku == "" {
-		s := helper.GenerateSKU(req.Name)
+		s := helper.GenerateSKU(strings.ToLower(req.Name))
 		sku = &s
 	}
 
@@ -61,7 +62,7 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 	variant := entity.ProductVariant{
 		ProductId:  &productId,
 		BusinessId: req.BusinessId,
-		Name:       req.Name,
+		Name:       strings.ToLower(req.Name),
 		BasePrice:  req.BasePrice,
 		SellPrice:  req.SellPrice,
 		SKU:        sku,
@@ -93,7 +94,7 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 
 	sku := req.SKU
 	if sku == nil || *sku == "" {
-		s := helper.GenerateSKU(req.Name)
+		s := helper.GenerateSKU(strings.ToLower(req.Name))
 		sku = &s
 	}
 
@@ -105,7 +106,7 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 		return nil, fmt.Errorf("SKU sudah digunakan oleh variant lain")
 	}
 
-	existing.Name = req.Name
+	existing.Name = strings.ToLower(req.Name)
 	existing.BasePrice = req.BasePrice
 	existing.SellPrice = req.SellPrice
 	existing.SKU = sku

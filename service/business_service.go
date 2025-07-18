@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -35,7 +37,7 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 	}
 
 	business := entity.Business{
-		Name:           req.Name,
+		Name:           strings.ToLower(req.Name),
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
@@ -58,7 +60,7 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 	// Mapping request ke entity
 	business := entity.Business{
 		Id:             req.Id,
-		Name:           req.Name,
+		Name:           strings.ToLower(req.Name),
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: &req.BusinessTypeId,
 		ProvinceID:     &req.ProvinceID,

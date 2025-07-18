@@ -59,7 +59,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 	}
 
 	business := entity.Business{
-		Name:           req.Name,
+		Name:           strings.ToLower(req.Name),
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
