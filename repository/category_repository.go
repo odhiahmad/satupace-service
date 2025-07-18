@@ -89,7 +89,7 @@ func (conn *categoryConnection) FindWithPagination(businessId int, pagination re
 	// Search filter
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"
-		baseQuery = baseQuery.Where("name ILIKE ? OR description ILIKE ?", search, search)
+		baseQuery = baseQuery.Where("name ILIKE", search)
 	}
 
 	// Hitung total sebelum paginasi
