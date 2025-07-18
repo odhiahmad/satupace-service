@@ -14,9 +14,9 @@ import (
 )
 
 func SetupDatabaseConnection() *gorm.DB {
-	appEnv := os.Getenv("APP_ENV") // development | release | staging
+	ginMode := os.Getenv("GIN_MODE")
 
-	if appEnv != "release" {
+	if ginMode != "release" {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Peringatan: .env file tidak ditemukan, menggunakan env bawaan sistem.")
 		}
@@ -42,7 +42,7 @@ func SetupDatabaseConnection() *gorm.DB {
 		log.Fatalf("❌ Gagal terhubung ke database: %v", err)
 	}
 
-	if appEnv != "release" {
+	if ginMode != "release" {
 		if err := db.AutoMigrate(
 			&entity.UserBusiness{},
 			&entity.User{},
