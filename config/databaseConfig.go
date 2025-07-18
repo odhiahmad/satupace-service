@@ -14,7 +14,7 @@ import (
 )
 
 func SetupDatabaseConnection() *gorm.DB {
-	appEnv := os.Getenv("GIN_MODE") // development | release | staging
+	appEnv := os.Getenv("APP_ENV") // development | release | staging
 
 	if appEnv != "release" {
 		if err := godotenv.Load(); err != nil {
@@ -69,13 +69,6 @@ func SetupDatabaseConnection() *gorm.DB {
 		}
 	} else {
 		log.Println("ℹ️ Production mode terdeteksi, AutoMigrate dilewati.")
-	}
-
-	// ✅ Setup index setelah koneksi terbentuk
-	if dbConn, err := db.DB(); err == nil {
-		SetupIndexes(dbConn)
-	} else {
-		log.Println("❌ Gagal ambil koneksi sql.DB untuk indexing:", err)
 	}
 
 	return db
