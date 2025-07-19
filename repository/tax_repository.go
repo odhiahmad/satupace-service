@@ -16,7 +16,7 @@ type TaxRepository interface {
 	Delete(tax entity.Tax) error
 	FindById(taxId int) (taxes entity.Tax, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, bool, error)
 }
 
 type taxConnection struct {
@@ -92,7 +92,7 @@ func (conn *taxConnection) FindWithPagination(businessId int, pagination request
 	return tax, total, nil
 }
 
-func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, error) {
+func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, bool, error) {
 	var taxes []entity.Tax
 
 	query := conn.db.Model(&entity.Tax{}).
@@ -116,7 +116,7 @@ func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination r
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -134,15 +134,18 @@ func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination r
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&taxes).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(taxes) > limit {
 		last := taxes[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		taxes = taxes[:limit]
+		hasNext = true
 	}
 
-	return taxes, nextCursor, nil
+	return taxes, nextCursor, hasNext, nil
 }

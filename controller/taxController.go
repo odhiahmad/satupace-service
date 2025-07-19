@@ -180,10 +180,10 @@ func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	taxes, nextCursor, err := c.taxService.FindWithPaginationCursor(businessID, pagination)
+	taxes, nextCursor, hasNext, err := c.taxService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data tax", "internal_error", "tax", err.Error(), nil))
+			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
@@ -192,11 +192,12 @@ func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Data tax berhasil diambil",
+		"Data brand berhasil diambil",
 		taxes,
 		paginationMeta,
 	))

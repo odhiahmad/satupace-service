@@ -17,7 +17,7 @@ type UnitService interface {
 	Delete(id int) error
 	FindById(id int) response.UnitResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.UnitResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, bool, error)
 }
 
 type unitService struct {
@@ -89,10 +89,10 @@ func (s *unitService) FindWithPagination(businessId int, pagination request.Pagi
 	return result, total, nil
 }
 
-func (s *unitService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, error) {
-	units, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+func (s *unitService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, bool, error) {
+	units, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.UnitResponse
@@ -100,5 +100,5 @@ func (s *unitService) FindWithPaginationCursor(businessId int, pagination reques
 		result = append(result, *helper.MapUnit(&unit))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

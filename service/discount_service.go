@@ -19,7 +19,7 @@ type DiscountService interface {
 	SetIsActive(id int, active bool) error
 	FindById(id int) (response.DiscountResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.DiscountResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error)
 }
 
 type discountService struct {
@@ -119,10 +119,10 @@ func (s *discountService) FindWithPagination(businessId int, pagination request.
 	return responses, total, nil
 }
 
-func (s *discountService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, error) {
-	discounts, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+func (s *discountService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error) {
+	discounts, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var responses []response.DiscountResponse
@@ -130,5 +130,5 @@ func (s *discountService) FindWithPaginationCursor(businessId int, pagination re
 		responses = append(responses, helper.ToDiscountResponse(d))
 	}
 
-	return responses, nextCursor, nil
+	return responses, nextCursor, hasNext, nil
 }

@@ -200,15 +200,10 @@ func (c *categoryController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	categories, nextCursor, err := c.categoryService.FindWithPaginationCursor(businessID, pagination)
+	categories, nextCursor, hasNext, err := c.categoryService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data category",
-			"internal_error",
-			"category",
-			err.Error(),
-			nil,
-		))
+			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
@@ -217,11 +212,12 @@ func (c *categoryController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Data category berhasil diambil",
+		"Data brand berhasil diambil",
 		categories,
 		paginationMeta,
 	))

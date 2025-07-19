@@ -325,15 +325,10 @@ func (c *discountController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	discounts, nextCursor, err := c.discountService.FindWithPaginationCursor(businessID, pagination)
+	discounts, nextCursor, hasNext, err := c.discountService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data diskon",
-			"FETCH_FAILED",
-			"discount",
-			err.Error(),
-			helper.EmptyObj{},
-		))
+			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
@@ -342,11 +337,12 @@ func (c *discountController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Berhasil mengambil data diskon",
+		"Data brand berhasil diambil",
 		discounts,
 		paginationMeta,
 	))

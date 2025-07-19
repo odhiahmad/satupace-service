@@ -21,7 +21,7 @@ type CategoryService interface {
 	FindById(brandId int) response.CategoryResponse
 	Delete(id int) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
 }
 
 type categoryService struct {
@@ -144,10 +144,10 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 	return result, total, nil
 }
 
-func (s *categoryService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, error) {
-	categories, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+func (s *categoryService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
+	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.CategoryResponse
@@ -155,5 +155,5 @@ func (s *categoryService) FindWithPaginationCursor(businessId int, pagination re
 		result = append(result, *helper.MapCategory(&category))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

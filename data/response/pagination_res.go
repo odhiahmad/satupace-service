@@ -12,5 +12,6 @@ type CursorPaginatedResponse struct {
 	Limit      int    `json:"limit"`
 	SortBy     string `json:"sort_by"`
 	OrderBy    string `json:"order_by"`
-	NextCursor string `json:"next_cursor,omitempty"`
+	NextCursor string `json:"next_cursor"`
+	HasNext    bool   `json:"has_next"`
 }

@@ -30,7 +30,7 @@ type ProductService interface {
 	UpdateImage(id int, base64Image string) (response.ProductResponse, error)
 	FindById(id int) (response.ProductResponse, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, bool, error)
 }
 
 type productService struct {
@@ -462,10 +462,10 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 	return result, total, nil
 }
 
-func (s *productService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, error) {
-	products, nextCursor, err := s.ProductRepo.FindWithPaginationCursor(businessId, pagination)
+func (s *productService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, bool, error) {
+	products, nextCursor, hasNext, err := s.ProductRepo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.ProductResponse
@@ -473,5 +473,5 @@ func (s *productService) FindWithPaginationCursor(businessId int, pagination req
 		result = append(result, helper.MapProductToResponse(p))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

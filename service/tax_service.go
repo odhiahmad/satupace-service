@@ -17,7 +17,7 @@ type TaxService interface {
 	Delete(id int) error
 	FindById(roleId int) response.TaxResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, bool, error)
 }
 
 type taxService struct {
@@ -110,10 +110,10 @@ func (s *taxService) FindWithPagination(businessId int, pagination request.Pagin
 	return result, total, nil
 }
 
-func (s *taxService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, error) {
-	taxes, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+func (s *taxService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, bool, error) {
+	taxes, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.TaxResponse
@@ -121,5 +121,5 @@ func (s *taxService) FindWithPaginationCursor(businessId int, pagination request
 		result = append(result, *helper.MapTax(&tax))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

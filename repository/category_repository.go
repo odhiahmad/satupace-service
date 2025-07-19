@@ -16,7 +16,7 @@ type CategoryRepository interface {
 	Delete(categoryId int) error
 	FindById(categoryId int) (entity.Category, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Category, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, bool, error)
 }
 
 type categoryConnection struct {
@@ -107,7 +107,7 @@ func (conn *categoryConnection) FindWithPagination(businessId int, pagination re
 	return category, total, nil
 }
 
-func (conn *categoryConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, error) {
+func (conn *categoryConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, bool, error) {
 	var categories []entity.Category
 
 	query := conn.Db.Model(&entity.Category{}).
@@ -131,7 +131,7 @@ func (conn *categoryConnection) FindWithPaginationCursor(businessId int, paginat
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -149,15 +149,18 @@ func (conn *categoryConnection) FindWithPaginationCursor(businessId int, paginat
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&categories).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(categories) > limit {
 		last := categories[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		categories = categories[:limit]
+		hasNext = true
 	}
 
-	return categories, nextCursor, nil
+	return categories, nextCursor, hasNext, nil
 }

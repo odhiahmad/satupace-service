@@ -27,7 +27,7 @@ type ProductRepository interface {
 	FindById(id int) (entity.Product, error)
 	FindByIds(businessId int, ids []int) ([]entity.Product, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, bool, error)
 }
 
 type productConnection struct {
@@ -272,7 +272,7 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 	return products, total, nil
 }
 
-func (conn *productConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, error) {
+func (conn *productConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, bool, error) {
 	var products []entity.Product
 
 	query := conn.db.Model(&entity.Product{}).
@@ -306,13 +306,13 @@ func (conn *productConnection) FindWithPaginationCursor(businessId int, paginati
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
-			query = query.Where("products.id > ?", cursorID)
+			query = query.Where("id > ?", cursorID)
 		} else {
-			query = query.Where("products.id < ?", cursorID)
+			query = query.Where("id < ?", cursorID)
 		}
 	}
 
@@ -321,18 +321,21 @@ func (conn *productConnection) FindWithPaginationCursor(businessId int, paginati
 		limit = 20
 	}
 
-	query = query.Order(fmt.Sprintf("products.%s %s", sortBy, order)).Limit(limit + 1)
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&products).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(products) > limit {
 		last := products[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		products = products[:limit]
+		hasNext = true
 	}
 
-	return products, nextCursor, nil
+	return products, nextCursor, hasNext, nil
 }

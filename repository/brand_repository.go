@@ -16,7 +16,7 @@ type BrandRepository interface {
 	Delete(brand entity.Brand) error
 	FindById(brandId int) (brandes entity.Brand, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Brand, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, bool, error)
 }
 
 type brandConnection struct {
@@ -92,7 +92,7 @@ func (conn *brandConnection) FindWithPagination(businessId int, pagination reque
 	return brand, total, nil
 }
 
-func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, error) {
+func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, bool, error) {
 	var brands []entity.Brand
 
 	query := conn.db.Model(&entity.Brand{}).
@@ -105,7 +105,7 @@ func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination
 
 	sortBy := pagination.SortBy
 	if sortBy == "" {
-		sortBy = "created_at"
+		sortBy = "updated_at"
 	}
 
 	order := "ASC"
@@ -116,7 +116,7 @@ func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -134,15 +134,18 @@ func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&brands).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(brands) > limit {
 		last := brands[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		brands = brands[:limit]
+		hasNext = true
 	}
 
-	return brands, nextCursor, nil
+	return brands, nextCursor, hasNext, nil
 }

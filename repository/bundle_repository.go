@@ -20,7 +20,7 @@ type BundleRepository interface {
 	SetIsActive(id int, isActive bool) error
 	SetIsAvailable(id int, isActive bool) error
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, bool, error)
 }
 
 type bundleConnection struct {
@@ -120,7 +120,7 @@ func (conn *bundleConnection) FindWithPagination(businessId int, pagination requ
 	return bundles, total, nil
 }
 
-func (conn *bundleConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, error) {
+func (conn *bundleConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, bool, error) {
 	var bundles []entity.Bundle
 
 	query := conn.db.Model(&entity.Bundle{}).
@@ -145,7 +145,7 @@ func (conn *bundleConnection) FindWithPaginationCursor(businessId int, paginatio
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -163,15 +163,18 @@ func (conn *bundleConnection) FindWithPaginationCursor(businessId int, paginatio
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&bundles).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(bundles) > limit {
 		last := bundles[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		bundles = bundles[:limit]
+		hasNext = true
 	}
 
-	return bundles, nextCursor, nil
+	return bundles, nextCursor, hasNext, nil
 }

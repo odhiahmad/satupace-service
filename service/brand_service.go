@@ -17,7 +17,7 @@ type BrandService interface {
 	Delete(id int) error
 	FindById(roleId int) response.BrandResponse
 	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BrandResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, bool, error)
 }
 
 type brandService struct {
@@ -33,12 +33,10 @@ func NewBrandService(repo repository.BrandRepository, validate *validator.Valida
 }
 
 func (s *brandService) Create(req request.BrandRequest) (response.BrandResponse, error) {
-	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.BrandResponse{}, err
 	}
 
-	// Buat entity Brand
 	brand := entity.Brand{
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
@@ -49,7 +47,6 @@ func (s *brandService) Create(req request.BrandRequest) (response.BrandResponse,
 		return response.BrandResponse{}, err
 	}
 
-	// Mapping ke response
 	brandResponse := helper.MapBrand(&createdBrand)
 
 	return *brandResponse, nil
@@ -70,7 +67,6 @@ func (s *brandService) Update(id int, req request.BrandRequest) (response.BrandR
 		return response.BrandResponse{}, err
 	}
 
-	// Mapping ke response
 	brandResponse := helper.MapBrand(&updatedBrand)
 
 	return *brandResponse, nil
@@ -106,10 +102,10 @@ func (s *brandService) FindWithPagination(businessId int, pagination request.Pag
 	return result, total, nil
 }
 
-func (s *brandService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, error) {
-	brands, nextCursor, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+func (s *brandService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BrandResponse, string, bool, error) {
+	brands, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.BrandResponse
@@ -117,5 +113,5 @@ func (s *brandService) FindWithPaginationCursor(businessId int, pagination reque
 		result = append(result, *helper.MapBrand(&brand))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

@@ -15,7 +15,7 @@ type UnitRepository interface {
 	Delete(id int) error
 	FindById(id int) (entity.Unit, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, bool, error)
 }
 
 type unitConnection struct {
@@ -72,7 +72,7 @@ func (connection *unitConnection) FindWithPagination(businessId int, pagination 
 	return units, total, nil
 }
 
-func (connection *unitConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, error) {
+func (connection *unitConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, bool, error) {
 	var units []entity.Unit
 
 	query := connection.db.Model(&entity.Unit{}).
@@ -96,7 +96,7 @@ func (connection *unitConnection) FindWithPaginationCursor(businessId int, pagin
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -114,15 +114,18 @@ func (connection *unitConnection) FindWithPaginationCursor(businessId int, pagin
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&units).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(units) > limit {
 		last := units[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		units = units[:limit]
+		hasNext = true
 	}
 
-	return units, nextCursor, nil
+	return units, nextCursor, hasNext, nil
 }

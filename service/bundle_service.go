@@ -19,8 +19,8 @@ type BundleService interface {
 	Delete(id int) error
 	SetIsActive(id int, active bool) error
 	SetIsAvailable(id int, isAvailable bool) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) // <- Tambahan
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, error)
+	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, bool, error)
 }
 
 type bundleService struct {
@@ -165,10 +165,10 @@ func (s *bundleService) FindWithPagination(businessId int, pagination request.Pa
 	return result, total, nil
 }
 
-func (s *bundleService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, error) {
-	bundles, nextCursor, err := s.BundleRepository.FindWithPaginationCursor(businessId, pagination)
+func (s *bundleService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, bool, error) {
+	bundles, nextCursor, hasNext, err := s.BundleRepository.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var result []response.BundleResponse
@@ -176,5 +176,5 @@ func (s *bundleService) FindWithPaginationCursor(businessId int, pagination requ
 		result = append(result, helper.MapBundleToResponse(bundleItem))
 	}
 
-	return result, nextCursor, nil
+	return result, nextCursor, hasNext, nil
 }

@@ -325,7 +325,7 @@ func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
 		CategoryID: categoryID,
 	}
 
-	products, nextCursor, err := c.productService.FindWithPaginationCursor(businessID, pagination)
+	products, nextCursor, hasNext, err := c.productService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
@@ -336,6 +336,7 @@ func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(true, "Data produk berhasil diambil", products, meta))

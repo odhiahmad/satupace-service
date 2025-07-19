@@ -311,10 +311,10 @@ func (c *bundleController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	bundles, nextCursor, err := c.bundleService.FindWithPaginationCursor(businessID, pagination)
+	bundles, nextCursor, hasNext, err := c.bundleService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data bundle", "BUNDLE_FETCH_FAILED", "bundle", err.Error(), nil))
+			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
@@ -323,11 +323,12 @@ func (c *bundleController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Data bundle berhasil diambil",
+		"Data brand berhasil diambil",
 		bundles,
 		paginationMeta,
 	))

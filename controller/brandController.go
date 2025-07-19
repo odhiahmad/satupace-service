@@ -183,7 +183,7 @@ func (c *brandController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	brands, nextCursor, err := c.brandService.FindWithPaginationCursor(businessID, pagination)
+	brands, nextCursor, hasNext, err := c.brandService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
@@ -195,6 +195,7 @@ func (c *brandController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext, // konversi bool ke string: "true"/"false"
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(

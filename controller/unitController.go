@@ -197,10 +197,10 @@ func (c *unitController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	units, nextCursor, err := c.service.FindWithPaginationCursor(businessID, pagination)
+	units, nextCursor, hasNext, err := c.service.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data unit produk", "INTERNAL_ERROR", "unit", err.Error(), helper.EmptyObj{}))
+			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
 		return
 	}
 
@@ -209,11 +209,12 @@ func (c *unitController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Berhasil mengambil data unit produk",
+		"Data brand berhasil diambil",
 		units,
 		paginationMeta,
 	))

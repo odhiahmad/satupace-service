@@ -18,7 +18,7 @@ type DiscountRepository interface {
 	FindById(id int) (entity.Discount, error)
 	FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, error)
+	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, bool, error)
 }
 
 type discountConnection struct {
@@ -103,7 +103,7 @@ func (conn *discountConnection) FindWithPagination(businessId int, pagination re
 	return discounts, total, nil
 }
 
-func (conn *discountConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, error) {
+func (conn *discountConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, bool, error) {
 	var discounts []entity.Discount
 
 	query := conn.db.Model(&entity.Discount{}).
@@ -127,7 +127,7 @@ func (conn *discountConnection) FindWithPaginationCursor(businessId int, paginat
 	if pagination.Cursor != "" {
 		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 
 		if order == "ASC" {
@@ -145,15 +145,18 @@ func (conn *discountConnection) FindWithPaginationCursor(businessId int, paginat
 	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
 
 	if err := query.Find(&discounts).Error; err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	var nextCursor string
+	hasNext := false
+
 	if len(discounts) > limit {
 		last := discounts[limit-1]
 		nextCursor = helper.EncodeCursorID(int64(last.Id))
 		discounts = discounts[:limit]
+		hasNext = true
 	}
 
-	return discounts, nextCursor, nil
+	return discounts, nextCursor, hasNext, nil
 }

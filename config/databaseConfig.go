@@ -53,7 +53,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.Unit{},
 			&entity.Tax{},
 			&entity.Discount{},
-			&entity.Product{}, // ✅ pastikan ini duluan
+			&entity.Product{},
 			&entity.ProductVariant{},
 			&entity.ProductAttribute{},
 			&entity.Bundle{},
