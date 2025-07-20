@@ -2,7 +2,7 @@ package request
 
 type ProductRequest struct {
 	BusinessId   *int                    `json:"business_id" validate:"required"`
-	CategoryId   *int                    `json:"category_id" validate:"required"`
+	CategoryId   *int                    `json:"category_id"`
 	Name         string                  `json:"name" validate:"required"`
 	HasVariant   bool                    `json:"has_variant"`
 	Brand        *string                 `json:"brand,omitempty"`
