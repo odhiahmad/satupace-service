@@ -50,6 +50,7 @@ func (s *discountService) Create(req request.DiscountRequest) (entity.Discount, 
 	discount := entity.Discount{
 		BusinessId:   req.BusinessId,
 		Name:         strings.ToLower(req.Name),
+		Description:  req.Description,
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 		StartAt:      req.StartAt,
@@ -78,6 +79,7 @@ func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Di
 	discount := entity.Discount{
 		Id:           id,
 		Name:         strings.ToLower(req.Name),
+		Description:  req.Description,
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 		StartAt:      req.StartAt,
