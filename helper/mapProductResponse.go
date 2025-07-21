@@ -6,6 +6,8 @@ import (
 
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // SafeString digunakan untuk menghindari panic jika pointer string nil
@@ -92,26 +94,28 @@ func MapDiscount(discount *entity.Discount) *response.DiscountResponse {
 }
 
 func MapUnit(unit *entity.Unit) *response.UnitResponse {
+	caser := cases.Title(language.Indonesian)
 	if unit == nil {
 		return nil
 	}
 
 	return &response.UnitResponse{
 		Id:         unit.Id,
-		Name:       unit.Name,
-		Alias:      unit.Alias,
+		Name:       caser.String(unit.Name),
+		Alias:      caser.String(unit.Alias),
 		Multiplier: unit.Multiplier,
 	}
 }
 
 func MapBrand(unit *entity.Brand) *response.BrandResponse {
+	caser := cases.Title(language.Indonesian)
 	if unit == nil {
 		return nil
 	}
 
 	return &response.BrandResponse{
 		Id:   unit.Id,
-		Name: unit.Name,
+		Name: caser.String(unit.Name),
 	}
 }
 
