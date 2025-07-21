@@ -10,7 +10,7 @@ type Product struct {
 	BusinessId   *int             `gorm:"not null;index:idx_business_sku,unique"`
 	SKU          *string          `gorm:"index:idx_business_sku,unique"`
 	Business     *Business        `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
-	CategoryId   *int             `gorm:"not null" json:"category_id"`
+	CategoryId   *int             `gorm:"index" json:"category_id"`
 	Category     *Category        `gorm:"foreignKey:CategoryId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	HasVariant   bool             `gorm:"default:false" json:"has_variant"`
 	Variants     []ProductVariant `gorm:"foreignKey:ProductId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"variants"`
