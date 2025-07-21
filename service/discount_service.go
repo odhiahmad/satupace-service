@@ -79,13 +79,14 @@ func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Di
 	discount := entity.Discount{
 		Id:           id,
 		Name:         strings.ToLower(req.Name),
-		Description:  req.Description,
+		Description:  strings.ToLower(req.Description),
 		IsPercentage: isPercentageVal,
 		Amount:       req.Amount,
 		StartAt:      req.StartAt,
 		EndAt:        req.EndAt,
 		IsGlobal:     req.IsGlobal,
 		IsMultiple:   req.IsMultiple,
+		IsActive:     req.IsActive,
 	}
 
 	return s.repo.Update(discount)
