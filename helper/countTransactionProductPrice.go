@@ -59,7 +59,7 @@ func HitungHargaTransaksi(
 			(product.Discount.EndAt.IsZero() || now.Before(product.Discount.EndAt)) {
 
 			var singleDiscount float64
-			if product.Discount.IsPercentage {
+			if *product.Discount.IsPercentage {
 				singleDiscount = price * product.Discount.Amount
 			} else {
 				singleDiscount = product.Discount.Amount

@@ -129,7 +129,7 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 		First(&globalDiscount).Error
 	if err == nil {
 		var totalDisc float64
-		if globalDiscount.IsPercentage {
+		if *globalDiscount.IsPercentage {
 			totalDisc = result.FinalPrice * globalDiscount.Amount
 		} else {
 			totalDisc = globalDiscount.Amount
@@ -246,7 +246,7 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 		First(&globalDiscount).Error
 	if err == nil {
 		var totalDisc float64
-		if globalDiscount.IsPercentage {
+		if *globalDiscount.IsPercentage {
 			totalDisc = result.FinalPrice * globalDiscount.Amount
 		} else {
 			totalDisc = globalDiscount.Amount

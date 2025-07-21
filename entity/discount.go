@@ -7,7 +7,7 @@ type Discount struct {
 	BusinessId   int       `gorm:"not null" json:"business_id"`
 	Name         string    `gorm:"not null" json:"name"`
 	Description  string    `json:"description"`
-	IsPercentage bool      `gorm:"not null;default:false" json:"is_percentage"` // true = amount sebagai persen
+	IsPercentage *bool     `gorm:"not null;default:false" json:"is_percentage"` // true = amount sebagai persen
 	Amount       float64   `gorm:"not null" json:"amount"`                      // nilai diskon
 	IsGlobal     *bool     `gorm:"not null" json:"is_global"`                   // true = berlaku untuk semua produk
 	IsMultiple   *bool     `gorm:"not null;default:false" json:"is_multiple"`   // true = berlaku kelipatan (misal beli 2x, diskon 2x)

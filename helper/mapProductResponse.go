@@ -83,7 +83,7 @@ func MapDiscount(discount *entity.Discount) *response.DiscountResponse {
 		Id:           discount.Id,
 		Name:         discount.Name,
 		Amount:       discount.Amount,
-		IsPercentage: &discount.IsPercentage,
+		IsPercentage: discount.IsPercentage,
 		IsMultiple:   discount.IsMultiple,
 		IsGlobal:     discount.IsGlobal,
 		StartAt:      discount.StartAt,
@@ -123,7 +123,7 @@ func CalculateFinalPrice(p *entity.Product) float64 {
 	price := *p.SellPrice
 
 	if p.Discount != nil && IsDiscountActive(p.Discount) {
-		if p.Discount.IsPercentage {
+		if *p.Discount.IsPercentage {
 			price -= price * p.Discount.Amount / 100
 		} else {
 			price -= p.Discount.Amount
@@ -145,7 +145,7 @@ func CalculateFinalPriceFromVariant(v *entity.ProductVariant, product *entity.Pr
 	price := *v.SellPrice
 
 	if product.Discount != nil && IsDiscountActive(product.Discount) {
-		if product.Discount.IsPercentage {
+		if *product.Discount.IsPercentage {
 			price -= price * product.Discount.Amount / 100
 		} else {
 			price -= product.Discount.Amount

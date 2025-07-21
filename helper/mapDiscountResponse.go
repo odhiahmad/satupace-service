@@ -13,7 +13,7 @@ func ToDiscountResponse(discount entity.Discount) response.DiscountResponse {
 		Id:           discount.Id,
 		Name:         caser.String(discount.Name),
 		Description:  caser.String(discount.Description),
-		IsPercentage: &discount.IsPercentage,
+		IsPercentage: discount.IsPercentage,
 		Amount:       discount.Amount,
 		IsGlobal:     discount.IsGlobal,
 		IsMultiple:   discount.IsMultiple,
