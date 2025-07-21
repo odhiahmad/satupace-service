@@ -57,7 +57,7 @@ func (s *discountService) Create(req request.DiscountRequest) (entity.Discount, 
 		EndAt:        req.EndAt,
 		IsGlobal:     req.IsGlobal,
 		IsMultiple:   req.IsMultiple,
-		IsActive:     true,
+		IsActive:     req.IsActive,
 	}
 
 	return s.repo.Create(discount)

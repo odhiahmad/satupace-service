@@ -83,7 +83,7 @@ func MapDiscount(discount *entity.Discount) *response.DiscountResponse {
 		Id:           discount.Id,
 		Name:         discount.Name,
 		Amount:       discount.Amount,
-		IsPercentage: discount.IsPercentage,
+		IsPercentage: &discount.IsPercentage,
 		IsMultiple:   discount.IsMultiple,
 		IsGlobal:     discount.IsGlobal,
 		StartAt:      discount.StartAt,
@@ -162,7 +162,7 @@ func CalculateFinalPriceFromVariant(v *entity.ProductVariant, product *entity.Pr
 func IsDiscountActive(d *entity.Discount) bool {
 	fmt.Printf("🔍 Cek diskon aktif: %+v\n", d)
 
-	if !d.IsActive {
+	if !*d.IsActive {
 		fmt.Println("❌ Tidak aktif")
 		return false
 	}

@@ -135,7 +135,7 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 			totalDisc = globalDiscount.Amount
 		}
 
-		if globalDiscount.IsMultiple {
+		if *globalDiscount.IsMultiple {
 			var totalQty int
 			for _, item := range result.Items {
 				totalQty += item.Quantity
@@ -252,7 +252,7 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 			totalDisc = globalDiscount.Amount
 		}
 
-		if globalDiscount.IsMultiple {
+		if *globalDiscount.IsMultiple {
 			var totalQty int
 			for _, item := range result.Items {
 				totalQty += item.Quantity

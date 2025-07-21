@@ -10,7 +10,7 @@ func ToDiscountResponse(discount entity.Discount) response.DiscountResponse {
 		Id:           discount.Id,
 		Name:         discount.Name,
 		Description:  discount.Description,
-		IsPercentage: discount.IsPercentage,
+		IsPercentage: &discount.IsPercentage,
 		Amount:       discount.Amount,
 		IsGlobal:     discount.IsGlobal,
 		IsMultiple:   discount.IsMultiple,

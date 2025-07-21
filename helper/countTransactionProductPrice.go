@@ -52,7 +52,7 @@ func HitungHargaTransaksi(
 	}
 
 	var discount float64
-	if product.Discount != nil && product.Discount.IsActive {
+	if product.Discount != nil && *product.Discount.IsActive {
 		now := time.Now()
 
 		if (product.Discount.StartAt.IsZero() || now.After(product.Discount.StartAt)) &&
@@ -65,7 +65,7 @@ func HitungHargaTransaksi(
 				singleDiscount = product.Discount.Amount
 			}
 
-			if product.Discount.IsMultiple {
+			if *product.Discount.IsMultiple {
 				discount = singleDiscount * float64(quantity)
 			} else {
 				discount = singleDiscount
