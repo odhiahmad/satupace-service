@@ -93,7 +93,27 @@ func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Di
 }
 
 func (s *discountService) Delete(id int) error {
-	return s.repo.Delete(id)
+	_, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+
+	hasRelation, err := s.repo.HasRelation(id)
+	if err != nil {
+		return err
+	}
+
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.repo.SoftDelete(id)
+	} else {
+		deleteErr = s.repo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
+	}
+
+	return nil
 }
 
 func (s *discountService) SetIsActive(id int, active bool) error {

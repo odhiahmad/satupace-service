@@ -3,6 +3,8 @@ package entity
 import (
 	"strconv"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Product struct {
@@ -35,6 +37,7 @@ type Product struct {
 	IsReady      bool             `gorm:"default:false" json:"is_ready"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt   `gorm:"index" json:"-"`
 }
 
 // Opsional: agar bisa dipakai sebagai entitas umum

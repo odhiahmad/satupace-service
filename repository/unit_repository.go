@@ -13,6 +13,9 @@ type UnitRepository interface {
 	Create(unit entity.Unit) (entity.Unit, error)
 	Update(unit entity.Unit) (entity.Unit, error)
 	Delete(id int) error
+	HasRelation(brandId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	FindById(id int) (entity.Unit, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Unit, int64, error)
 	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Unit, string, bool, error)
@@ -38,6 +41,20 @@ func (connection *unitConnection) Update(unit entity.Unit) (entity.Unit, error) 
 
 func (connection *unitConnection) Delete(id int) error {
 	return connection.db.Delete(&entity.Unit{}, id).Error
+}
+
+func (conn *unitConnection) HasRelation(unitId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.Product{}).Where("unit_id = ?", unitId).Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *unitConnection) SoftDelete(id int) error {
+	return conn.db.Delete(&entity.Unit{}, id).Error
+}
+
+func (conn *unitConnection) HardDelete(id int) error {
+	return conn.db.Unscoped().Delete(&entity.Unit{}, id).Error
 }
 
 func (connection *unitConnection) FindById(id int) (entity.Unit, error) {

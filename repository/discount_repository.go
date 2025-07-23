@@ -14,6 +14,9 @@ type DiscountRepository interface {
 	Create(discount entity.Discount) (entity.Discount, error)
 	Update(discount entity.Discount) (entity.Discount, error)
 	Delete(id int) error
+	HasRelation(brandId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	SetIsActive(id int, isActive bool) error
 	FindById(id int) (entity.Discount, error)
 	FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error)
@@ -44,6 +47,20 @@ func (conn *discountConnection) Update(discount entity.Discount) (entity.Discoun
 
 func (conn *discountConnection) Delete(id int) error {
 	return conn.db.Delete(&entity.Discount{}, id).Error
+}
+
+func (conn *discountConnection) HasRelation(discountId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.Product{}).Where("discount_id = ?", discountId).Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *discountConnection) SoftDelete(id int) error {
+	return conn.db.Delete(&entity.Discount{}, id).Error // akan mengisi deleted_at
+}
+
+func (conn *discountConnection) HardDelete(id int) error {
+	return conn.db.Unscoped().Delete(&entity.Discount{}, id).Error // delete permanen
 }
 
 func (conn *discountConnection) SetIsActive(id int, isActive bool) error {

@@ -81,11 +81,27 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 }
 
 func (s *taxService) Delete(id int) error {
-	tax, err := s.repo.FindById(id)
+	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Delete(tax)
+
+	hasRelation, err := s.repo.HasRelation(id)
+	if err != nil {
+		return err
+	}
+
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.repo.SoftDelete(id)
+	} else {
+		deleteErr = s.repo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
+	}
+
+	return nil
 }
 
 func (s *taxService) FindById(taxId int) response.TaxResponse {

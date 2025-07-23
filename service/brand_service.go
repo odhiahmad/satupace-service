@@ -73,11 +73,27 @@ func (s *brandService) Update(id int, req request.BrandRequest) (response.BrandR
 }
 
 func (s *brandService) Delete(id int) error {
-	brand, err := s.repo.FindById(id)
+	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Delete(brand)
+
+	hasRelation, err := s.repo.HasRelation(id)
+	if err != nil {
+		return err
+	}
+
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.repo.SoftDelete(id)
+	} else {
+		deleteErr = s.repo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
+	}
+
+	return nil
 }
 
 func (s *brandService) FindById(brandId int) response.BrandResponse {

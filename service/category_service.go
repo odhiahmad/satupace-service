@@ -57,7 +57,7 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 	}
 
 	pattern := fmt.Sprintf("categories:business:%d*", req.BusinessId)
-	go helper.DeleteKeysByPattern(context.Background(), s.Redis, pattern)
+	helper.DeleteKeysByPattern(context.Background(), s.Redis, pattern)
 
 	categoryResponse := helper.MapCategory(&createdCategory)
 	return *categoryResponse, nil
@@ -104,15 +104,23 @@ func (s *categoryService) Delete(id int) error {
 		return err
 	}
 
-	err = s.repo.Delete(id)
+	hasRelation, err := s.repo.HasRelation(id)
 	if err != nil {
 		return err
 	}
 
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.repo.SoftDelete(id)
+	} else {
+		deleteErr = s.repo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
+	}
+
 	ctx := context.Background()
-
 	s.Redis.Del(ctx, fmt.Sprintf("category:%d", id))
-
 	pattern := fmt.Sprintf("categories:business:%d*", category.BusinessId)
 	go helper.DeleteKeysByPattern(ctx, s.Redis, pattern)
 

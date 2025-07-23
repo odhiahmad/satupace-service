@@ -14,6 +14,9 @@ type BrandRepository interface {
 	Create(brand entity.Brand) (entity.Brand, error)
 	Update(brand entity.Brand) (entity.Brand, error)
 	Delete(brand entity.Brand) error
+	HasRelation(brandId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	FindById(brandId int) (brandes entity.Brand, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Brand, int64, error)
 	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, bool, error)
@@ -54,6 +57,20 @@ func (conn *brandConnection) Update(brand entity.Brand) (entity.Brand, error) {
 
 func (conn *brandConnection) Delete(brand entity.Brand) error {
 	return conn.db.Delete(&brand).Error
+}
+
+func (conn *brandConnection) HasRelation(brandId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.Product{}).Where("brand_id = ?", brandId).Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *brandConnection) SoftDelete(id int) error {
+	return conn.db.Delete(&entity.Brand{}, id).Error // akan mengisi deleted_at
+}
+
+func (conn *brandConnection) HardDelete(id int) error {
+	return conn.db.Unscoped().Delete(&entity.Brand{}, id).Error // delete permanen
 }
 
 func (conn *brandConnection) FindById(brandId int) (brandes entity.Brand, err error) {

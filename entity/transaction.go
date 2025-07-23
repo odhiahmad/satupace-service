@@ -2,6 +2,8 @@ package entity
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Transaction struct {
@@ -38,4 +40,5 @@ type Transaction struct {
 	CanceledReason  *string           `json:"canceled_reason"`
 	CreatedAt       time.Time         `json:"created_at"`
 	UpdatedAt       time.Time         `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt    `gorm:"index" json:"-"`
 }

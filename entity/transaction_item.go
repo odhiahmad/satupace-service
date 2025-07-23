@@ -2,6 +2,8 @@ package entity
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type TransactionItem struct {
@@ -26,4 +28,5 @@ type TransactionItem struct {
 	Attributes         []TransactionItemAttribute `gorm:"foreignKey:TransactionItemId"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
 }

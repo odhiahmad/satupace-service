@@ -14,6 +14,9 @@ type TaxRepository interface {
 	Create(tax entity.Tax) (entity.Tax, error)
 	Update(tax entity.Tax) (entity.Tax, error)
 	Delete(tax entity.Tax) error
+	HasRelation(brandId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	FindById(taxId int) (taxes entity.Tax, err error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
 	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, bool, error)
@@ -54,6 +57,20 @@ func (conn *taxConnection) Update(tax entity.Tax) (entity.Tax, error) {
 
 func (conn *taxConnection) Delete(tax entity.Tax) error {
 	return conn.db.Delete(&tax).Error
+}
+
+func (conn *taxConnection) HasRelation(taxId int) (bool, error) {
+	var count int64
+	err := conn.db.Model(&entity.Product{}).Where("tax_id = ?", taxId).Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *taxConnection) SoftDelete(id int) error {
+	return conn.db.Delete(&entity.Tax{}, id).Error // akan mengisi deleted_at
+}
+
+func (conn *taxConnection) HardDelete(id int) error {
+	return conn.db.Unscoped().Delete(&entity.Tax{}, id).Error // delete permanen
 }
 
 func (conn *taxConnection) FindById(taxId int) (taxes entity.Tax, err error) {

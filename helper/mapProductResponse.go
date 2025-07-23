@@ -53,13 +53,15 @@ func MapProductVariants(variants []entity.ProductVariant, product *entity.Produc
 }
 
 func MapCategory(category *entity.Category) *response.CategoryResponse {
+	caser := cases.Title(language.Indonesian)
+
 	if category == nil || category.Id == 0 {
 		return nil
 	}
 
 	return &response.CategoryResponse{
 		Id:   category.Id,
-		Name: category.Name,
+		Name: caser.String(category.Name),
 	}
 }
 

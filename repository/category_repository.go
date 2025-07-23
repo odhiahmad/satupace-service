@@ -14,6 +14,9 @@ type CategoryRepository interface {
 	InsertCategory(category entity.Category) (entity.Category, error)
 	UpdateCategory(category entity.Category) (entity.Category, error)
 	Delete(categoryId int) error
+	HasRelation(categoryId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	FindById(categoryId int) (entity.Category, error)
 	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Category, int64, error)
 	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, bool, error)
@@ -70,6 +73,20 @@ func (conn *categoryConnection) UpdateCategory(category entity.Category) (entity
 func (conn *categoryConnection) Delete(categoryId int) error {
 	result := conn.Db.Delete(&entity.Category{}, categoryId)
 	return result.Error
+}
+
+func (conn *categoryConnection) HasRelation(categoryId int) (bool, error) {
+	var count int64
+	err := conn.Db.Model(&entity.Product{}).Where("category_id = ?", categoryId).Count(&count).Error
+	return count > 0, err
+}
+
+func (conn *categoryConnection) SoftDelete(id int) error {
+	return conn.Db.Delete(&entity.Category{}, id).Error // akan mengisi deleted_at
+}
+
+func (conn *categoryConnection) HardDelete(id int) error {
+	return conn.Db.Unscoped().Delete(&entity.Category{}, id).Error // delete permanen
 }
 
 func (conn *categoryConnection) FindById(categoryId int) (entity.Category, error) {

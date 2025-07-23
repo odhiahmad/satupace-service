@@ -64,7 +64,27 @@ func (s *unitService) Update(id int, req request.UnitRequest) (entity.Unit, erro
 }
 
 func (s *unitService) Delete(id int) error {
-	return s.repo.Delete(id)
+	_, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+
+	hasRelation, err := s.repo.HasRelation(id)
+	if err != nil {
+		return err
+	}
+
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.repo.SoftDelete(id)
+	} else {
+		deleteErr = s.repo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
+	}
+
+	return nil
 }
 
 func (s *unitService) FindById(unitId int) response.UnitResponse {
