@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"log"
 	"strings"
 
 	"github.com/odhiahmad/kasirku-service/data/request"
@@ -13,7 +12,6 @@ type Paginator struct {
 	validSort  map[string]bool
 }
 
-// Buat paginator baru dengan validasi field sort yang diizinkan
 func Paginate(pagination request.Pagination, validSortFields []string) *Paginator {
 	validSort := make(map[string]bool)
 	for _, field := range validSortFields {
@@ -26,7 +24,6 @@ func Paginate(pagination request.Pagination, validSortFields []string) *Paginato
 	}
 }
 
-// Apply pagination ke query GORM
 func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) {
 	if p.pagination.Page <= 0 {
 		p.pagination.Page = 1
@@ -34,9 +31,6 @@ func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) 
 	if p.pagination.Limit <= 0 {
 		p.pagination.Limit = 10
 	}
-
-	// Debug sebelum validasi
-	log.Printf("RAW sortBy: %s", p.pagination.SortBy)
 
 	sortBy := strings.ToLower(p.pagination.SortBy)
 	if sortBy == "" || !p.validSort[sortBy] {
@@ -49,8 +43,6 @@ func (p *Paginator) Paginate(db *gorm.DB, result interface{}) (int, int, error) 
 	}
 
 	offset := (p.pagination.Page - 1) * p.pagination.Limit
-
-	log.Printf("FINAL SortBy: %s, Order: %s", sortBy, order)
 
 	query := db.
 		Order(sortBy + " " + order).

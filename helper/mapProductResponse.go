@@ -66,13 +66,14 @@ func MapCategory(category *entity.Category) *response.CategoryResponse {
 }
 
 func MapTax(tax *entity.Tax) *response.TaxResponse {
+	caser := cases.Title(language.Indonesian)
 	if tax == nil {
 		return nil
 	}
 
 	return &response.TaxResponse{
 		Id:           tax.Id,
-		Name:         tax.Name,
+		Name:         caser.String(tax.Name),
 		Amount:       tax.Amount,
 		IsPercentage: tax.IsPercentage,
 	}
