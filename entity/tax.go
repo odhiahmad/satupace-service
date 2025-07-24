@@ -11,9 +11,10 @@ type Tax struct {
 	BusinessId   int            `gorm:"not null" json:"business_id"`
 	Business     *Business      `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	Name         string         `gorm:"type:varchar(100);not null" json:"name"`
-	IsPercentage bool           `gorm:"not null;default:false" json:"is_percentage"`
-	IsGlobal     bool           `gorm:"not null;default:false" json:"is_global"`
+	IsPercentage *bool          `gorm:"not null;default:false" json:"is_percentage"`
+	IsGlobal     *bool          `gorm:"not null;default:false" json:"is_global"`
 	Amount       float64        `gorm:"not null" json:"amount"`
+	IsActive     *bool          `gorm:"not null; column:is_active"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`

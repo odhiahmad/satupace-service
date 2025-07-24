@@ -42,7 +42,7 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 	tax := entity.Tax{
 		BusinessId:   req.BusinessId,
 		Name:         strings.ToLower(req.Name),
-		IsPercentage: isPercentageVal,
+		IsPercentage: &isPercentageVal,
 		Amount:       req.Amount,
 	}
 
@@ -66,7 +66,7 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 	tax := entity.Tax{
 		Id:           id,
 		Name:         strings.ToLower(req.Name),
-		IsPercentage: isPercentageVal,
+		IsPercentage: &isPercentageVal,
 		Amount:       req.Amount,
 	}
 
