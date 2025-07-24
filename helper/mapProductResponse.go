@@ -76,6 +76,8 @@ func MapTax(tax *entity.Tax) *response.TaxResponse {
 		Name:         caser.String(tax.Name),
 		Amount:       tax.Amount,
 		IsPercentage: tax.IsPercentage,
+		IsGlobal:     tax.IsGlobal,
+		IsActive:     tax.IsActive,
 	}
 }
 

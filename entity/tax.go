@@ -14,7 +14,7 @@ type Tax struct {
 	IsPercentage *bool          `gorm:"not null;default:false" json:"is_percentage"`
 	IsGlobal     *bool          `gorm:"not null;default:false" json:"is_global"`
 	Amount       float64        `gorm:"not null" json:"amount"`
-	IsActive     bool           `gorm:"not null;default:true"`
+	IsActive     *bool          `gorm:"not null;default:true" json:"is_active"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
