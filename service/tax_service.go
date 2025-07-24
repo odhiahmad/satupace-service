@@ -68,6 +68,8 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 		Name:         strings.ToLower(req.Name),
 		IsPercentage: &isPercentageVal,
 		Amount:       req.Amount,
+		IsGlobal:     req.IsGlobal,
+		IsActive:     req.IsActive,
 	}
 
 	updatedTax, err := s.repo.Update(tax)
