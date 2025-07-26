@@ -18,8 +18,8 @@ type ProductVariant struct {
 	SellPrice   *float64       `json:"sell_price"`
 	Stock       int            `json:"stock"`
 	TrackStock  bool           `gorm:"default:false" json:"track_stock"`
-	IsAvailable bool           `gorm:"default:true" json:"is_available"`
-	IsActive    bool           `gorm:"default:true" json:"is_active"`
+	IsAvailable *bool          `gorm:"default:true" json:"is_available"`
+	IsActive    *bool          `gorm:"default:true" json:"is_active"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

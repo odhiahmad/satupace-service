@@ -18,8 +18,8 @@ type ProductRequest struct {
 	BrandId      *int                    `json:"brand_id,omitempty"`
 	TaxId        *int                    `json:"tax_id,omitempty"`
 	UnitId       *int                    `json:"unit_id,omitempty"`
-	IsAvailable  bool                    `json:"is_available"`
-	IsActive     bool                    `json:"is_active"`
+	IsAvailable  *bool                   `json:"is_available"`
+	IsActive     *bool                   `json:"is_active"`
 	Variants     []ProductVariantRequest `json:"variants,omitempty"`
 }
 
@@ -41,8 +41,8 @@ type ProductUpdateRequest struct {
 	BrandId      *int                          `json:"brand_id,omitempty"`
 	TaxId        *int                          `json:"tax_id,omitempty"`
 	UnitId       *int                          `json:"unit_id,omitempty"`
-	IsAvailable  bool                          `json:"is_available"`
-	IsActive     bool                          `json:"is_active"`
+	IsAvailable  *bool                         `json:"is_available"`
+	IsActive     *bool                         `json:"is_active"`
 	Variants     []ProductVariantUpdateRequest `json:"variants,omitempty"`
 }
 
@@ -53,22 +53,26 @@ type CategoryRequest struct {
 }
 
 type ProductVariantRequest struct {
-	BusinessId *int     `json:"business_id" validate:"required"`
-	Name       string   `json:"name" validate:"required"`
-	BasePrice  *float64 `json:"base_price,omitempty"`
-	SellPrice  *float64 `json:"sell_price,omitempty"`
-	SKU        *string  `json:"sku,omitempty"`
-	Stock      int      `json:"stock,omitempty"`
-	TrackStock *bool    `json:"track_stock,omitempty"`
+	BusinessId  *int     `json:"business_id" validate:"required"`
+	Name        string   `json:"name" validate:"required"`
+	BasePrice   *float64 `json:"base_price,omitempty"`
+	SellPrice   *float64 `json:"sell_price,omitempty"`
+	SKU         *string  `json:"sku,omitempty"`
+	Stock       int      `json:"stock,omitempty"`
+	TrackStock  *bool    `json:"track_stock,omitempty"`
+	IsAvailable *bool    `json:"is_available"`
+	IsActive    *bool    `json:"is_active"`
 }
 
 type ProductVariantUpdateRequest struct {
-	Id         int      `json:"id" binding:"required"`
-	BusinessId *int     `json:"business_id" validate:"required"`
-	Name       string   `json:"name" validate:"required"`
-	BasePrice  *float64 `json:"base_price,omitempty"`
-	SellPrice  *float64 `json:"sell_price,omitempty"`
-	SKU        *string  `json:"sku,omitempty"`
-	Stock      int      `json:"stock,omitempty"`
-	TrackStock *bool    `json:"track_stock,omitempty"`
+	Id          int      `json:"id" binding:"required"`
+	BusinessId  *int     `json:"business_id" validate:"required"`
+	Name        string   `json:"name" validate:"required"`
+	BasePrice   *float64 `json:"base_price,omitempty"`
+	SellPrice   *float64 `json:"sell_price,omitempty"`
+	SKU         *string  `json:"sku,omitempty"`
+	Stock       int      `json:"stock,omitempty"`
+	TrackStock  *bool    `json:"track_stock,omitempty"`
+	IsAvailable *bool    `json:"is_available"`
+	IsActive    *bool    `json:"is_active"`
 }

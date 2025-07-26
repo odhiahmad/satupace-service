@@ -25,8 +25,8 @@ func MapProductToResponse(product entity.Product) response.ProductResponse {
 		Stock:        product.Stock,
 		TrackStock:   product.TrackStock,
 		MinimumSales: product.MinimumSales,
-		IsAvailable:  product.IsAvailable,
-		IsActive:     product.IsActive,
+		IsAvailable:  *product.IsAvailable,
+		IsActive:     *product.IsActive,
 		HasVariant:   product.HasVariant,
 		Variants:     MapProductVariants(product.Variants, &product),
 		Brand:        MapBrand(product.Brand),
@@ -41,12 +41,14 @@ func MapProductVariants(variants []entity.ProductVariant, product *entity.Produc
 	var result []response.ProductVariantResponse
 	for _, v := range variants {
 		result = append(result, response.ProductVariantResponse{
-			Id:         v.Id,
-			Name:       v.Name,
-			BasePrice:  v.BasePrice,
-			SellPrice:  v.SellPrice,
-			FinalPrice: Float64Ptr(CalculateFinalPriceFromVariant(&v, product)),
-			SKU:        v.SKU,
+			Id:          v.Id,
+			Name:        v.Name,
+			BasePrice:   v.BasePrice,
+			SellPrice:   v.SellPrice,
+			FinalPrice:  Float64Ptr(CalculateFinalPriceFromVariant(&v, product)),
+			SKU:         v.SKU,
+			IsAvailable: *v.IsAvailable,
+			IsActive:    *v.IsActive,
 		})
 	}
 	return result

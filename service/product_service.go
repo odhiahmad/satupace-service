@@ -112,8 +112,8 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		DiscountId:   req.DiscountId,
 		UnitId:       req.UnitId,
 		TrackStock:   req.Stock != nil && *req.Stock > 0,
-		IsAvailable:  true,
-		IsActive:     true,
+		IsAvailable:  req.IsAvailable,
+		IsActive:     req.IsActive,
 	}
 
 	if hasVariant {
@@ -142,8 +142,8 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 					SKU:         v.SKU,
 					Stock:       v.Stock,
 					TrackStock:  v.Stock > 0,
-					IsAvailable: true,
-					IsActive:    true,
+					IsAvailable: v.IsAvailable,
+					IsActive:    v.IsActive,
 				})
 			}
 
@@ -250,8 +250,8 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
 	product.HasVariant = hasVariant
-	product.IsAvailable = true
-	product.IsActive = true
+	product.IsAvailable = req.IsAvailable
+	product.IsActive = req.IsActive
 
 	if hasVariant {
 		product.BasePrice = nil
@@ -285,8 +285,8 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 					SKU:         v.SKU,
 					Stock:       v.Stock,
 					TrackStock:  v.Stock > 0,
-					IsAvailable: true,
-					IsActive:    true,
+					IsAvailable: v.IsAvailable,
+					IsActive:    v.IsActive,
 				})
 			}
 

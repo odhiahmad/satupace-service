@@ -32,8 +32,8 @@ type Product struct {
 	Tax          *Tax             `gorm:"foreignKey:TaxId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"tax,omitempty"`
 	UnitId       *int             `gorm:"index" json:"unit_id,omitempty"`
 	Unit         *Unit            `gorm:"foreignKey:UnitId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"unit,omitempty"`
-	IsAvailable  bool             `gorm:"default:true" json:"is_available"`
-	IsActive     bool             `gorm:"default:true" json:"is_active"`
+	IsAvailable  *bool            `gorm:"default:true" json:"is_available"`
+	IsActive     *bool            `gorm:"default:true" json:"is_active"`
 	IsReady      bool             `gorm:"default:false" json:"is_ready"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`
