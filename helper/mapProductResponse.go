@@ -47,6 +47,7 @@ func MapProductVariants(variants []entity.ProductVariant, product *entity.Produc
 			SellPrice:   v.SellPrice,
 			FinalPrice:  Float64Ptr(CalculateFinalPriceFromVariant(&v, product)),
 			SKU:         v.SKU,
+			Stock:       v.Stock,
 			IsAvailable: *v.IsAvailable,
 			IsActive:    *v.IsActive,
 		})
