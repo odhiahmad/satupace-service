@@ -20,6 +20,7 @@ type ProductController interface {
 	FindById(ctx *gin.Context)
 	SetActive(ctx *gin.Context)
 	SetAvailable(ctx *gin.Context)
+	SearchProducts(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 	FindWithPaginationCursor(ctx *gin.Context)
 }
@@ -36,7 +37,6 @@ func NewProductController(productService service.ProductService, jwtService serv
 	}
 }
 
-// CREATE PRODUCT
 func (c *productController) Create(ctx *gin.Context) {
 	businessId := ctx.MustGet("business_id").(int)
 	var input request.ProductRequest
@@ -213,6 +213,21 @@ func (c *productController) SetAvailable(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Status produk sekarang ini "+statusMsg, helper.EmptyObj{}))
+}
+
+func (c *productController) SearchProducts(ctx *gin.Context) {
+	businessId := ctx.MustGet("business_id").(int)
+	search := ctx.Query("search")
+
+	product, err := c.productService.SearchProductsRedisOnly(businessId, search, 10)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mencari produk", "SEARCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Data produk ditemukan", product))
+
 }
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {

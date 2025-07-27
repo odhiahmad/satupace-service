@@ -26,6 +26,11 @@ type ProductResponse struct {
 	UpdatedAt        string                   `json:"updated_at"`
 }
 
+type ProductSearchResponse struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type CategoryResponse struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`

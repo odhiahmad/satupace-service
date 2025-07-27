@@ -14,17 +14,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type AutocompleteProduct struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	ImageURL string `json:"image_url"`
-}
-
 type ProductService interface {
 	Create(req request.ProductRequest) (response.ProductResponse, error)
 	Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error)
 	Delete(id int) error
 	SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error)
+	SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductSearchResponse, error)
 	SetActive(id int, isActive bool) error
 	SetAvailable(id int, isAvailable bool) error
 	UpdateImage(id int, base64Image string) (response.ProductResponse, error)
@@ -407,17 +402,25 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 	return finalResults, int64(len(finalResults)), nil
 }
 
-func (s *productService) SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
+func (s *productService) SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductSearchResponse, error) {
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	if len(results) == 0 {
-		return nil, 0, nil
+		return nil, nil
 	}
 
-	return results, int64(len(results)), nil
+	var searchResults []response.ProductSearchResponse
+	for _, r := range results {
+		searchResults = append(searchResults, response.ProductSearchResponse{
+			Id:   r.Id,
+			Name: r.Name,
+		})
+	}
+
+	return searchResults, nil
 }
 
 func (s *productService) UpdateImage(id int, base64Image string) (response.ProductResponse, error) {

@@ -81,7 +81,6 @@ func GetProductAutocomplete(rdb *redis.Client, businessID int, prefix string, li
 	start := "[" + strings.ToLower(prefix)
 	end := "[" + strings.ToLower(prefix) + "\xff"
 
-	// 1. Cari nama-nama yang cocok dengan prefix
 	names, err := rdb.ZRangeByLex(ctx, keyIndex, &redis.ZRangeBy{
 		Min:    start,
 		Max:    end,
@@ -92,7 +91,6 @@ func GetProductAutocomplete(rdb *redis.Client, businessID int, prefix string, li
 		return nil, err
 	}
 
-	// 2. Ambil data JSON dari keyData (pakai HMGET)
 	if len(names) == 0 {
 		return []response.ProductResponse{}, nil
 	}
@@ -127,7 +125,7 @@ func DeleteProductFromAutocomplete(rdb *redis.Client, businessID int, productNam
 		return err
 	}
 
-	return nil // atau bersihkan jika simpan ID unik
+	return nil
 }
 
 func SetJSONToRedis(ctx context.Context, rdb *redis.Client, key string, data interface{}, ttl time.Duration) error {

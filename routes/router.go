@@ -190,6 +190,7 @@ func SetupRouter() *gin.Engine {
 		productRoutes.PUT("/:id/available", productController.SetAvailable)
 		productRoutes.PUT("/variant/:id/active", productVariantController.SetActive)
 		productRoutes.PUT("/variant/:id/available", productVariantController.SetAvailable)
+		productRoutes.GET("/search", productController.SearchProducts)
 	}
 
 	bundleRoutes := r.Group("bundle", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
