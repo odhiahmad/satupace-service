@@ -9,21 +9,19 @@ import (
 type RegistrationRepository interface {
 	CreateBusiness(business entity.Business) (entity.Business, error)
 	CreateUser(user entity.UserBusiness) (entity.UserBusiness, error)
+	CreateDefaultCategory(category entity.Category) error
 	IsEmailExists(email string) (bool, error)
 	IsPhoneNumberExists(phone string) (bool, error)
 }
 
-// registrationConnection adalah implementasi dari RegistrationRepository.
 type registrationConnection struct {
 	db *gorm.DB
 }
 
-// NewRegistrationRepository membuat instance baru dari RegistrationRepository.
 func NewRegistrationRepository(db *gorm.DB) RegistrationRepository {
 	return &registrationConnection{db: db}
 }
 
-// CreateBusiness menyimpan data bisnis berdasarkan input dari registrasi.
 func (conn *registrationConnection) CreateBusiness(business entity.Business) (entity.Business, error) {
 	if err := conn.db.Create(&business).Error; err != nil {
 		return business, err
@@ -31,7 +29,6 @@ func (conn *registrationConnection) CreateBusiness(business entity.Business) (en
 	return business, nil
 }
 
-// CreateUser menyimpan data user bisnis ke database.
 func (conn *registrationConnection) CreateUser(user entity.UserBusiness) (entity.UserBusiness, error) {
 	if err := conn.db.Create(&user).Error; err != nil {
 		return entity.UserBusiness{}, err
@@ -46,7 +43,10 @@ func (conn *registrationConnection) CreateUser(user entity.UserBusiness) (entity
 	return savedUser, nil
 }
 
-// IsEmailExists mengecek apakah email sudah digunakan.
+func (conn *registrationConnection) CreateDefaultCategory(category entity.Category) error {
+	return conn.db.Create(&category).Error
+}
+
 func (conn *registrationConnection) IsEmailExists(email string) (bool, error) {
 	var user entity.UserBusiness
 	err := conn.db.Where("email = ?", email).First(&user).Error

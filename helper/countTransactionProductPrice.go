@@ -2,7 +2,6 @@ package helper
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -16,7 +15,6 @@ type TransactionPricing struct {
 	Tax        float64
 }
 
-// HitungHargaTransaksi menentukan harga, diskon, dan promo yang berlaku saat transaksi
 func HitungHargaTransaksi(
 	product entity.Product,
 	productVariantId *int,
@@ -83,7 +81,6 @@ func HitungHargaTransaksi(
 	}
 
 	totalPrice := price * float64(quantity)
-	log.Printf("[HargaTransaksi] Total harga: %.2f, Total diskon: %.2f, Total pajak: %.2f", totalPrice, discount*float64(quantity), totalTax*float64(quantity))
 
 	return &TransactionPricing{
 		TotalPrice: totalPrice,

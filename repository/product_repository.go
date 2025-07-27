@@ -15,6 +15,9 @@ type ProductRepository interface {
 	Update(product entity.Product) (entity.Product, error)
 	UpdateAll(product *entity.Product) (entity.Product, error)
 	Delete(id int) error
+	HasRelation(id int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
 	SetActive(id int, active bool) error
 	SetAvailable(id int, available bool) error
 	SetHasVariant(productId int) error
@@ -132,6 +135,51 @@ func (conn *productConnection) Delete(id int) error {
 	var product entity.Product
 	result := conn.db.Where("id = ?", id).Delete(&product)
 	return result.Error
+}
+
+func (conn *productConnection) HasRelation(id int) (bool, error) {
+	var count int64
+
+	err := conn.db.
+		Model(&entity.TransactionItem{}).
+		Where("product_id = ?", id).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	var variantIDs []int
+	if err := conn.db.Model(&entity.ProductVariant{}).
+		Where("product_id = ?", id).
+		Pluck("id", &variantIDs).Error; err != nil {
+		return false, err
+	}
+	if len(variantIDs) == 0 {
+		return false, nil
+	}
+
+	count = 0
+	if err := conn.db.Model(&entity.TransactionItem{}).
+		Where("product_variant_id IN ?", variantIDs).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (conn *productConnection) SoftDelete(id int) error {
+	return conn.db.Delete(&entity.Product{}, id).Error
+}
+
+func (conn *productConnection) HardDelete(id int) error {
+	return conn.db.Unscoped().Delete(&entity.Product{}, id).Error
 }
 
 func (conn *productConnection) SetActive(id int, active bool) error {

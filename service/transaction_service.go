@@ -132,6 +132,10 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 			qty := item.Quantity
 
 			if item.ProductVariant != nil && item.ProductVariant.TrackStock {
+				if *item.ProductVariant.IgnoreStockCheck {
+					continue
+				}
+
 				newStock := item.ProductVariant.Stock - qty
 				if newStock < 0 {
 					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", *item.ProductVariant.SKU)
@@ -141,7 +145,13 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 					Update("stock", newStock).Error; err != nil {
 					return nil, err
 				}
-			} else if item.Product != nil && item.Product.TrackStock {
+			}
+
+			if item.Product != nil && item.Product.TrackStock {
+				if *item.Product.IgnoreStockCheck {
+					continue
+				}
+
 				newStock := *item.Product.Stock - qty
 				if newStock < 0 {
 					return nil, fmt.Errorf("stok produk tidak mencukupi: %s", item.Product.Name)

@@ -65,9 +65,20 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		Image:          req.Image,
 		IsActive:       true,
 	}
+
 	savedBusiness, err := s.repo.CreateBusiness(business)
 	if err != nil {
 		return err
+	}
+
+	defaultCategory := entity.Category{
+		BusinessId: savedBusiness.Id,
+		Name:       "Tanpa Kategori",
+		IsActive:   true,
+	}
+
+	if err := s.repo.CreateDefaultCategory(defaultCategory); err != nil {
+		return fmt.Errorf("gagal membuat default kategori: %w", err)
 	}
 
 	hashedPassword := helper.HashAndSalt([]byte(req.Password))

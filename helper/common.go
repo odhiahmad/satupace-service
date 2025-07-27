@@ -22,16 +22,15 @@ func DeterminePromoType(amount float64) bool {
 }
 
 func GenerateSKU(name string) string {
-	// Ambil 3 huruf pertama dari nama produk
 	prefix := strings.ToUpper(name)
-	if len(prefix) > 3 {
-		prefix = prefix[:3]
+	if len(prefix) > 2 {
+		prefix = prefix[:2]
 	}
 
-	timestamp := time.Now().UnixNano() / 1e6 // millisec
-	randomPart := rand.Intn(1000)            // 3 digit acak
+	timestamp := time.Now().Format("0601021504")
+	randomPart := rand.Intn(100)
 
-	return fmt.Sprintf("%s-%d-%03d", prefix, timestamp, randomPart)
+	return fmt.Sprintf("%s%s%02d", prefix, timestamp, randomPart)
 }
 
 func GenerateRandomToken(n int) string {

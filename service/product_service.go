@@ -96,24 +96,25 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	product := entity.Product{
-		BusinessId:   req.BusinessId,
-		CategoryId:   req.CategoryId,
-		Name:         strings.ToLower(req.Name),
-		Description:  req.Description,
-		Image:        nil,
-		MinimumSales: req.MinimumSales,
-		BasePrice:    req.BasePrice,
-		SellPrice:    req.SellPrice,
-		SKU:          sku,
-		Stock:        req.Stock,
-		HasVariant:   hasVariant,
-		BrandId:      req.BrandId,
-		TaxId:        req.TaxId,
-		DiscountId:   req.DiscountId,
-		UnitId:       req.UnitId,
-		TrackStock:   req.Stock != nil && *req.Stock > 0,
-		IsAvailable:  req.IsAvailable,
-		IsActive:     req.IsActive,
+		BusinessId:       req.BusinessId,
+		CategoryId:       req.CategoryId,
+		Name:             strings.ToLower(req.Name),
+		Description:      req.Description,
+		Image:            nil,
+		MinimumSales:     req.MinimumSales,
+		BasePrice:        req.BasePrice,
+		SellPrice:        req.SellPrice,
+		SKU:              sku,
+		Stock:            req.Stock,
+		IgnoreStockCheck: req.IgnoreStockCheck,
+		HasVariant:       hasVariant,
+		BrandId:          req.BrandId,
+		TaxId:            req.TaxId,
+		DiscountId:       req.DiscountId,
+		UnitId:           req.UnitId,
+		TrackStock:       req.Stock != nil && *req.Stock > 0,
+		IsAvailable:      req.IsAvailable,
+		IsActive:         req.IsActive,
 	}
 
 	if hasVariant {
@@ -134,16 +135,18 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			var variants []entity.ProductVariant
 			for _, v := range req.Variants {
 				variants = append(variants, entity.ProductVariant{
-					BusinessId:  req.BusinessId,
-					ProductId:   &product.Id,
-					Name:        v.Name,
-					BasePrice:   v.BasePrice,
-					SellPrice:   v.SellPrice,
-					SKU:         v.SKU,
-					Stock:       v.Stock,
-					TrackStock:  v.Stock > 0,
-					IsAvailable: v.IsAvailable,
-					IsActive:    v.IsActive,
+					BusinessId:       req.BusinessId,
+					ProductId:        &product.Id,
+					Name:             v.Name,
+					BasePrice:        v.BasePrice,
+					SellPrice:        v.SellPrice,
+					MinimumSales:     v.MinimumSales,
+					SKU:              v.SKU,
+					Stock:            v.Stock,
+					TrackStock:       v.Stock > 0,
+					IgnoreStockCheck: req.IgnoreStockCheck,
+					IsAvailable:      v.IsAvailable,
+					IsActive:         v.IsActive,
 				})
 			}
 
@@ -170,10 +173,12 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			err = s.ProductRepo.UpdateImage(productId, url)
 			if err != nil {
 				log.Printf("Gagal update gambar produk setelah upload: %v", err)
+				return
 			}
 
 			if err := helper.AddProductToAutocomplete(s.Redis, businessId, productId, name, url); err != nil {
 				log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
+				return
 			}
 		}(product.Id, *req.BusinessId, strings.ToLower(req.Name), *req.Image)
 	}
@@ -249,6 +254,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	product.UnitId = req.UnitId
 	product.DiscountId = req.DiscountId
 	product.MinimumSales = req.MinimumSales
+	product.IgnoreStockCheck = req.IgnoreStockCheck
 	product.HasVariant = hasVariant
 	product.IsAvailable = req.IsAvailable
 	product.IsActive = req.IsActive
@@ -276,17 +282,19 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 			var updatedVariants []entity.ProductVariant
 			for _, v := range req.Variants {
 				updatedVariants = append(updatedVariants, entity.ProductVariant{
-					Id:          v.Id,
-					ProductId:   &product.Id,
-					BusinessId:  req.BusinessId,
-					Name:        v.Name,
-					BasePrice:   v.BasePrice,
-					SellPrice:   v.SellPrice,
-					SKU:         v.SKU,
-					Stock:       v.Stock,
-					TrackStock:  v.Stock > 0,
-					IsAvailable: v.IsAvailable,
-					IsActive:    v.IsActive,
+					Id:               v.Id,
+					ProductId:        &product.Id,
+					BusinessId:       req.BusinessId,
+					Name:             v.Name,
+					BasePrice:        v.BasePrice,
+					SellPrice:        v.SellPrice,
+					MinimumSales:     v.MinimumSales,
+					SKU:              v.SKU,
+					Stock:            v.Stock,
+					TrackStock:       v.Stock > 0,
+					IgnoreStockCheck: v.IgnoreStockCheck,
+					IsAvailable:      v.IsAvailable,
+					IsActive:         v.IsActive,
 				})
 			}
 
@@ -321,16 +329,26 @@ func (s *productService) Delete(id int) error {
 		return err
 	}
 
-	_ = s.ProductVariantRepo.DeleteByProductId(id)
-	err = s.ProductRepo.Delete(id)
+	hasRelation, err := s.ProductRepo.HasRelation(id)
 	if err != nil {
 		return err
+	}
+
+	_ = s.ProductVariantRepo.DeleteByProductId(id)
+
+	var deleteErr error
+	if hasRelation {
+		deleteErr = s.ProductRepo.SoftDelete(id)
+	} else {
+		deleteErr = s.ProductRepo.HardDelete(id)
+	}
+	if deleteErr != nil {
+		return deleteErr
 	}
 
 	if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, product.Name); err != nil {
 		fmt.Printf("gagal menghapus autocomplete produk: %v\n", err)
 	}
-
 	for _, variant := range product.Variants {
 		if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, variant.Name); err != nil {
 			fmt.Printf("gagal menghapus autocomplete variant: %v\n", err)

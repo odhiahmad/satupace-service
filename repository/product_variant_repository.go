@@ -126,8 +126,6 @@ func (conn *ProductVariantConnection) UpdateWithTx(txRepo ProductRepository, var
 
 	for _, variant := range variants {
 		// Hindari relasi tak perlu
-		variant.Product = nil
-
 		updateData := map[string]interface{}{
 			"name":         variant.Name,
 			"base_price":   variant.BasePrice,
