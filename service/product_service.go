@@ -60,10 +60,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	sku := req.SKU
 
 	if hasVariant {
-		if sku != nil && *sku != "" {
-			return response.ProductResponse{}, fmt.Errorf("SKU produk harus kosong jika memiliki varian")
-		}
-
 		skuMap := map[string]bool{}
 		for i, v := range req.Variants {
 			if v.SKU == nil || *v.SKU == "" {
@@ -216,22 +212,16 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	oldName := product.Name
 
 	if hasVariant {
-		if sku != nil && *sku != "" {
-			return response.ProductResponse{}, fmt.Errorf("SKU produk harus kosong jika memiliki varian")
-		}
-
 		skuMap := map[string]bool{}
-		for i, v := range req.Variants {
+		for _, v := range req.Variants {
 			if v.SKU == nil || *v.SKU == "" {
-				sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
-				req.Variants[i].SKU = &sGenerated
+				continue
 			}
+
 			if skuMap[*v.SKU] {
 				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *v.SKU)
 			}
 			skuMap[*v.SKU] = true
-
-			fmt.Printf("SKU varian duplikat: %d", v.Id)
 
 			exist, err := s.ProductVariantRepo.IsSKUExistExcept(*v.SKU, *req.BusinessId, v.Id)
 			if err != nil {
@@ -246,6 +236,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 			sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
 			sku = &sGenerated
 		}
+
 		if product.SKU == nil || *product.SKU != *sku {
 			exist, err := s.ProductRepo.IsSKUExistExcept(*sku, *req.BusinessId, id)
 			if err != nil {

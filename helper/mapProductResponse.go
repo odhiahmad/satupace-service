@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -175,25 +174,19 @@ func CalculateFinalPriceFromVariant(v *entity.ProductVariant, product *entity.Pr
 }
 
 func IsDiscountActive(d *entity.Discount) bool {
-	fmt.Printf("🔍 Cek diskon aktif: %+v\n", d)
-
 	if !*d.IsActive {
-		fmt.Println("❌ Tidak aktif")
 		return false
 	}
 
 	now := time.Now()
 
 	if !d.StartAt.IsZero() && now.Before(d.StartAt) {
-		fmt.Println("❌ Belum dimulai")
 		return false
 	}
 
 	if !d.EndAt.IsZero() && now.After(d.EndAt) {
-		fmt.Println("❌ Sudah berakhir")
 		return false
 	}
 
-	fmt.Println("✅ Diskon aktif")
 	return true
 }

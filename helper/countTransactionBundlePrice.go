@@ -14,7 +14,6 @@ type BundlePricing struct {
 }
 
 func HitungHargaBundle(bundle entity.Bundle, quantity int) (*BundlePricing, error) {
-	// Hitung harga dasar berdasarkan harga satuan bundle dikali kuantitas
 	price := *bundle.SellPrice * float64(quantity)
 	var totalTax float64
 
