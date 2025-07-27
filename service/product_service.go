@@ -50,6 +50,8 @@ func NewProductService(productRepo repository.ProductRepository, variantRepo rep
 }
 
 func (s *productService) Create(req request.ProductRequest) (response.ProductResponse, error) {
+	falseVal := false
+
 	if err := s.Validate.Struct(req); err != nil {
 		return response.ProductResponse{}, err
 	}
@@ -63,21 +65,23 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		}
 
 		skuMap := map[string]bool{}
-		for _, v := range req.Variants {
+		for i, v := range req.Variants {
 			if v.SKU == nil || *v.SKU == "" {
-				return response.ProductResponse{}, fmt.Errorf("SKU varian tidak boleh kosong")
+				sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
+				req.Variants[i].SKU = &sGenerated
 			}
-			if skuMap[*v.SKU] {
-				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *v.SKU)
-			}
-			skuMap[*v.SKU] = true
 
-			exist, err := s.ProductVariantRepo.IsSKUExist(*v.SKU, *req.BusinessId)
+			if skuMap[*req.Variants[i].SKU] {
+				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *req.Variants[i].SKU)
+			}
+			skuMap[*req.Variants[i].SKU] = true
+
+			exist, err := s.ProductVariantRepo.IsSKUExist(*req.Variants[i].SKU, *req.BusinessId)
 			if err != nil {
 				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU varian di database: %w", err)
 			}
 			if exist {
-				return response.ProductResponse{}, fmt.Errorf("SKU varian sudah digunakan: %s", *v.SKU)
+				return response.ProductResponse{}, fmt.Errorf("SKU varian sudah digunakan: %s", *req.Variants[i].SKU)
 			}
 		}
 	} else {
@@ -96,25 +100,19 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	product := entity.Product{
-		BusinessId:       req.BusinessId,
-		CategoryId:       req.CategoryId,
-		Name:             strings.ToLower(req.Name),
-		Description:      req.Description,
-		Image:            nil,
-		MinimumSales:     req.MinimumSales,
-		BasePrice:        req.BasePrice,
-		SellPrice:        req.SellPrice,
-		SKU:              sku,
-		Stock:            req.Stock,
-		IgnoreStockCheck: req.IgnoreStockCheck,
-		HasVariant:       hasVariant,
-		BrandId:          req.BrandId,
-		TaxId:            req.TaxId,
-		DiscountId:       req.DiscountId,
-		UnitId:           req.UnitId,
-		TrackStock:       req.Stock != nil && *req.Stock > 0,
-		IsAvailable:      req.IsAvailable,
-		IsActive:         req.IsActive,
+		BusinessId:   req.BusinessId,
+		CategoryId:   req.CategoryId,
+		Name:         strings.ToLower(req.Name),
+		Description:  req.Description,
+		Image:        nil,
+		MinimumSales: req.MinimumSales,
+		HasVariant:   hasVariant,
+		BrandId:      req.BrandId,
+		TaxId:        req.TaxId,
+		DiscountId:   req.DiscountId,
+		UnitId:       req.UnitId,
+		IsAvailable:  req.IsAvailable,
+		IsActive:     req.IsActive,
 	}
 
 	if hasVariant {
@@ -122,6 +120,15 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
+		product.TrackStock = false
+		product.IgnoreStockCheck = &falseVal
+	} else {
+		product.BasePrice = req.BasePrice
+		product.SellPrice = req.SellPrice
+		product.Stock = req.Stock
+		product.SKU = sku
+		product.TrackStock = req.Stock != nil && *req.Stock > 0
+		product.IgnoreStockCheck = req.IgnoreStockCheck
 	}
 
 	err := s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
@@ -193,6 +200,8 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 }
 
 func (s *productService) Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error) {
+	falseVal := false
+
 	if err := s.Validate.Struct(req); err != nil {
 		return response.ProductResponse{}, err
 	}
@@ -212,9 +221,10 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		}
 
 		skuMap := map[string]bool{}
-		for _, v := range req.Variants {
+		for i, v := range req.Variants {
 			if v.SKU == nil || *v.SKU == "" {
-				return response.ProductResponse{}, fmt.Errorf("SKU varian tidak boleh kosong")
+				sGenerated := helper.GenerateSKU(strings.ToLower(req.Name))
+				req.Variants[i].SKU = &sGenerated
 			}
 			if skuMap[*v.SKU] {
 				return response.ProductResponse{}, fmt.Errorf("SKU varian duplikat di antara varian: %s", *v.SKU)
@@ -254,8 +264,6 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	product.TaxId = req.TaxId
 	product.UnitId = req.UnitId
 	product.DiscountId = req.DiscountId
-	product.MinimumSales = req.MinimumSales
-	product.IgnoreStockCheck = req.IgnoreStockCheck
 	product.HasVariant = hasVariant
 	product.IsAvailable = req.IsAvailable
 	product.IsActive = req.IsActive
@@ -266,12 +274,16 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		product.Stock = nil
 		product.SKU = nil
 		product.TrackStock = false
+		product.IgnoreStockCheck = &falseVal
+		product.MinimumSales = nil
 	} else {
 		product.BasePrice = req.BasePrice
 		product.SellPrice = req.SellPrice
 		product.Stock = req.Stock
 		product.SKU = sku
 		product.TrackStock = req.Stock != nil && *req.Stock > 0
+		product.IgnoreStockCheck = req.IgnoreStockCheck
+		product.MinimumSales = req.MinimumSales
 	}
 
 	err = s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {

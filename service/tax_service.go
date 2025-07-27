@@ -43,6 +43,7 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 		BusinessId:   req.BusinessId,
 		Name:         strings.ToLower(req.Name),
 		IsPercentage: &isPercentageVal,
+		IsGlobal:     req.IsGlobal,
 		Amount:       req.Amount,
 	}
 

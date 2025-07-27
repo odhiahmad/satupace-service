@@ -7,10 +7,10 @@ type DiscountResponse struct {
 	Name         string    `json:"name"`
 	Description  string    `json:"description"`
 	Amount       float64   `json:"amount"`
-	IsPercentage *bool     `json:"is_percentage"` // true = persen, false = nominal
+	IsPercentage *bool     `json:"is_percentage"`
 	IsGlobal     *bool     `json:"is_global"`
-	IsMultiple   *bool     `json:"is_multiple"` // true = diskon berlaku kelipatan
+	IsMultiple   *bool     `json:"is_multiple"`
 	IsActive     *bool     `json:"is_active"`
-	StartAt      time.Time `json:"start_at"` // ⛔ Ini tipe time.Time
+	StartAt      time.Time `json:"start_at"`
 	EndAt        time.Time `json:"end_at"`
 }

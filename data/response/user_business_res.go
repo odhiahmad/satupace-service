@@ -10,8 +10,8 @@ type UserBusinessResponse struct {
 	IsActive    bool                `json:"is_active"`
 	CreatedAt   time.Time           `json:"created_at"`
 	UpdatedAt   time.Time           `json:"updated_at"`
-	Token       string              `json:"token,omitempty"` // optional
-	Role        *RoleResponse       `json:"role,omitempty"`  // jika ingin tampilkan nama role
-	Business    *BusinessResponse   `json:"business,omitempty"`
-	Membership  *MembershipResponse `json:"membership,omitempty"`
+	Token       string              `json:"token"`
+	Role        *RoleResponse       `json:"role"`
+	Business    *BusinessResponse   `json:"business"`
+	Membership  *MembershipResponse `json:"membership"`
 }

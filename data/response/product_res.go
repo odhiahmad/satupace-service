@@ -2,17 +2,17 @@ package response
 
 type ProductResponse struct {
 	Id               int                      `json:"id"`
-	SKU              *string                  `json:"sku,omitempty"`
+	SKU              *string                  `json:"sku"`
 	Name             string                   `json:"name"`
-	Description      *string                  `json:"description,omitempty"`
-	Image            *string                  `json:"image,omitempty"`
-	BasePrice        *float64                 `json:"base_price,omitempty"`
-	SellPrice        *float64                 `json:"sell_price,omitempty"`
-	FinalPrice       *float64                 `json:"final_price,omitempty"`
-	Stock            *int                     `json:"stock,omitempty"`
+	Description      *string                  `json:"description"`
+	Image            *string                  `json:"image"`
+	BasePrice        *float64                 `json:"base_price"`
+	SellPrice        *float64                 `json:"sell_price"`
+	FinalPrice       *float64                 `json:"final_price"`
+	Stock            *int                     `json:"stock"`
 	TrackStock       bool                     `json:"track_stock"`
 	IgnoreStockCheck *bool                    `json:"ignore_stock_check"`
-	MinimumSales     *int                     `json:"minimum_sales,omitempty"`
+	MinimumSales     *int                     `json:"minimum_sales"`
 	IsAvailable      bool                     `json:"is_available"`
 	IsActive         bool                     `json:"is_active"`
 	HasVariant       bool                     `json:"has_variant"`
@@ -29,5 +29,5 @@ type ProductResponse struct {
 type CategoryResponse struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
-	ParentId *int   `json:"parent_id,omitempty"`
+	ParentId *int   `json:"parent_id"`
 }

@@ -10,12 +10,12 @@ type TransactionItemAttributeResponse struct {
 
 type TransactionItemResponse struct {
 	Id                 int                                `json:"id"`
-	ProductId          *int                               `json:"product_id,omitempty"`
+	ProductId          *int                               `json:"product_id"`
 	Product            []ProductResponse                  `json:"product"`
-	BundleId           *int                               `json:"bundle_id,omitempty"`
+	BundleId           *int                               `json:"bundle_id"`
 	Bundle             []BundleResponse                   `json:"bundle"`
-	ProductAttributeId *int                               `json:"product_attribute_id,omitempty"`
-	ProductVariantId   *int                               `json:"product_variant_id,omitempty"`
+	ProductAttributeId *int                               `json:"product_attribute_id"`
+	ProductVariantId   *int                               `json:"product_variant_id"`
 	Quantity           int                                `json:"quantity"`
 	Attributes         []TransactionItemAttributeResponse `json:"attributes"`
 	Discount           float64                            `json:"discount"`
@@ -30,9 +30,9 @@ type TransactionItemResponse struct {
 type TransactionResponse struct {
 	Id              int                       `json:"transaction_id"`
 	BusinessId      int                       `json:"business_id"`
-	CustomerId      *int                      `json:"customer_id,omitempty"`
-	Cashier         UserBusinessResponse      `json:"cashier,omitempty"`
-	PaymentMethodId *int                      `json:"payment_method_id,omitempty"`
+	CustomerId      *int                      `json:"customer_id"`
+	Cashier         UserBusinessResponse      `json:"cashier"`
+	PaymentMethodId *int                      `json:"payment_method_id"`
 	BillNumber      string                    `json:"bill_number"`
 	Items           []TransactionItemResponse `json:"items"`
 	FinalPrice      float64                   `json:"final_price"`
@@ -46,14 +46,14 @@ type TransactionResponse struct {
 	Notes           *string                   `json:"notes"`
 	AmountReceived  *float64                  `json:"amount_received"`
 	Change          *float64                  `json:"change"`
-	PaidAt          *time.Time                `json:"paid_at,omitempty"`
-	RefundedAt      *time.Time                `json:"refunded_at,omitempty"`
-	RefundedBy      *int                      `json:"refunded_by,omitempty"`
-	RefundReason    *string                   `json:"refund_reason,omitempty"`
+	PaidAt          *time.Time                `json:"paid_at"`
+	RefundedAt      *time.Time                `json:"refunded_at"`
+	RefundedBy      *int                      `json:"refunded_by"`
+	RefundReason    *string                   `json:"refund_reason"`
 	IsRefunded      *bool                     `json:"is_refunded"`
-	CanceledAt      *time.Time                `json:"canceled_at,omitempty"`
-	CanceledBy      *int                      `json:"canceled_by,omitempty"`
-	CanceledReason  *string                   `json:"canceled_reason,omitempty"`
+	CanceledAt      *time.Time                `json:"canceled_at"`
+	CanceledBy      *int                      `json:"canceled_by"`
+	CanceledReason  *string                   `json:"canceled_reason"`
 	IsCanceled      *bool                     `json:"is_canceled"`
 	CreatedAt       time.Time                 `json:"created_at"`
 	UpdatedAt       time.Time                 `json:"updated_at"`
