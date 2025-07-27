@@ -41,7 +41,7 @@ var (
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
-	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper)
+	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
 	userService           service.UserService           = service.NewUserService(userRepository, validate)
 	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper, emailHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)

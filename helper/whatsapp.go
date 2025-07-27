@@ -21,7 +21,6 @@ import (
 
 var client *whatsmeow.Client
 
-// InitWhatsApp menginisialisasi client WhatsApp
 func InitWhatsApp() {
 	dbURI := fmt.Sprintf(
 		"user=%s password=%s host=%s dbname=%s port=%s sslmode=disable",
@@ -49,7 +48,6 @@ func InitWhatsApp() {
 
 	client = whatsmeow.NewClient(deviceStore, waLog.Stdout("Client", "INFO", true))
 
-	// Tambahkan event handler
 	client.AddEventHandler(func(evt interface{}) {
 		switch v := evt.(type) {
 		case *events.Connected:
@@ -60,13 +58,9 @@ func InitWhatsApp() {
 			log.Println("🔓 Session logout, kamu harus scan ulang QR")
 		case *events.PairSuccess:
 			log.Println("✅ Pairing sukses:", v.ID.User)
-		default:
-			// Event lainnya bisa diabaikan atau dilogging
-			// fmt.Printf("📥 Event lain: %T\n", v)
 		}
 	})
 
-	// Jika belum login (session kosong)
 	if client.Store.ID == nil {
 		qrChan, _ := client.GetQRChannel(context.Background())
 		err = client.Connect()
@@ -96,7 +90,6 @@ func InitWhatsApp() {
 	}
 }
 
-// SendOTPViaWhatsApp mengirim pesan OTP ke nomor WhatsApp
 func SendOTPViaWhatsApp(phone string, message string) error {
 	if client == nil || !client.IsConnected() {
 		return fmt.Errorf("❌ WhatsApp client belum aktif")
@@ -115,7 +108,6 @@ func SendOTPViaWhatsApp(phone string, message string) error {
 	return err
 }
 
-// formatPhoneNumber membersihkan dan mengubah ke format JID
 func formatPhoneNumber(phone string) string {
 	phone = strings.ReplaceAll(phone, " ", "")
 	phone = strings.ReplaceAll(phone, "-", "")

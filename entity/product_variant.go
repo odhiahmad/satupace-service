@@ -9,6 +9,7 @@ import (
 type ProductVariant struct {
 	Id               int            `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name             string         `gorm:"type:varchar(255);not null" json:"name"`
+	Description      *string        `gorm:"type:text" json:"description,omitempty"`
 	BusinessId       *int           `gorm:"not null;index:idx_business_sku,unique"`
 	SKU              *string        `gorm:"index:idx_business_sku,unique"`
 	Business         *Business      `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`

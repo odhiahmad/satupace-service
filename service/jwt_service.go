@@ -11,7 +11,7 @@ import (
 )
 
 type JWTService interface {
-	GenerateToken(user entity.UserBusiness) string
+	GenerateToken(user entity.UserBusiness, expiredAt time.Time) string
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
@@ -35,14 +35,14 @@ func getSecretKey() string {
 	return secretKey
 }
 
-func (j *jwtService) GenerateToken(user entity.UserBusiness) string {
+func (j *jwtService) GenerateToken(user entity.UserBusiness, expiredAt time.Time) string {
 	claims := jwt.MapClaims{
 		"user_id":      user.Id,
 		"phone_number": user.PhoneNumber,
 		"business_id":  user.BusinessId,
 		"email":        user.Email,
 		"role_id":      user.RoleId,
-		"exp":          time.Now().Add(100 * 365 * 24 * time.Hour).Unix(), // tidak expired dalam waktu dekat
+		"exp":          expiredAt.Unix(), // gunakan waktu expired dari membership
 		"iss":          j.issuer,
 	}
 

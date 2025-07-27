@@ -57,6 +57,7 @@ type CategoryRequest struct {
 type ProductVariantRequest struct {
 	BusinessId       *int     `json:"business_id" validate:"required"`
 	Name             string   `json:"name" validate:"required"`
+	Description      *string  `json:"description,omitempty"`
 	BasePrice        *float64 `json:"base_price,omitempty"`
 	SellPrice        *float64 `json:"sell_price,omitempty"`
 	MinimumSales     *int     `json:"minimum_sales,omitempty"`
@@ -72,6 +73,7 @@ type ProductVariantUpdateRequest struct {
 	Id               int      `json:"id" binding:"required"`
 	BusinessId       *int     `json:"business_id" validate:"required"`
 	Name             string   `json:"name" validate:"required"`
+	Description      *string  `json:"description,omitempty"`
 	BasePrice        *float64 `json:"base_price,omitempty"`
 	SellPrice        *float64 `json:"sell_price,omitempty"`
 	MinimumSales     *int     `json:"minimum_sales,omitempty"`

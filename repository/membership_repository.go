@@ -2,6 +2,8 @@ package repository
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -11,6 +13,7 @@ import (
 type MembershipRepository interface {
 	CreateMembership(membership entity.Membership) (entity.Membership, error)
 	FindById(membershipId int) (membership entity.Membership, err error)
+	FindActiveMembershipByUserID(userId int) (*entity.Membership, error)
 	FindAll() []entity.Membership
 }
 
@@ -37,6 +40,23 @@ func (conn *membershipConnection) FindById(membershipId int) (memberships entity
 	} else {
 		return membership, errors.New("tag is not found")
 	}
+}
+
+func (conn *membershipConnection) FindActiveMembershipByUserID(userId int) (*entity.Membership, error) {
+	var membership entity.Membership
+	err := conn.db.
+		Where("user_id = ? AND is_active = ? AND end_date > ?", userId, true, time.Now()).
+		Order("end_date DESC").
+		First(&membership).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("membership aktif tidak ditemukan")
+		}
+		return nil, err
+	}
+
+	return &membership, nil
 }
 
 func (conn *membershipConnection) FindAll() []entity.Membership {

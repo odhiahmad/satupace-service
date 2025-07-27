@@ -26,15 +26,17 @@ type authService struct {
 	jwtService             JWTService
 	redisHelper            *helper.RedisHelper
 	emailHelper            *helper.EmailHelper
+	membershipRepository   repository.MembershipRepository
 }
 
-func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper) AuthService {
+func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper, membershipRepository repository.MembershipRepository) AuthService {
 	return &authService{
 		userRepository:         userRep,
 		userBusinessRepository: userBusinessRepository,
 		jwtService:             jwtSvc,
 		redisHelper:            redisHelper,
 		emailHelper:            emailHelper,
+		membershipRepository:   membershipRepository,
 	}
 }
 
@@ -64,21 +66,18 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 		return nil, helper.ErrEmailNotVerified
 	}
 
-	now := time.Now()
-	hasActiveMembership := user.Membership.IsActive && user.Membership.EndDate.After(now)
-
-	if !hasActiveMembership {
+	membership, err := service.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	if err != nil {
 		return nil, helper.ErrMembershipInactive
 	}
 
-	token := service.jwtService.GenerateToken(user)
+	token := service.jwtService.GenerateToken(user, membership.EndDate)
 	res := helper.MapAuthResponse(&user, token)
 
 	return res, nil
 }
 
 func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error) {
-
 	savedOTP, err := s.redisHelper.GetOTP("otp", req.Identifier)
 	if err != nil {
 		return nil, errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
@@ -91,6 +90,11 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 	_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
 
 	if req.IsResetPassword {
+		err := s.redisHelper.SetResetPasswordVerified(req.Identifier, 10*time.Minute)
+		if err != nil {
+			return nil, errors.New("gagal menyimpan status verifikasi reset password")
+		}
+		log.Println("[DEBUG] Set OTP ResetPassword Verified for:", req.Identifier)
 		return nil, nil
 	}
 
@@ -106,7 +110,6 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 		if err != nil {
 			return nil, errors.New("gagal memperbarui email")
 		}
-		_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
 	} else {
 		if user.IsVerified {
 			return nil, errors.New("akun sudah terverifikasi")
@@ -116,11 +119,15 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 		if err != nil {
 			return nil, errors.New("gagal memverifikasi akun")
 		}
-		_ = s.redisHelper.DeleteOTP("otp", req.Identifier)
 	}
 
-	jwtToken := s.jwtService.GenerateToken(user)
-	res := helper.MapAuthResponse(&user, jwtToken)
+	membership, err := s.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	if err != nil {
+		return nil, errors.New("gagal mengambil membership")
+	}
+
+	token := s.jwtService.GenerateToken(user, membership.EndDate)
+	res := helper.MapAuthResponse(&user, token)
 	return res, nil
 }
 
@@ -184,6 +191,14 @@ func (s *authService) RequestForgotPassword(req request.ForgotPasswordRequest) e
 }
 
 func (s *authService) ResetPassword(req request.ResetPasswordRequest) (*response.AuthResponse, error) {
+	isVerified, err := s.redisHelper.IsResetPasswordVerified(req.Identifier)
+	if err != nil {
+		return nil, errors.New("gagal memverifikasi status reset password")
+	}
+	if !isVerified {
+		return nil, errors.New("verifikasi OTP belum dilakukan atau sudah kedaluwarsa")
+	}
+
 	user, err := s.userBusinessRepository.FindByEmailOrPhone(req.Identifier)
 	if err != nil {
 		return nil, errors.New("user tidak ditemukan")
@@ -196,26 +211,14 @@ func (s *authService) ResetPassword(req request.ResetPasswordRequest) (*response
 		return nil, errors.New("gagal mengubah password")
 	}
 
-	jwtToken := s.jwtService.GenerateToken(user)
-	res := helper.MapAuthResponse(&user, jwtToken)
+	_ = s.redisHelper.DeleteResetPasswordVerified(req.Identifier)
+
+	membership, err := s.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	if err != nil {
+		return nil, errors.New("gagal mengambil membership")
+	}
+
+	token := s.jwtService.GenerateToken(user, membership.EndDate)
+	res := helper.MapAuthResponse(&user, token)
 	return res, nil
-}
-
-func (s *authService) VerifyOTPBasic(req request.VerifyOTPRequest) error {
-	savedOTP, err := s.redisHelper.GetOTP("otp", req.Identifier)
-	if err != nil {
-		return errors.New("OTP tidak ditemukan atau sudah kedaluwarsa")
-	}
-
-	if savedOTP != req.Token {
-		return errors.New("OTP tidak valid")
-	}
-
-	// Hapus OTP setelah diverifikasi
-	err = s.redisHelper.DeleteOTP("otp", req.Identifier)
-	if err != nil {
-		return errors.New("gagal menghapus OTP setelah verifikasi")
-	}
-
-	return nil
 }
