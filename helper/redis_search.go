@@ -13,7 +13,7 @@ import (
 
 var ctx = context.Background()
 
-func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, productName, imageURL string) error {
+func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, productName string) error {
 	ctx := context.Background()
 
 	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
@@ -21,10 +21,10 @@ func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, prod
 	normalized := strings.ToLower(productName)
 
 	product := map[string]interface{}{
-		"id":        productID,
-		"name":      productName,
-		"image_url": imageURL,
+		"id":   productID,
+		"name": productName,
 	}
+
 	jsonValue, err := json.Marshal(product)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, prod
 	return err
 }
 
-func UpdateProductAutocomplete(rdb *redis.Client, businessID int, oldName, newName string, productID int, imageURL string) error {
+func UpdateProductAutocomplete(rdb *redis.Client, businessID int, oldName, newName string, productID int) error {
 	ctx := context.Background()
 
 	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
@@ -56,10 +56,10 @@ func UpdateProductAutocomplete(rdb *redis.Client, businessID int, oldName, newNa
 	pipe.HDel(ctx, keyData, oldNorm)
 
 	product := map[string]interface{}{
-		"id":        productID,
-		"name":      newName,
-		"image_url": imageURL,
+		"id":   productID,
+		"name": newName,
 	}
+
 	jsonValue, err := json.Marshal(product)
 	if err != nil {
 		return err

@@ -180,16 +180,16 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 				return
 			}
 
-			if err := helper.AddProductToAutocomplete(s.Redis, businessId, productId, name, url); err != nil {
-				log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
-				return
-			}
 		}(product.Id, *req.BusinessId, strings.ToLower(req.Name), *req.Image)
 	}
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah simpan: %w", err)
+	}
+
+	if err := helper.AddProductToAutocomplete(s.Redis, *req.BusinessId, product.Id, req.Name); err != nil {
+		log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
 	}
 
 	return helper.MapProductToResponse(createdProduct), nil
@@ -318,7 +318,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		return response.ProductResponse{}, err
 	}
 
-	_ = helper.UpdateProductAutocomplete(s.Redis, *product.BusinessId, oldName, product.Name, product.Id, *product.Image)
+	_ = helper.UpdateProductAutocomplete(s.Redis, *product.BusinessId, oldName, product.Name, product.Id)
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
 	if err != nil {
