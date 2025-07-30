@@ -50,6 +50,7 @@ func MapProductVariants(variants []entity.ProductVariant, product *entity.Produc
 			SKU:              v.SKU,
 			Stock:            v.Stock,
 			IgnoreStockCheck: v.IgnoreStockCheck,
+			TrackStock:       v.TrackStock,
 			IsAvailable:      v.IsAvailable != nil && *v.IsAvailable,
 			IsActive:         v.IsActive != nil && *v.IsActive,
 		})

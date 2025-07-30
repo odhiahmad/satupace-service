@@ -42,41 +42,49 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 
 	product, err := s.productRepo.FindById(productId)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, fmt.Errorf("product tidak ditemukan: %w", err)
 	}
 
-	sku := req.SKU
-	if sku == nil || *sku == "" {
-		s := helper.GenerateSKU(strings.ToLower(req.Name))
-		sku = &s
+	var sku string
+	if req.SKU == nil || *req.SKU == "" {
+		generatedSKU := helper.GenerateSKU(strings.ToLower(req.Name))
+		sku = generatedSKU
+	} else {
+		sku = *req.SKU
 	}
 
-	exist, err := s.repo.IsSKUExist(*sku, *req.BusinessId)
+	exist, err := s.repo.IsSKUExist(sku, *req.BusinessId)
 	if err != nil {
 		return nil, fmt.Errorf("gagal cek SKU: %w", err)
 	}
 	if exist {
-		return nil, fmt.Errorf("SKU sudah digunakan oleh variant lain")
+		return nil, fmt.Errorf("SKU varian sudah digunakan: %s", sku)
 	}
 
 	variant := entity.ProductVariant{
-		ProductId:  &productId,
-		BusinessId: req.BusinessId,
-		Name:       strings.ToLower(req.Name),
-		BasePrice:  req.BasePrice,
-		SellPrice:  req.SellPrice,
-		SKU:        sku,
-		Stock:      req.Stock,
-		TrackStock: req.Stock > 0,
+		ProductId:        &productId,
+		BusinessId:       req.BusinessId,
+		Name:             strings.ToLower(req.Name),
+		Description:      helper.LowerStringPtr(req.Description),
+		BasePrice:        req.BasePrice,
+		SellPrice:        req.SellPrice,
+		SKU:              &sku,
+		Stock:            req.Stock,
+		TrackStock:       req.TrackStock,
+		IgnoreStockCheck: req.IgnoreStockCheck,
+		IsAvailable:      req.IsAvailable,
+		IsActive:         req.IsActive,
+		MinimumSales:     req.MinimumSales,
 	}
 
-	err = s.repo.Create(&variant)
-	if err != nil {
-		return nil, err
+	if err := s.repo.Create(&variant); err != nil {
+		return nil, fmt.Errorf("gagal menyimpan varian: %w", err)
 	}
 
 	if !product.HasVariant {
-		_ = s.productRepo.SetHasVariant(productId)
+		if err := s.productRepo.SetHasVariant(productId); err != nil {
+			return nil, fmt.Errorf("gagal mengupdate hasVariant produk: %w", err)
+		}
 	}
 
 	return &variant, nil
@@ -111,7 +119,7 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 	existing.SellPrice = req.SellPrice
 	existing.SKU = sku
 	existing.Stock = req.Stock
-	existing.TrackStock = req.Stock > 0
+	existing.TrackStock = req.TrackStock
 
 	if err := s.repo.Update(&existing); err != nil {
 		return nil, fmt.Errorf("gagal update variant: %w", err)

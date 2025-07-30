@@ -45,13 +45,17 @@ func (conn *ProductVariantConnection) Update(variant *entity.ProductVariant) err
 	variant.Product = nil
 
 	updateData := map[string]interface{}{
-		"name":        variant.Name,
-		"sku":         variant.SKU,
-		"base_price":  variant.BasePrice,
-		"sell_price":  variant.SellPrice,
-		"stock":       variant.Stock,
-		"track_stock": variant.TrackStock,
-		"is_active":   variant.IsActive,
+		"name":               variant.Name,
+		"description":        variant.Description,
+		"base_price":         variant.BasePrice,
+		"sell_price":         variant.SellPrice,
+		"sku":                variant.SKU,
+		"stock":              variant.Stock,
+		"track_stock":        variant.TrackStock,
+		"is_available":       variant.IsAvailable,
+		"is_active":          variant.IsActive,
+		"ignore_stock_check": variant.IgnoreStockCheck,
+		"minimum_sales":      variant.MinimumSales,
 	}
 
 	return conn.db.Model(&variant).Where("id = ?", variant.Id).Updates(updateData).Error
@@ -125,16 +129,18 @@ func (conn *ProductVariantConnection) UpdateWithTx(txRepo ProductRepository, var
 	tx := txRepo.(*productConnection).db
 
 	for _, variant := range variants {
-		// Hindari relasi tak perlu
 		updateData := map[string]interface{}{
-			"name":         variant.Name,
-			"base_price":   variant.BasePrice,
-			"sell_price":   variant.SellPrice,
-			"sku":          variant.SKU,
-			"stock":        variant.Stock,
-			"track_stock":  variant.TrackStock,
-			"is_available": variant.IsAvailable,
-			"is_active":    variant.IsActive,
+			"name":               variant.Name,
+			"description":        variant.Description,
+			"base_price":         variant.BasePrice,
+			"sell_price":         variant.SellPrice,
+			"sku":                variant.SKU,
+			"stock":              variant.Stock,
+			"track_stock":        variant.TrackStock,
+			"is_available":       variant.IsAvailable,
+			"is_active":          variant.IsActive,
+			"ignore_stock_check": variant.IgnoreStockCheck,
+			"minimum_sales":      variant.MinimumSales,
 		}
 
 		if err := tx.Model(&entity.ProductVariant{}).

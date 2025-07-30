@@ -131,7 +131,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 		for _, item := range transaction.Items {
 			qty := item.Quantity
 
-			if item.ProductVariant != nil && item.ProductVariant.TrackStock {
+			if item.ProductVariant != nil && *item.ProductVariant.TrackStock {
 				if *item.ProductVariant.IgnoreStockCheck {
 					continue
 				}
@@ -147,7 +147,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 				}
 			}
 
-			if item.Product != nil && item.Product.TrackStock {
+			if item.Product != nil && *item.Product.TrackStock {
 				if *item.Product.IgnoreStockCheck {
 					continue
 				}

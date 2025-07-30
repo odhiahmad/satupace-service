@@ -22,7 +22,7 @@ type Product struct {
 	BasePrice        *float64         `json:"base_price,omitempty"`
 	SellPrice        *float64         `json:"sell_price,omitempty"`
 	Stock            *int             `gorm:"default:0" json:"stock,omitempty"`
-	TrackStock       bool             `gorm:"default:false" json:"track_stock"`
+	TrackStock       *bool            `gorm:"default:false" json:"track_stock"`
 	IgnoreStockCheck *bool            `gorm:"default:false" json:"ignore_stock_check"`
 	MinimumSales     *int             `json:"minimum_sales,omitempty"`
 	DiscountId       *int             `gorm:"index" json:"discount_id,omitempty"`

@@ -111,14 +111,14 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
-		product.TrackStock = false
+		product.TrackStock = &falseVal
 		product.IgnoreStockCheck = &falseVal
 	} else {
 		product.BasePrice = req.BasePrice
 		product.SellPrice = req.SellPrice
 		product.Stock = req.Stock
 		product.SKU = sku
-		product.TrackStock = req.Stock != nil && *req.Stock > 0
+		product.TrackStock = req.TrackStock
 		product.IgnoreStockCheck = req.IgnoreStockCheck
 	}
 
@@ -142,7 +142,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 					MinimumSales:     v.MinimumSales,
 					SKU:              v.SKU,
 					Stock:            v.Stock,
-					TrackStock:       v.Stock > 0,
+					TrackStock:       v.TrackStock,
 					IgnoreStockCheck: req.IgnoreStockCheck,
 					IsAvailable:      v.IsAvailable,
 					IsActive:         v.IsActive,
@@ -259,7 +259,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
-		product.TrackStock = false
+		product.TrackStock = &falseVal
 		product.IgnoreStockCheck = &falseVal
 		product.MinimumSales = nil
 	} else {
@@ -267,7 +267,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		product.SellPrice = req.SellPrice
 		product.Stock = req.Stock
 		product.SKU = sku
-		product.TrackStock = req.Stock != nil && *req.Stock > 0
+		product.TrackStock = req.TrackStock
 		product.IgnoreStockCheck = req.IgnoreStockCheck
 		product.MinimumSales = req.MinimumSales
 	}
@@ -280,6 +280,16 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		if hasVariant {
 			var updatedVariants []entity.ProductVariant
 			for _, v := range req.Variants {
+				existingVariant, err := s.ProductVariantRepo.FindById(v.Id)
+				if err != nil {
+					return fmt.Errorf("gagal ambil data variant: %w", err)
+				}
+
+				sku := existingVariant.SKU
+				if v.SKU != nil {
+					sku = v.SKU
+				}
+
 				updatedVariants = append(updatedVariants, entity.ProductVariant{
 					Id:               v.Id,
 					ProductId:        &product.Id,
@@ -289,9 +299,9 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 					BasePrice:        v.BasePrice,
 					SellPrice:        v.SellPrice,
 					MinimumSales:     v.MinimumSales,
-					SKU:              v.SKU,
+					SKU:              sku,
 					Stock:            v.Stock,
-					TrackStock:       v.Stock > 0,
+					TrackStock:       v.TrackStock,
 					IgnoreStockCheck: v.IgnoreStockCheck,
 					IsAvailable:      v.IsAvailable,
 					IsActive:         v.IsActive,

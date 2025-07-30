@@ -20,7 +20,7 @@ type ProductVariant struct {
 	MinimumSales     *int           `json:"minimum_sales,omitempty"`
 	IgnoreStockCheck *bool          `gorm:"default:false" json:"ignore_stock_check"`
 	Stock            int            `json:"stock"`
-	TrackStock       bool           `gorm:"default:false" json:"track_stock"`
+	TrackStock       *bool          `gorm:"default:false" json:"track_stock"`
 	IsAvailable      *bool          `gorm:"default:true" json:"is_available"`
 	IsActive         *bool          `gorm:"default:true" json:"is_active"`
 	CreatedAt        time.Time      `json:"created_at"`

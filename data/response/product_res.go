@@ -10,7 +10,7 @@ type ProductResponse struct {
 	SellPrice        *float64                 `json:"sell_price"`
 	FinalPrice       *float64                 `json:"final_price"`
 	Stock            *int                     `json:"stock"`
-	TrackStock       bool                     `json:"track_stock"`
+	TrackStock       *bool                    `json:"track_stock"`
 	IgnoreStockCheck *bool                    `json:"ignore_stock_check"`
 	MinimumSales     *int                     `json:"minimum_sales"`
 	IsAvailable      bool                     `json:"is_available"`
@@ -22,7 +22,7 @@ type ProductResponse struct {
 	Tax              *TaxResponse             `json:"tax"`
 	Discount         *DiscountResponse        `json:"discount"`
 	Unit             *UnitResponse            `json:"unit"`
-	CreatedAt        string                   `json:"created_at"` // Gunakan ISO8601 format saat mapping
+	CreatedAt        string                   `json:"created_at"`
 	UpdatedAt        string                   `json:"updated_at"`
 }
 

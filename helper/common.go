@@ -49,7 +49,6 @@ func GenerateOTPCode(length int) string {
 	return string(code)
 }
 
-// HashOTP meng-hash OTP untuk disimpan dengan aman
 func HashOTP(otp string) string {
 	hash := sha256.Sum256([]byte(otp))
 	return hex.EncodeToString(hash[:])
@@ -66,7 +65,6 @@ func ExtractPublicIDFromURL(rawURL string) (string, error) {
 		return "", fmt.Errorf("url path tidak valid")
 	}
 
-	// Ambil semua setelah /upload/
 	index := slices.Index(parts, "upload")
 	if index == -1 || index+1 >= len(parts) {
 		return "", fmt.Errorf("url tidak mengandung /upload/")
@@ -87,4 +85,12 @@ func DeleteFromCloudinary(publicID string) error {
 		PublicID: publicID,
 	})
 	return err
+}
+
+func LowerStringPtr(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	lowered := strings.ToLower(*s)
+	return &lowered
 }
