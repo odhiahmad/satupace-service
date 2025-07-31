@@ -1,6 +1,8 @@
 package request
 
+import "github.com/google/uuid"
+
 type MembershipRequest struct {
-	UserId int    `json:"user_id" binding:"required"`
-	Type   string `json:"type" binding:"required,oneof=monthly yearly weekly"` // hanya boleh 'monthly' atau 'yearly'
+	UserId uuid.UUID `json:"user_id" validate:"required"`
+	Type   string    `json:"type" validate:"required,oneof=monthly yearly weekly"` // hanya boleh 'monthly' atau 'yearly'
 }

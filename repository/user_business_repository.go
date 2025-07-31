@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
@@ -10,9 +11,9 @@ import (
 
 type UserBusinessRepository interface {
 	InsertUserBusiness(userBusiness entity.UserBusiness) (entity.UserBusiness, error)
-	FindById(id int) (userBusiness entity.UserBusiness, err error)
+	FindById(id uuid.UUID) (userBusiness entity.UserBusiness, err error)
 	FindAll() []entity.UserBusiness
-	Delete(userBusinessId int)
+	Delete(userBusinessId uuid.UUID)
 	IsDuplicateEmail(email string) bool
 	VerifyCredentialBusiness(email string, password string) interface{}
 	FindByEmailOrPhone(identifier string) (entity.UserBusiness, error)
@@ -35,7 +36,7 @@ func (conn *userBusinessConnection) InsertUserBusiness(user entity.UserBusiness)
 	return user, result.Error
 }
 
-func (conn *userBusinessConnection) FindById(id int) (userBusinesss entity.UserBusiness, err error) {
+func (conn *userBusinessConnection) FindById(id uuid.UUID) (userBusinesss entity.UserBusiness, err error) {
 	var userBusiness entity.UserBusiness
 	result := conn.db.
 		Preload("Role").
@@ -57,7 +58,7 @@ func (conn *userBusinessConnection) FindAll() []entity.UserBusiness {
 	return userBusiness
 }
 
-func (conn *userBusinessConnection) Delete(userBusinessId int) {
+func (conn *userBusinessConnection) Delete(userBusinessId uuid.UUID) {
 	var userBusinesss entity.UserBusiness
 	result := conn.db.Where("id = ?", userBusinessId).Delete(&userBusinesss)
 	helper.ErrorPanic(result.Error)
@@ -112,7 +113,7 @@ func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
 		return err
 	}
 
-	if user.Business.Id != 0 {
+	if user.Business.Id != uuid.Nil {
 		if err := r.db.Save(user.Business).Error; err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
@@ -12,8 +13,8 @@ import (
 
 type MembershipRepository interface {
 	CreateMembership(membership entity.Membership) (entity.Membership, error)
-	FindById(membershipId int) (membership entity.Membership, err error)
-	FindActiveMembershipByUserID(userId int) (*entity.Membership, error)
+	FindById(membershipId uuid.UUID) (membership entity.Membership, err error)
+	FindActiveMembershipByUserID(userId uuid.UUID) (*entity.Membership, error)
 	FindAll() []entity.Membership
 }
 
@@ -32,7 +33,7 @@ func (conn *membershipConnection) CreateMembership(membership entity.Membership)
 	return membership, result.Error
 }
 
-func (conn *membershipConnection) FindById(membershipId int) (memberships entity.Membership, err error) {
+func (conn *membershipConnection) FindById(membershipId uuid.UUID) (memberships entity.Membership, err error) {
 	var membership entity.Membership
 	result := conn.db.Find(&membership, membershipId)
 	if result != nil {
@@ -42,7 +43,7 @@ func (conn *membershipConnection) FindById(membershipId int) (memberships entity
 	}
 }
 
-func (conn *membershipConnection) FindActiveMembershipByUserID(userId int) (*entity.Membership, error) {
+func (conn *membershipConnection) FindActiveMembershipByUserID(userId uuid.UUID) (*entity.Membership, error) {
 	var membership entity.Membership
 	err := conn.db.
 		Where("user_id = ? AND is_active = ? AND end_date > ?", userId, true, time.Now()).

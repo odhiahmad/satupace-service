@@ -219,6 +219,8 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 			skuMap[*v.SKU] = true
 
 			exist, err := s.ProductVariantRepo.IsSKUExistExcept(*v.SKU, *req.BusinessId, v.Id)
+
+			fmt.Println(v.SKU, v.Id, "sku dan id")
 			if err != nil {
 				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU varian di database: %w", err)
 			}

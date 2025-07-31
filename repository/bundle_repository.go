@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,14 +14,14 @@ import (
 type BundleRepository interface {
 	InsertBundle(bundle *entity.Bundle) (entity.Bundle, error)
 	UpdateBundle(bundle *entity.Bundle) (entity.Bundle, error)
-	FindById(bundleId int) (entity.Bundle, error)
-	Delete(bundleId int) error
-	InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error
-	DeleteItemsByBundleId(bundleId int) error
-	SetIsActive(id int, isActive bool) error
-	SetIsAvailable(id int, isActive bool) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, bool, error)
+	FindById(bundleId uuid.UUID) (entity.Bundle, error)
+	Delete(bundleId uuid.UUID) error
+	InsertItemsByBundleId(bundleId uuid.UUID, items []entity.BundleItem) error
+	DeleteItemsByBundleId(bundleId uuid.UUID) error
+	SetIsActive(id uuid.UUID, isActive bool) error
+	SetIsAvailable(id uuid.UUID, isActive bool) error
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Bundle, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Bundle, string, bool, error)
 }
 
 type bundleConnection struct {
@@ -37,7 +38,6 @@ func (conn *bundleConnection) InsertBundle(bundle *entity.Bundle) (entity.Bundle
 		return entity.Bundle{}, err
 	}
 
-	// Misal ingin preload relasi seperti BundleItems atau lainnya
 	err = conn.db.Preload("BundleItems").First(bundle, bundle.Id).Error
 	return *bundle, err
 }
@@ -48,12 +48,11 @@ func (conn *bundleConnection) UpdateBundle(bundle *entity.Bundle) (entity.Bundle
 		return entity.Bundle{}, err
 	}
 
-	// Preload relasi jika perlu
 	err = conn.db.Preload("BundleItems").First(bundle, bundle.Id).Error
 	return *bundle, err
 }
 
-func (conn *bundleConnection) FindById(bundleId int) (entity.Bundle, error) {
+func (conn *bundleConnection) FindById(bundleId uuid.UUID) (entity.Bundle, error) {
 	var bundle entity.Bundle
 	result := conn.db.Preload("Items.Product").First(&bundle, bundleId)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -62,7 +61,7 @@ func (conn *bundleConnection) FindById(bundleId int) (entity.Bundle, error) {
 	return bundle, result.Error
 }
 
-func (conn *bundleConnection) Delete(bundleId int) error {
+func (conn *bundleConnection) Delete(bundleId uuid.UUID) error {
 	if err := conn.DeleteItemsByBundleId(bundleId); err != nil {
 		return err
 	}
@@ -70,7 +69,7 @@ func (conn *bundleConnection) Delete(bundleId int) error {
 	return result.Error
 }
 
-func (conn *bundleConnection) InsertItemsByBundleId(bundleId int, items []entity.BundleItem) error {
+func (conn *bundleConnection) InsertItemsByBundleId(bundleId uuid.UUID, items []entity.BundleItem) error {
 	for i := range items {
 		items[i].BundleId = bundleId
 	}
@@ -78,24 +77,24 @@ func (conn *bundleConnection) InsertItemsByBundleId(bundleId int, items []entity
 	return result.Error
 }
 
-func (conn *bundleConnection) DeleteItemsByBundleId(bundleId int) error {
+func (conn *bundleConnection) DeleteItemsByBundleId(bundleId uuid.UUID) error {
 	result := conn.db.Where("bundle_id = ?", bundleId).Delete(&entity.BundleItem{})
 	return result.Error
 }
 
-func (conn *bundleConnection) SetIsActive(id int, isActive bool) error {
+func (conn *bundleConnection) SetIsActive(id uuid.UUID, isActive bool) error {
 	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
 		Update("is_active", isActive).Error
 }
 
-func (conn *bundleConnection) SetIsAvailable(id int, isAvailable bool) error {
+func (conn *bundleConnection) SetIsAvailable(id uuid.UUID, isAvailable bool) error {
 	return conn.db.Model(&entity.Bundle{}).
 		Where("id = ?", id).
 		Update("is_available", isAvailable).Error
 }
 
-func (conn *bundleConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Bundle, int64, error) {
+func (conn *bundleConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Bundle, int64, error) {
 	var bundles []entity.Bundle
 	var total int64
 
@@ -120,7 +119,7 @@ func (conn *bundleConnection) FindWithPagination(businessId int, pagination requ
 	return bundles, total, nil
 }
 
-func (conn *bundleConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Bundle, string, bool, error) {
+func (conn *bundleConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Bundle, string, bool, error) {
 	var bundles []entity.Bundle
 
 	query := conn.db.Model(&entity.Bundle{}).
@@ -171,7 +170,7 @@ func (conn *bundleConnection) FindWithPaginationCursor(businessId int, paginatio
 
 	if len(bundles) > limit {
 		last := bundles[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		bundles = bundles[:limit]
 		hasNext = true
 	}

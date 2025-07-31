@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -14,13 +15,13 @@ import (
 
 type BundleService interface {
 	CreateBundle(req request.BundleRequest) (response.BundleResponse, error)
-	UpdateBundle(id int, req request.BundleRequest) (response.BundleResponse, error)
-	FindById(id int) (response.BundleResponse, error)
-	Delete(id int) error
-	SetIsActive(id int, active bool) error
-	SetIsAvailable(id int, isAvailable bool) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, bool, error)
+	UpdateBundle(id uuid.UUID, req request.BundleRequest) (response.BundleResponse, error)
+	FindById(id uuid.UUID) (response.BundleResponse, error)
+	Delete(id uuid.UUID) error
+	SetIsActive(id uuid.UUID, active bool) error
+	SetIsAvailable(id uuid.UUID, isAvailable bool) error
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.BundleResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.BundleResponse, string, bool, error)
 }
 
 type bundleService struct {
@@ -86,7 +87,7 @@ func (s *bundleService) CreateBundle(req request.BundleRequest) (response.Bundle
 	return bundleResponse, nil
 }
 
-func (s *bundleService) UpdateBundle(id int, req request.BundleRequest) (response.BundleResponse, error) {
+func (s *bundleService) UpdateBundle(id uuid.UUID, req request.BundleRequest) (response.BundleResponse, error) {
 	if err := s.Validate.Struct(req); err != nil {
 		return response.BundleResponse{}, err
 	}
@@ -131,7 +132,7 @@ func (s *bundleService) UpdateBundle(id int, req request.BundleRequest) (respons
 	return bundleResponse, nil
 }
 
-func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
+func (s *bundleService) FindById(id uuid.UUID) (response.BundleResponse, error) {
 	bundle, err := s.BundleRepository.FindById(id)
 	if err != nil {
 		return response.BundleResponse{}, err
@@ -139,19 +140,19 @@ func (s *bundleService) FindById(id int) (response.BundleResponse, error) {
 	return helper.MapBundleToResponse(bundle), nil
 }
 
-func (s *bundleService) Delete(id int) error {
+func (s *bundleService) Delete(id uuid.UUID) error {
 	return s.BundleRepository.Delete(id)
 }
 
-func (s *bundleService) SetIsActive(id int, active bool) error {
+func (s *bundleService) SetIsActive(id uuid.UUID, active bool) error {
 	return s.BundleRepository.SetIsActive(id, active)
 }
 
-func (s *bundleService) SetIsAvailable(id int, active bool) error {
+func (s *bundleService) SetIsAvailable(id uuid.UUID, active bool) error {
 	return s.BundleRepository.SetIsAvailable(id, active)
 }
 
-func (s *bundleService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
+func (s *bundleService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.BundleResponse, int64, error) {
 	bundles, total, err := s.BundleRepository.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -165,7 +166,7 @@ func (s *bundleService) FindWithPagination(businessId int, pagination request.Pa
 	return result, total, nil
 }
 
-func (s *bundleService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.BundleResponse, string, bool, error) {
+func (s *bundleService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.BundleResponse, string, bool, error) {
 	bundles, nextCursor, hasNext, err := s.BundleRepository.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err

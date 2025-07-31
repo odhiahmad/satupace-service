@@ -3,12 +3,14 @@ package entity
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Discount struct {
-	Id           int            `gorm:"primaryKey;autoIncrement" json:"id"`
-	BusinessId   int            `gorm:"not null" json:"business_id"`
+	Id           uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	BusinessId   uuid.UUID      `gorm:"not null;index" json:"business_id"`
+	Business     *Business      `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 	Name         string         `gorm:"not null" json:"name"`
 	Description  string         `json:"description"`
 	IsPercentage *bool          `gorm:"not null;default:false" json:"is_percentage"` // true = amount sebagai persen

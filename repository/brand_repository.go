@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -14,12 +15,12 @@ type BrandRepository interface {
 	Create(brand entity.Brand) (entity.Brand, error)
 	Update(brand entity.Brand) (entity.Brand, error)
 	Delete(brand entity.Brand) error
-	HasRelation(brandId int) (bool, error)
-	SoftDelete(id int) error
-	HardDelete(id int) error
-	FindById(brandId int) (brandes entity.Brand, err error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Brand, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, bool, error)
+	HasRelation(brandId uuid.UUID) (bool, error)
+	SoftDelete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
+	FindById(brandId uuid.UUID) (brandes entity.Brand, err error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Brand, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Brand, string, bool, error)
 }
 
 type brandConnection struct {
@@ -59,21 +60,21 @@ func (conn *brandConnection) Delete(brand entity.Brand) error {
 	return conn.db.Delete(&brand).Error
 }
 
-func (conn *brandConnection) HasRelation(brandId int) (bool, error) {
+func (conn *brandConnection) HasRelation(brandId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.db.Model(&entity.Product{}).Where("brand_id = ?", brandId).Count(&count).Error
 	return count > 0, err
 }
 
-func (conn *brandConnection) SoftDelete(id int) error {
-	return conn.db.Delete(&entity.Brand{}, id).Error // akan mengisi deleted_at
+func (conn *brandConnection) SoftDelete(id uuid.UUID) error {
+	return conn.db.Delete(&entity.Brand{}, id).Error
 }
 
-func (conn *brandConnection) HardDelete(id int) error {
-	return conn.db.Unscoped().Delete(&entity.Brand{}, id).Error // delete permanen
+func (conn *brandConnection) HardDelete(id uuid.UUID) error {
+	return conn.db.Unscoped().Delete(&entity.Brand{}, id).Error
 }
 
-func (conn *brandConnection) FindById(brandId int) (brandes entity.Brand, err error) {
+func (conn *brandConnection) FindById(brandId uuid.UUID) (brandes entity.Brand, err error) {
 	var brand entity.Brand
 	result := conn.db.Find(&brand, brandId)
 	if result != nil {
@@ -83,7 +84,7 @@ func (conn *brandConnection) FindById(brandId int) (brandes entity.Brand, err er
 	}
 }
 
-func (conn *brandConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Brand, int64, error) {
+func (conn *brandConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Brand, int64, error) {
 	var brand []entity.Brand
 	var total int64
 
@@ -109,7 +110,7 @@ func (conn *brandConnection) FindWithPagination(businessId int, pagination reque
 	return brand, total, nil
 }
 
-func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Brand, string, bool, error) {
+func (conn *brandConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Brand, string, bool, error) {
 	var brands []entity.Brand
 
 	query := conn.db.Model(&entity.Brand{}).
@@ -159,7 +160,7 @@ func (conn *brandConnection) FindWithPaginationCursor(businessId int, pagination
 
 	if len(brands) > limit {
 		last := brands[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		brands = brands[:limit]
 		hasNext = true
 	}

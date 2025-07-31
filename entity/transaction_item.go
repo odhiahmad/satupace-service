@@ -3,13 +3,14 @@ package entity
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type TransactionItem struct {
-	Id                 int                        `gorm:"primaryKey;autoIncrement" json:"id"`
-	TransactionId      int                        `json:"transaction_id"`
-	ProductId          *int                       `json:"product_id"`
+	Id                 uuid.UUID                  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	TransactionId      uuid.UUID                  `json:"transaction_id"`
+	ProductId          *uuid.UUID                 `json:"product_id"`
 	Product            *Product                   `gorm:"foreignKey:ProductId"`
 	BundleId           *int                       `json:"bundle_id"`
 	Bundle             *Bundle                    `gorm:"foreignKey:BundleId"`

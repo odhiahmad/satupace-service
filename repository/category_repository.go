@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,13 +14,13 @@ import (
 type CategoryRepository interface {
 	InsertCategory(category entity.Category) (entity.Category, error)
 	UpdateCategory(category entity.Category) (entity.Category, error)
-	Delete(categoryId int) error
-	HasRelation(categoryId int) (bool, error)
-	SoftDelete(id int) error
-	HardDelete(id int) error
-	FindById(categoryId int) (entity.Category, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Category, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, bool, error)
+	Delete(categoryId uuid.UUID) error
+	HasRelation(categoryId uuid.UUID) (bool, error)
+	SoftDelete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
+	FindById(categoryId uuid.UUID) (entity.Category, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, string, bool, error)
 }
 
 type categoryConnection struct {
@@ -70,26 +71,26 @@ func (conn *categoryConnection) UpdateCategory(category entity.Category) (entity
 	return category, nil
 }
 
-func (conn *categoryConnection) Delete(categoryId int) error {
+func (conn *categoryConnection) Delete(categoryId uuid.UUID) error {
 	result := conn.Db.Delete(&entity.Category{}, categoryId)
 	return result.Error
 }
 
-func (conn *categoryConnection) HasRelation(categoryId int) (bool, error) {
+func (conn *categoryConnection) HasRelation(categoryId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.Db.Model(&entity.Product{}).Where("category_id = ?", categoryId).Count(&count).Error
 	return count > 0, err
 }
 
-func (conn *categoryConnection) SoftDelete(id int) error {
-	return conn.Db.Delete(&entity.Category{}, id).Error // akan mengisi deleted_at
+func (conn *categoryConnection) SoftDelete(id uuid.UUID) error {
+	return conn.Db.Delete(&entity.Category{}, id).Error
 }
 
-func (conn *categoryConnection) HardDelete(id int) error {
-	return conn.Db.Unscoped().Delete(&entity.Category{}, id).Error // delete permanen
+func (conn *categoryConnection) HardDelete(id uuid.UUID) error {
+	return conn.Db.Unscoped().Delete(&entity.Category{}, id).Error
 }
 
-func (conn *categoryConnection) FindById(categoryId int) (entity.Category, error) {
+func (conn *categoryConnection) FindById(categoryId uuid.UUID) (entity.Category, error) {
 	var category entity.Category
 	result := conn.Db.First(&category, categoryId)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -98,7 +99,7 @@ func (conn *categoryConnection) FindById(categoryId int) (entity.Category, error
 	return category, result.Error
 }
 
-func (conn *categoryConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Category, int64, error) {
+func (conn *categoryConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, int64, error) {
 	var category []entity.Category
 	var total int64
 
@@ -124,7 +125,7 @@ func (conn *categoryConnection) FindWithPagination(businessId int, pagination re
 	return category, total, nil
 }
 
-func (conn *categoryConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Category, string, bool, error) {
+func (conn *categoryConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, string, bool, error) {
 	var categories []entity.Category
 
 	query := conn.Db.Model(&entity.Category{}).
@@ -174,7 +175,7 @@ func (conn *categoryConnection) FindWithPaginationCursor(businessId int, paginat
 
 	if len(categories) > limit {
 		last := categories[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		categories = categories[:limit]
 		hasNext = true
 	}

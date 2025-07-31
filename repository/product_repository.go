@@ -380,7 +380,7 @@ func (conn *productConnection) FindWithPaginationCursor(businessId int, paginati
 
 	if len(products) > limit {
 		last := products[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		products = products[:limit]
 		hasNext = true
 	}

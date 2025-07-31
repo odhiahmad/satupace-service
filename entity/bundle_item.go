@@ -1,13 +1,18 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type BundleItem struct {
-	Id        int `gorm:"primaryKey;autoIncrement" json:"id"`
-	BundleId  int `gorm:"index"`
-	ProductId int `gorm:"index"`
+	Id        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	BundleId  uuid.UUID `gorm:"index"`
+	Bundle    Bundle    `gorm:"foreignKey:BundleId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ProductId uuid.UUID `gorm:"index"`
+	Product   Product   `gorm:"foreignKey:ProductId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Quantity  int
-	Product   Product   `gorm:"foreignKey:ProductId"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
