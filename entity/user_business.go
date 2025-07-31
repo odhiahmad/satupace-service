@@ -10,7 +10,7 @@ type UserBusiness struct {
 	Id           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	RoleId       int
 	Role         Role `gorm:"foreignKey:RoleId"`
-	BusinessId   int
+	BusinessId   uuid.UUID
 	Business     Business    `gorm:"foreignKey:BusinessId"`
 	Email        *string     `gorm:"uniqueIndex;type:varchar(255)" json:"email"`
 	PendingEmail *string     `gorm:"type:varchar(255)" json:"pending_email"`

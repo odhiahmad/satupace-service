@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -14,23 +15,23 @@ type ProductRepository interface {
 	Create(product entity.Product) (entity.Product, error)
 	Update(product entity.Product) (entity.Product, error)
 	UpdateAll(product *entity.Product) (entity.Product, error)
-	Delete(id int) error
-	HasRelation(id int) (bool, error)
-	SoftDelete(id int) error
-	HardDelete(id int) error
-	SetActive(id int, active bool) error
-	SetAvailable(id int, available bool) error
-	SetHasVariant(productId int) error
-	ResetVariantStateToFalse(productId int) error // ⬅️ Tambahkan ini
+	Delete(id uuid.UUID) error
+	HasRelation(id uuid.UUID) (bool, error)
+	SoftDelete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
+	SetActive(id uuid.UUID, active bool) error
+	SetAvailable(id uuid.UUID, available bool) error
+	SetHasVariant(productId uuid.UUID) error
+	ResetVariantStateToFalse(productId uuid.UUID) error
 	WithTransaction(fn func(conn ProductRepository) error) error
-	UpdateImage(productId int, imageURL string) error
-	IsSKUExist(sku string, businessId int) (bool, error)
-	IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error)
+	UpdateImage(productId uuid.UUID, imageURL string) error
+	IsSKUExist(sku string, businessId uuid.UUID) (bool, error)
+	IsSKUExistExcept(sku string, businessId uuid.UUID, exceptProductId uuid.UUID) (bool, error)
 	GetTx() *gorm.DB
-	FindById(id int) (entity.Product, error)
-	FindByIds(businessId int, ids []int) ([]entity.Product, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, bool, error)
+	FindById(id uuid.UUID) (entity.Product, error)
+	FindByIds(businessId uuid.UUID, ids []uuid.UUID) ([]entity.Product, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Product, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Product, string, bool, error)
 }
 
 type productConnection struct {
@@ -131,13 +132,13 @@ func (r *productConnection) UpdateAll(product *entity.Product) (entity.Product, 
 	return updated, nil
 }
 
-func (conn *productConnection) Delete(id int) error {
+func (conn *productConnection) Delete(id uuid.UUID) error {
 	var product entity.Product
 	result := conn.db.Where("id = ?", id).Delete(&product)
 	return result.Error
 }
 
-func (conn *productConnection) HasRelation(id int) (bool, error) {
+func (conn *productConnection) HasRelation(id uuid.UUID) (bool, error) {
 	var count int64
 
 	err := conn.db.
@@ -151,7 +152,7 @@ func (conn *productConnection) HasRelation(id int) (bool, error) {
 		return true, nil
 	}
 
-	var variantIDs []int
+	var variantIDs []uuid.UUID
 	if err := conn.db.Model(&entity.ProductVariant{}).
 		Where("product_id = ?", id).
 		Pluck("id", &variantIDs).Error; err != nil {
@@ -174,27 +175,27 @@ func (conn *productConnection) HasRelation(id int) (bool, error) {
 	return false, nil
 }
 
-func (conn *productConnection) SoftDelete(id int) error {
+func (conn *productConnection) SoftDelete(id uuid.UUID) error {
 	return conn.db.Delete(&entity.Product{}, id).Error
 }
 
-func (conn *productConnection) HardDelete(id int) error {
+func (conn *productConnection) HardDelete(id uuid.UUID) error {
 	return conn.db.Unscoped().Delete(&entity.Product{}, id).Error
 }
 
-func (conn *productConnection) SetActive(id int, active bool) error {
+func (conn *productConnection) SetActive(id uuid.UUID, active bool) error {
 	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", id).
 		Update("is_active", active).Error
 }
 
-func (conn *productConnection) SetAvailable(id int, available bool) error {
+func (conn *productConnection) SetAvailable(id uuid.UUID, available bool) error {
 	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", id).
 		Update("is_available", available).Error
 }
 
-func (conn *productConnection) SetHasVariant(productId int) error {
+func (conn *productConnection) SetHasVariant(productId uuid.UUID) error {
 
 	updateData := map[string]interface{}{
 		"has_variant": true,
@@ -210,7 +211,7 @@ func (conn *productConnection) SetHasVariant(productId int) error {
 
 }
 
-func (conn *productConnection) ResetVariantStateToFalse(productId int) error {
+func (conn *productConnection) ResetVariantStateToFalse(productId uuid.UUID) error {
 	updateData := map[string]interface{}{
 		"has_variant": false,
 		"track_stock": true,
@@ -228,7 +229,7 @@ func (conn *productConnection) WithTransaction(fn func(conn ProductRepository) e
 	})
 }
 
-func (conn *productConnection) UpdateImage(productId int, imageURL string) error {
+func (conn *productConnection) UpdateImage(productId uuid.UUID, imageURL string) error {
 	return conn.db.Model(&entity.Product{}).
 		Where("id = ?", productId).
 		Updates(map[string]interface{}{
@@ -237,7 +238,7 @@ func (conn *productConnection) UpdateImage(productId int, imageURL string) error
 		}).Error
 }
 
-func (conn *productConnection) IsSKUExist(sku string, businessId int) (bool, error) {
+func (conn *productConnection) IsSKUExist(sku string, businessId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.db.Model(&entity.Product{}).
 		Where("business_id = ? AND sku = ?", businessId, sku).
@@ -245,7 +246,7 @@ func (conn *productConnection) IsSKUExist(sku string, businessId int) (bool, err
 	return count > 0, err
 }
 
-func (conn *productConnection) IsSKUExistExcept(sku string, businessId int, exceptProductId int) (bool, error) {
+func (conn *productConnection) IsSKUExistExcept(sku string, businessId uuid.UUID, exceptProductId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.db.
 		Model(&entity.Product{}).
@@ -263,7 +264,7 @@ func (conn *productConnection) GetTx() *gorm.DB {
 	return conn.db
 }
 
-func (conn *productConnection) FindById(id int) (entity.Product, error) {
+func (conn *productConnection) FindById(id uuid.UUID) (entity.Product, error) {
 	var product entity.Product
 	err := conn.db.
 		Preload("Variants").
@@ -276,7 +277,7 @@ func (conn *productConnection) FindById(id int) (entity.Product, error) {
 	return product, err
 }
 
-func (conn *productConnection) FindByIds(businessId int, ids []int) ([]entity.Product, error) {
+func (conn *productConnection) FindByIds(businessId uuid.UUID, ids []uuid.UUID) ([]entity.Product, error) {
 	var products []entity.Product
 	err := conn.db.
 		Preload("Variants").
@@ -291,7 +292,7 @@ func (conn *productConnection) FindByIds(businessId int, ids []int) ([]entity.Pr
 	return products, err
 }
 
-func (conn *productConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Product, int64, error) {
+func (conn *productConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Product, int64, error) {
 	var products []entity.Product
 	var total int64
 
@@ -320,7 +321,7 @@ func (conn *productConnection) FindWithPagination(businessId int, pagination req
 	return products, total, nil
 }
 
-func (conn *productConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Product, string, bool, error) {
+func (conn *productConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Product, string, bool, error) {
 	var products []entity.Product
 
 	query := conn.db.Model(&entity.Product{}).

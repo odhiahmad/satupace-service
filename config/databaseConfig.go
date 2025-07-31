@@ -45,7 +45,6 @@ func SetupDatabaseConnection() *gorm.DB {
 	if ginMode != "release" {
 		if err := db.AutoMigrate(
 			&entity.UserBusiness{},
-			&entity.User{},
 			&entity.BusinessType{},
 			&entity.Business{},
 			&entity.Membership{},

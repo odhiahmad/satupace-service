@@ -64,7 +64,7 @@ type ProductVariantRequest struct {
 	SellPrice        *float64  `json:"sell_price"`
 	MinimumSales     *int      `json:"minimum_sales"`
 	SKU              *string   `json:"sku"`
-	Stock            int       `json:"stock"`
+	Stock            *int      `json:"stock"`
 	TrackStock       *bool     `json:"track_stock"`
 	IgnoreStockCheck *bool     `json:"ignore_stock_check"`
 	IsAvailable      *bool     `json:"is_available"`
@@ -80,7 +80,7 @@ type ProductVariantUpdateRequest struct {
 	SellPrice        *float64  `json:"sell_price" validate:"gte=0"`
 	MinimumSales     *int      `json:"minimum_sales"`
 	SKU              *string   `json:"sku"`
-	Stock            int       `json:"stock"`
+	Stock            *int      `json:"stock"`
 	IgnoreStockCheck *bool     `json:"ignore_stock_check"`
 	TrackStock       *bool     `json:"track_stock"`
 	IsAvailable      *bool     `json:"is_available"`

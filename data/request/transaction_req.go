@@ -9,7 +9,7 @@ type TransactionItemAttributeCreate struct {
 
 type TransactionItemAttributeUpdate struct {
 	Id                 uuid.UUID `json:"id"`
-	ProductAttributeId int       `json:"product_attribute_id"`
+	ProductAttributeId uuid.UUID `json:"product_attribute_id"`
 	AdditionalPrice    float64   `json:"additional_price"`
 }
 

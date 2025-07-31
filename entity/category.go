@@ -9,7 +9,7 @@ import (
 
 type Category struct {
 	Id         uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	BusinessId int            `gorm:"not null;index" json:"business_id"`
+	BusinessId uuid.UUID      `gorm:"not null;index" json:"business_id"`
 	Business   *Business      `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	Name       string         `gorm:"type:varchar(255)" json:"name"`
 	ParentId   *uuid.UUID     `gorm:"index" json:"parent_id"`

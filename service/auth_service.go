@@ -21,7 +21,6 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepository         repository.UserRepository
 	userBusinessRepository repository.UserBusinessRepository
 	jwtService             JWTService
 	redisHelper            *helper.RedisHelper
@@ -29,9 +28,8 @@ type authService struct {
 	membershipRepository   repository.MembershipRepository
 }
 
-func NewAuthService(userRep repository.UserRepository, userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper, membershipRepository repository.MembershipRepository) AuthService {
+func NewAuthService(userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper, membershipRepository repository.MembershipRepository) AuthService {
 	return &authService{
-		userRepository:         userRep,
 		userBusinessRepository: userBusinessRepository,
 		jwtService:             jwtSvc,
 		redisHelper:            redisHelper,

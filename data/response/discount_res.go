@@ -1,9 +1,13 @@
 package response
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type DiscountResponse struct {
-	Id           int       `json:"id"`
+	Id           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	Description  string    `json:"description"`
 	Amount       float64   `json:"amount"`

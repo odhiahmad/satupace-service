@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -34,21 +35,20 @@ func NewBundleController(bundleService service.BundleService, jwtService service
 	}
 }
 
-// Create Bundle
 func (c *bundleController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	var input request.BundleRequest
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Gagal bind data bundle", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Gagal bind data bundle", "INVALID_JSON", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
 	input.BusinessId = businessId
+
 	res, err := c.bundleService.CreateBundle(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat bundle", "internal_error", "brand", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat bundle", "internal_error", "bundle", err.Error(), nil))
 		return
 	}
 
@@ -235,7 +235,7 @@ func (c *bundleController) SetIsAvailable(ctx *gin.Context) {
 }
 
 func (c *bundleController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -243,13 +243,7 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter limit tidak valid",
-			"INVALID_QUERY_PARAM",
-			"limit",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter limit tidak valid", "INVALID_QUERY_PARAM", "limit", err.Error(), nil))
 		return
 	}
 
@@ -262,13 +256,7 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 
 	bundles, total, err := c.bundleService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data bundle",
-			"BUNDLE_FETCH_FAILED",
-			"",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data bundle", "BUNDLE_FETCH_FAILED", "", err.Error(), nil))
 		return
 	}
 
@@ -280,12 +268,7 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 		SortOrder: pagination.OrderBy,
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
-		true,
-		"Data bundle berhasil diambil",
-		bundles,
-		paginationMeta,
-	))
+	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(true, "Data bundle berhasil diambil", bundles, paginationMeta))
 }
 
 func (c *bundleController) FindWithPaginationCursor(ctx *gin.Context) {

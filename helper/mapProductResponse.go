@@ -3,13 +3,12 @@ package helper
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// SafeString digunakan untuk menghindari panic jika pointer string nil
 
 func MapProductToResponse(product entity.Product) response.ProductResponse {
 	return response.ProductResponse{
@@ -61,7 +60,7 @@ func MapProductVariants(variants []entity.ProductVariant, product *entity.Produc
 func MapCategory(category *entity.Category) *response.CategoryResponse {
 	caser := cases.Title(language.Indonesian)
 
-	if category == nil || category.Id == 0 {
+	if category == nil || category.Id == uuid.Nil {
 		return nil
 	}
 

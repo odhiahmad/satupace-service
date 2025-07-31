@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,7 +14,7 @@ import (
 )
 
 type UserBusinessService interface {
-	FindById(id int) (response.UserBusinessResponse, error)
+	FindById(id uuid.UUID) (response.UserBusinessResponse, error)
 	ChangePassword(req request.ChangePasswordRequest) error
 	ChangeEmail(req request.ChangeEmailRequest) error
 	ChangePhone(req request.ChangePhoneRequest) error
@@ -29,7 +30,7 @@ func NewUserBusinessService(repo repository.UserBusinessRepository, redisHelper 
 	return &userBusinessService{repo: repo, redisHelper: redisHelper, emailHelper: emailHelper}
 }
 
-func (s *userBusinessService) FindById(id int) (response.UserBusinessResponse, error) {
+func (s *userBusinessService) FindById(id uuid.UUID) (response.UserBusinessResponse, error) {
 	user, err := s.repo.FindById(id)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
@@ -106,6 +107,6 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 	return s.repo.Update(&user)
 }
 
-func (s *userBusinessService) Delete(userId int) {
+func (s *userBusinessService) Delete(userId uuid.UUID) {
 	s.Delete(userId)
 }

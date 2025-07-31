@@ -1,9 +1,13 @@
 package response
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type UserBusinessResponse struct {
-	Id          int                 `json:"id"`
+	Id          uuid.UUID           `json:"id"`
 	Email       *string             `json:"email"`
 	PhoneNumber string              `json:"phone_number"`
 	IsVerified  bool                `json:"is_verified"`

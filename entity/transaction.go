@@ -34,10 +34,10 @@ type Transaction struct {
 	IsRefunded      bool              `gorm:"default:false" json:"is_refunded"`
 	RefundReason    *string           `json:"refund_reason"`
 	RefundedAt      *time.Time        `json:"refunded_at"`
-	RefundedBy      *int              `json:"refunded_by"`
+	RefundedBy      *uuid.UUID        `json:"refunded_by"`
 	IsCanceled      bool              `gorm:"default:false" json:"is_canceled"`
 	CanceledAt      *time.Time        `json:"canceled_at"`
-	CanceledBy      *int              `json:"canceled_by"`
+	CanceledBy      *uuid.UUID        `json:"canceled_by"`
 	CanceledReason  *string           `json:"canceled_reason"`
 	CreatedAt       time.Time         `json:"created_at"`
 	UpdatedAt       time.Time         `json:"updated_at"`

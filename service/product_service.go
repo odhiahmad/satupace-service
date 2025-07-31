@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -16,16 +17,16 @@ import (
 
 type ProductService interface {
 	Create(req request.ProductRequest) (response.ProductResponse, error)
-	Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error)
-	Delete(id int) error
-	SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error)
-	SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductSearchResponse, error)
-	SetActive(id int, isActive bool) error
-	SetAvailable(id int, isAvailable bool) error
-	UpdateImage(id int, base64Image string) (response.ProductResponse, error)
-	FindById(id int) (response.ProductResponse, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, bool, error)
+	Update(id uuid.UUID, req request.ProductUpdateRequest) (response.ProductResponse, error)
+	Delete(id uuid.UUID) error
+	SearchProducts(businessId uuid.UUID, search string, limit int) ([]response.ProductResponse, int64, error)
+	SearchProductsRedisOnly(businessId uuid.UUID, search string, limit int) ([]response.ProductSearchResponse, error)
+	SetActive(id uuid.UUID, isActive bool) error
+	SetAvailable(id uuid.UUID, isAvailable bool) error
+	UpdateImage(id uuid.UUID, base64Image string) (response.ProductResponse, error)
+	FindById(id uuid.UUID) (response.ProductResponse, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.ProductResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.ProductResponse, string, bool, error)
 }
 
 type productService struct {
@@ -67,7 +68,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			}
 			skuMap[*req.Variants[i].SKU] = true
 
-			exist, err := s.ProductVariantRepo.IsSKUExist(*req.Variants[i].SKU, *req.BusinessId)
+			exist, err := s.ProductVariantRepo.IsSKUExist(*req.Variants[i].SKU, req.BusinessId)
 			if err != nil {
 				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU varian di database: %w", err)
 			}
@@ -81,7 +82,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 			sku = &sGenerated
 		}
 
-		exist, err := s.ProductRepo.IsSKUExist(*sku, *req.BusinessId)
+		exist, err := s.ProductRepo.IsSKUExist(*sku, req.BusinessId)
 		if err != nil {
 			return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk di database: %w", err)
 		}
@@ -162,7 +163,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	if req.Image != nil && *req.Image != "" {
-		go func(productId int, businessId int, name string, imageBase64 string) {
+		go func(productId uuid.UUID, businessId uuid.UUID, name string, imageBase64 string) {
 			url, err := helper.UploadBase64ToCloudinary(imageBase64, "product")
 			if err != nil {
 				log.Printf("Gagal upload gambar produk (background): %v", err)
@@ -175,7 +176,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 				return
 			}
 
-		}(product.Id, *req.BusinessId, strings.ToLower(req.Name), *req.Image)
+		}(product.Id, req.BusinessId, strings.ToLower(req.Name), *req.Image)
 	}
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
@@ -183,14 +184,14 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah simpan: %w", err)
 	}
 
-	if err := helper.AddProductToAutocomplete(s.Redis, *req.BusinessId, product.Id, req.Name); err != nil {
+	if err := helper.AddProductToAutocomplete(s.Redis, req.BusinessId, product.Id, req.Name); err != nil {
 		log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
 	}
 
 	return helper.MapProductToResponse(createdProduct), nil
 }
 
-func (s *productService) Update(id int, req request.ProductUpdateRequest) (response.ProductResponse, error) {
+func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) (response.ProductResponse, error) {
 	falseVal := false
 
 	if err := s.Validate.Struct(req); err != nil {
@@ -218,7 +219,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 			}
 			skuMap[*v.SKU] = true
 
-			exist, err := s.ProductVariantRepo.IsSKUExistExcept(*v.SKU, *req.BusinessId, v.Id)
+			exist, err := s.ProductVariantRepo.IsSKUExistExcept(*v.SKU, req.BusinessId, v.Id)
 
 			fmt.Println(v.SKU, v.Id, "sku dan id")
 			if err != nil {
@@ -235,7 +236,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		}
 
 		if product.SKU == nil || *product.SKU != *sku {
-			exist, err := s.ProductRepo.IsSKUExistExcept(*sku, *req.BusinessId, id)
+			exist, err := s.ProductRepo.IsSKUExistExcept(*sku, req.BusinessId, id)
 			if err != nil {
 				return response.ProductResponse{}, fmt.Errorf("gagal cek SKU produk: %w", err)
 			}
@@ -325,7 +326,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 		return response.ProductResponse{}, err
 	}
 
-	_ = helper.UpdateProductAutocomplete(s.Redis, *product.BusinessId, oldName, product.Name, product.Id)
+	_ = helper.UpdateProductAutocomplete(s.Redis, product.BusinessId, oldName, product.Name, product.Id)
 
 	createdProduct, err := s.ProductRepo.FindById(product.Id)
 	if err != nil {
@@ -335,7 +336,7 @@ func (s *productService) Update(id int, req request.ProductUpdateRequest) (respo
 	return helper.MapProductToResponse(createdProduct), nil
 }
 
-func (s *productService) Delete(id int) error {
+func (s *productService) Delete(id uuid.UUID) error {
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return err
@@ -358,11 +359,11 @@ func (s *productService) Delete(id int) error {
 		return deleteErr
 	}
 
-	if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, product.Name); err != nil {
+	if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, product.Name); err != nil {
 		fmt.Printf("gagal menghapus autocomplete produk: %v\n", err)
 	}
 	for _, variant := range product.Variants {
-		if err := helper.DeleteProductFromAutocomplete(s.Redis, *product.BusinessId, variant.Name); err != nil {
+		if err := helper.DeleteProductFromAutocomplete(s.Redis, product.BusinessId, variant.Name); err != nil {
 			fmt.Printf("gagal menghapus autocomplete variant: %v\n", err)
 		}
 	}
@@ -370,15 +371,15 @@ func (s *productService) Delete(id int) error {
 	return nil
 }
 
-func (s *productService) SetActive(id int, isActive bool) error {
+func (s *productService) SetActive(id uuid.UUID, isActive bool) error {
 	return s.ProductRepo.SetActive(id, isActive)
 }
 
-func (s *productService) SetAvailable(id int, isAvailable bool) error {
+func (s *productService) SetAvailable(id uuid.UUID, isAvailable bool) error {
 	return s.ProductRepo.SetAvailable(id, isAvailable)
 }
 
-func (s *productService) SearchProducts(businessId int, search string, limit int) ([]response.ProductResponse, int64, error) {
+func (s *productService) SearchProducts(businessId uuid.UUID, search string, limit int) ([]response.ProductResponse, int64, error) {
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
 		return nil, 0, err
@@ -387,8 +388,8 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 		return nil, 0, nil
 	}
 
-	var productIDs []int
-	autocompleteMap := make(map[int]response.ProductResponse)
+	var productIDs []uuid.UUID
+	autocompleteMap := make(map[uuid.UUID]response.ProductResponse)
 
 	for _, product := range results {
 		productIDs = append(productIDs, product.Id)
@@ -414,7 +415,7 @@ func (s *productService) SearchProducts(businessId int, search string, limit int
 	return finalResults, int64(len(finalResults)), nil
 }
 
-func (s *productService) SearchProductsRedisOnly(businessId int, search string, limit int) ([]response.ProductSearchResponse, error) {
+func (s *productService) SearchProductsRedisOnly(businessId uuid.UUID, search string, limit int) ([]response.ProductSearchResponse, error) {
 	results, err := helper.GetProductAutocomplete(s.Redis, businessId, search, int64(limit))
 	if err != nil {
 		return nil, err
@@ -435,7 +436,7 @@ func (s *productService) SearchProductsRedisOnly(businessId int, search string, 
 	return searchResults, nil
 }
 
-func (s *productService) UpdateImage(id int, base64Image string) (response.ProductResponse, error) {
+func (s *productService) UpdateImage(id uuid.UUID, base64Image string) (response.ProductResponse, error) {
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return response.ProductResponse{}, fmt.Errorf("produk tidak ditemukan: %w", err)
@@ -478,7 +479,7 @@ func (s *productService) UpdateImage(id int, base64Image string) (response.Produ
 	return helper.MapProductToResponse(updatedProduct), nil
 }
 
-func (s *productService) FindById(id int) (response.ProductResponse, error) {
+func (s *productService) FindById(id uuid.UUID) (response.ProductResponse, error) {
 	product, err := s.ProductRepo.FindById(id)
 	if err != nil {
 		return response.ProductResponse{}, err
@@ -487,7 +488,7 @@ func (s *productService) FindById(id int) (response.ProductResponse, error) {
 	return res, nil
 }
 
-func (s *productService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
+func (s *productService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.ProductResponse, int64, error) {
 	products, total, err := s.ProductRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -500,7 +501,7 @@ func (s *productService) FindWithPagination(businessId int, pagination request.P
 	return result, total, nil
 }
 
-func (s *productService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.ProductResponse, string, bool, error) {
+func (s *productService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.ProductResponse, string, bool, error) {
 	products, nextCursor, hasNext, err := s.ProductRepo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err

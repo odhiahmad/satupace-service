@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -13,11 +14,11 @@ import (
 
 type TaxService interface {
 	Create(req request.TaxRequest) (response.TaxResponse, error)
-	Update(id int, req request.TaxRequest) (response.TaxResponse, error)
-	Delete(id int) error
-	FindById(roleId int) response.TaxResponse
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, bool, error)
+	Update(id uuid.UUID, req request.TaxRequest) (response.TaxResponse, error)
+	Delete(id uuid.UUID) error
+	FindById(roleId uuid.UUID) response.TaxResponse
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.TaxResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.TaxResponse, string, bool, error)
 }
 
 type taxService struct {
@@ -57,7 +58,7 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 	return *taxResponse, nil
 }
 
-func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxResponse, error) {
+func (s *taxService) Update(id uuid.UUID, req request.TaxRequest) (response.TaxResponse, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return response.TaxResponse{}, err
 	}
@@ -83,7 +84,7 @@ func (s *taxService) Update(id int, req request.TaxRequest) (response.TaxRespons
 	return *taxResponse, nil
 }
 
-func (s *taxService) Delete(id int) error {
+func (s *taxService) Delete(id uuid.UUID) error {
 	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -107,7 +108,7 @@ func (s *taxService) Delete(id int) error {
 	return nil
 }
 
-func (s *taxService) FindById(taxId int) response.TaxResponse {
+func (s *taxService) FindById(taxId uuid.UUID) response.TaxResponse {
 	taxData, err := s.repo.FindById(taxId)
 	helper.ErrorPanic(err)
 
@@ -115,7 +116,7 @@ func (s *taxService) FindById(taxId int) response.TaxResponse {
 	return *taxResponse
 }
 
-func (s *taxService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.TaxResponse, int64, error) {
+func (s *taxService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.TaxResponse, int64, error) {
 	taxes, total, err := s.repo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -129,7 +130,7 @@ func (s *taxService) FindWithPagination(businessId int, pagination request.Pagin
 	return result, total, nil
 }
 
-func (s *taxService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.TaxResponse, string, bool, error) {
+func (s *taxService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.TaxResponse, string, bool, error) {
 	taxes, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err

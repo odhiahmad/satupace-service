@@ -1,7 +1,9 @@
 package response
 
+import "github.com/google/uuid"
+
 type ProductResponse struct {
-	Id               int                      `json:"id"`
+	Id               uuid.UUID                `json:"id"`
 	SKU              *string                  `json:"sku"`
 	Name             string                   `json:"name"`
 	Description      *string                  `json:"description"`
@@ -27,12 +29,12 @@ type ProductResponse struct {
 }
 
 type ProductSearchResponse struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
 type CategoryResponse struct {
-	Id       int    `json:"id"`
-	Name     string `json:"name"`
-	ParentId *int   `json:"parent_id"`
+	Id       uuid.UUID  `json:"id"`
+	Name     string     `json:"name"`
+	ParentId *uuid.UUID `json:"parent_id"`
 }

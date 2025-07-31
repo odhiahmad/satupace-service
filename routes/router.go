@@ -21,7 +21,6 @@ var (
 	redisHelper              *helper.RedisHelper                 = helper.NewRedisHelper(redisClient)
 	validate                 *validator.Validate                 = validator.New()
 	db                       *gorm.DB                            = config.SetupDatabaseConnection()
-	userRepository           repository.UserRepository           = repository.NewUserRepository(db)
 	userBusinessRepository   repository.UserBusinessRepository   = repository.NewUserBusinessRepository(db)
 	roleRepository           repository.RoleRepository           = repository.NewRoleRepository(db)
 	businessTypeRepository   repository.BusinessTypeRepository   = repository.NewBusinessTypeRepository(db)
@@ -41,8 +40,7 @@ var (
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
-	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
-	userService           service.UserService           = service.NewUserService(userRepository, validate)
+	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
 	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper, emailHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
@@ -61,7 +59,6 @@ var (
 	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
-	userController           controller.UserController           = controller.NewUserController(userService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
 	roleController           controller.RoleController           = controller.NewRoleController(roleService, jwtService)
 	businessTypeController   controller.BusinessTypeController   = controller.NewBusinessTypeController(businessTypeService, jwtService)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -17,11 +18,11 @@ import (
 
 type CategoryService interface {
 	Create(category request.CategoryRequest) (response.CategoryResponse, error)
-	Update(id int, category request.CategoryRequest) (response.CategoryResponse, error)
-	FindById(brandId int) response.CategoryResponse
-	Delete(id int) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
+	Update(id uuid.UUID, category request.CategoryRequest) (response.CategoryResponse, error)
+	FindById(brandId uuid.UUID) response.CategoryResponse
+	Delete(id uuid.UUID) error
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
 }
 
 type categoryService struct {
@@ -63,7 +64,7 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 	return *categoryResponse, nil
 }
 
-func (s *categoryService) Update(id int, req request.CategoryRequest) (response.CategoryResponse, error) {
+func (s *categoryService) Update(id uuid.UUID, req request.CategoryRequest) (response.CategoryResponse, error) {
 	err := s.Validate.Struct(req)
 	if err != nil {
 		return response.CategoryResponse{}, err
@@ -90,7 +91,7 @@ func (s *categoryService) Update(id int, req request.CategoryRequest) (response.
 	return *categoryResponse, nil
 }
 
-func (s *categoryService) FindById(brandId int) response.CategoryResponse {
+func (s *categoryService) FindById(brandId uuid.UUID) response.CategoryResponse {
 	categories, err := s.repo.FindById(brandId)
 	helper.ErrorPanic(err)
 
@@ -98,7 +99,7 @@ func (s *categoryService) FindById(brandId int) response.CategoryResponse {
 	return *category
 }
 
-func (s *categoryService) Delete(id int) error {
+func (s *categoryService) Delete(id uuid.UUID) error {
 	category, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -127,7 +128,7 @@ func (s *categoryService) Delete(id int) error {
 	return nil
 }
 
-func (s *categoryService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
+func (s *categoryService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("categories:business:%d:page:%d:limit:%d:cat:%v", businessId, pagination.Page, pagination.Limit, pagination.CategoryID)
 
@@ -152,7 +153,7 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 	return result, total, nil
 }
 
-func (s *categoryService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
+func (s *categoryService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
 	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err

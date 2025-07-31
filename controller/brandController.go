@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -30,14 +31,15 @@ func NewBrandController(brandService service.BrandService, jwtService service.JW
 }
 
 func (c *brandController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(string)
 	var input request.BrandRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
 	}
 
-	input.BusinessId = businessId
+	businessUUID, err := uuid.Parse(businessId)
+	input.BusinessId = businessUUID
 
 	res, err := c.brandService.Create(input)
 	if err != nil {
@@ -50,15 +52,15 @@ func (c *brandController) Create(ctx *gin.Context) {
 
 func (c *brandController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(string)
 
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
+	id, err := uuid.Parse(idStr)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
@@ -69,7 +71,8 @@ func (c *brandController) Update(ctx *gin.Context) {
 		return
 	}
 
-	input.BusinessId = businessId
+	businessUUID, err := uuid.Parse(businessId)
+	input.BusinessId = businessUUID
 
 	res, err := c.brandService.Update(id, input)
 	if err != nil {
@@ -81,7 +84,8 @@ func (c *brandController) Update(ctx *gin.Context) {
 }
 
 func (c *brandController) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
@@ -97,29 +101,20 @@ func (c *brandController) Delete(ctx *gin.Context) {
 }
 
 func (c *brandController) FindById(ctx *gin.Context) {
-	brandIdParam := ctx.Param("id")
-	brandId, err := strconv.Atoi(brandIdParam)
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		response := helper.BuildErrorResponse(
-			"Parameter id tidak valid",
-			"invalid_parameter",
-			"id",
-			err.Error(),
-			helper.EmptyObj{},
-		)
-		ctx.JSON(http.StatusBadRequest, response)
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
 
-	// hanya satu return value
-	brandResponse := c.brandService.FindById(brandId)
-
-	response := helper.BuildResponse(true, "Berhasil mengambil data brand", brandResponse)
-	ctx.JSON(http.StatusOK, response)
+	brandResponse := c.brandService.FindById(id)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil data brand", brandResponse))
 }
 
 func (c *brandController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessIDStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIDStr)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -161,7 +156,8 @@ func (c *brandController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *brandController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessIDStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIDStr)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -16,10 +17,10 @@ import (
 
 type TransactionService interface {
 	Create(req request.TransactionCreateRequest) (*response.TransactionResponse, error)
-	Payment(id int, req request.TransactionPaymentRequest) (*response.TransactionResponse, error)
-	FindById(id int) (*response.TransactionResponse, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]*response.TransactionResponse, int64, error)
-	AddOrUpdateItem(transactionId int, item request.TransactionItemCreate) (*response.TransactionResponse, error)
+	Payment(id uuid.UUID, req request.TransactionPaymentRequest) (*response.TransactionResponse, error)
+	FindById(id uuid.UUID) (*response.TransactionResponse, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]*response.TransactionResponse, int64, error)
+	AddOrUpdateItem(transactionId uuid.UUID, item request.TransactionItemCreate) (*response.TransactionResponse, error)
 	Refund(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error)
 	Cancel(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error)
 }
@@ -39,11 +40,10 @@ func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, v
 }
 
 func (s *transactionService) Create(req request.TransactionCreateRequest) (*response.TransactionResponse, error) {
-	var allProductIds []int
+	var allProductIds []uuid.UUID
 	for _, item := range req.Items {
-		productId := helper.IntOrDefault(item.ProductId, 0)
-		if productId != 0 {
-			allProductIds = append(allProductIds, productId)
+		if *item.ProductId != uuid.Nil {
+			allProductIds = append(allProductIds, *item.ProductId)
 		}
 	}
 
@@ -52,7 +52,6 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		Items:         req.Items,
 		AllProductIds: allProductIds,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +83,7 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
-func (s *transactionService) Payment(id int, req request.TransactionPaymentRequest) (*response.TransactionResponse, error) {
+func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymentRequest) (*response.TransactionResponse, error) {
 	transaction, err := s.transactionRepo.FindById(id)
 	if err != nil {
 		return nil, err
@@ -136,7 +135,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 					continue
 				}
 
-				newStock := item.ProductVariant.Stock - qty
+				newStock := *item.ProductVariant.Stock - qty
 				if newStock < 0 {
 					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", *item.ProductVariant.SKU)
 				}
@@ -173,7 +172,7 @@ func (s *transactionService) Payment(id int, req request.TransactionPaymentReque
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
-func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.TransactionItemCreate) (*response.TransactionResponse, error) {
+func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq request.TransactionItemCreate) (*response.TransactionResponse, error) {
 	if itemReq.ProductId == nil && itemReq.BundleId == nil {
 		return nil, errors.New("item harus memiliki product_id atau bundle_id")
 	}
@@ -204,7 +203,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 		return nil, err
 	}
 
-	var allProductIds []int
+	var allProductIds []uuid.UUID
 	for _, itm := range items {
 		if itm.ProductId != nil {
 			allProductIds = append(allProductIds, *itm.ProductId)
@@ -243,7 +242,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId int, itemReq request.
 	return helper.MapTransactionResponse(savedTx), nil
 }
 
-func (s *transactionService) FindById(id int) (*response.TransactionResponse, error) {
+func (s *transactionService) FindById(id uuid.UUID) (*response.TransactionResponse, error) {
 	transaction, err := s.transactionRepo.FindById(id)
 	if err != nil {
 		return nil, err
@@ -252,7 +251,7 @@ func (s *transactionService) FindById(id int) (*response.TransactionResponse, er
 	return helper.MapTransactionResponse(&transaction), nil
 }
 
-func (s *transactionService) FindWithPagination(businessId int, pagination request.Pagination) ([]*response.TransactionResponse, int64, error) {
+func (s *transactionService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]*response.TransactionResponse, int64, error) {
 	transactions, total, err := s.transactionRepo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -279,7 +278,7 @@ func (s *transactionService) Refund(itemReq request.TransactionRefundRequest) (*
 	now := time.Now().UTC()
 
 	transaction.Status = "refunded"
-	transaction.IsRefunded = helper.BoolPtr(true)
+	transaction.IsRefunded = true
 	transaction.RefundReason = itemReq.Reason
 	transaction.RefundedBy = &itemReq.UserId
 	transaction.RefundedAt = &now
@@ -309,7 +308,7 @@ func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*
 	now := time.Now().UTC()
 
 	transaction.Status = "canceled"
-	transaction.IsCanceled = helper.BoolPtr(true)
+	transaction.IsCanceled = true
 	transaction.CanceledReason = itemReq.Reason
 	transaction.CanceledBy = &itemReq.UserId
 	transaction.CanceledAt = &now

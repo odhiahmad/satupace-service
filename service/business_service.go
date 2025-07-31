@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -14,8 +15,8 @@ import (
 type BusinessService interface {
 	Create(req request.BusinessCreate) (response.BusinessResponse, error)
 	Update(req request.BusinessUpdate) (response.BusinessResponse, error)
-	Delete(id int) error
-	FindById(id int) (response.BusinessResponse, error)
+	Delete(id uuid.UUID) error
+	FindById(id uuid.UUID) (response.BusinessResponse, error)
 	FindWithPagination(pagination request.Pagination) ([]response.BusinessResponse, int64, error)
 }
 
@@ -52,12 +53,10 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 	return MapToBusinessResponse(created), nil
 }
 func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessResponse, error) {
-	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.BusinessResponse{}, err
 	}
 
-	// Mapping request ke entity
 	business := entity.Business{
 		Id:             req.Id,
 		Name:           strings.ToLower(req.Name),
@@ -70,7 +69,6 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 		IsActive:       req.IsActive,
 	}
 
-	// Update ke repository
 	updated, err := s.repo.Update(business)
 	if err != nil {
 		return response.BusinessResponse{}, err
@@ -79,7 +77,7 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 	return MapToBusinessResponse(updated), nil
 }
 
-func (s *businessService) Delete(id int) error {
+func (s *businessService) Delete(id uuid.UUID) error {
 	business, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -87,7 +85,7 @@ func (s *businessService) Delete(id int) error {
 	return s.repo.Delete(business)
 }
 
-func (s *businessService) FindById(id int) (response.BusinessResponse, error) {
+func (s *businessService) FindById(id uuid.UUID) (response.BusinessResponse, error) {
 	business, err := s.repo.FindById(id)
 	if err != nil {
 		return response.BusinessResponse{}, err
