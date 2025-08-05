@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -38,7 +39,7 @@ func NewProductController(productService service.ProductService, jwtService serv
 }
 
 func (c *productController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	var input request.ProductRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -46,7 +47,7 @@ func (c *productController) Create(ctx *gin.Context) {
 		return
 	}
 
-	input.BusinessId = &businessId
+	input.BusinessId = businessId
 	res, err := c.productService.Create(input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat product", "internal_error", "product", err.Error(), nil))
@@ -57,10 +58,9 @@ func (c *productController) Create(ctx *gin.Context) {
 }
 
 func (c *productController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
-	idParam := ctx.Param("id")
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 
-	id, err := strconv.Atoi(idParam)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
@@ -74,7 +74,7 @@ func (c *productController) Update(ctx *gin.Context) {
 		return
 	}
 
-	input.BusinessId = &businessId
+	input.BusinessId = businessId
 	result, err := c.productService.Update(id, input)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
@@ -86,8 +86,7 @@ func (c *productController) Update(ctx *gin.Context) {
 }
 
 func (c *productController) UpdateImage(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		res := helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "param", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
@@ -115,8 +114,7 @@ func (c *productController) UpdateImage(ctx *gin.Context) {
 }
 
 func (c *productController) Delete(ctx *gin.Context) {
-	idParam := ctx.Param("id")
-	id, err := strconv.Atoi(idParam)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
@@ -133,8 +131,7 @@ func (c *productController) Delete(ctx *gin.Context) {
 }
 
 func (c *productController) FindById(ctx *gin.Context) {
-	idParam := ctx.Param("id")
-	id, err := strconv.Atoi(idParam)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID produk tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
@@ -152,7 +149,7 @@ func (c *productController) FindById(ctx *gin.Context) {
 }
 
 func (c *productController) SetActive(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
@@ -184,7 +181,7 @@ func (c *productController) SetActive(ctx *gin.Context) {
 }
 
 func (c *productController) SetAvailable(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
@@ -216,7 +213,7 @@ func (c *productController) SetAvailable(ctx *gin.Context) {
 }
 
 func (c *productController) SearchProducts(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	search := ctx.Query("search")
 
 	product, err := c.productService.SearchProductsRedisOnly(businessId, search, 10)
@@ -231,7 +228,7 @@ func (c *productController) SearchProducts(ctx *gin.Context) {
 }
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	search := ctx.DefaultQuery("search", "")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	pageStr := ctx.DefaultQuery("page", "1")
@@ -271,7 +268,7 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 			CategoryID: categoryID,
 		}
 
-		products, total, err := c.productService.FindWithPagination(businessID, pagination)
+		products, total, err := c.productService.FindWithPagination(businessId, pagination)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 			return
@@ -289,7 +286,7 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 		return
 	}
 
-	products, total, err := c.productService.SearchProducts(businessID, search, limit)
+	products, total, err := c.productService.SearchProducts(businessId, search, limit)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mencari produk", "SEARCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return
@@ -307,7 +304,7 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	search := ctx.DefaultQuery("search", "")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
@@ -340,7 +337,7 @@ func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
 		CategoryID: categoryID,
 	}
 
-	products, nextCursor, hasNext, err := c.productService.FindWithPaginationCursor(businessID, pagination)
+	products, nextCursor, hasNext, err := c.productService.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data produk", "FETCH_ERROR", "product", err.Error(), helper.EmptyObj{}))
 		return

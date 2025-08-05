@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -30,7 +31,7 @@ func NewTaxController(taxService service.TaxService, jwtService service.JWTServi
 }
 
 func (c *taxController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	var input request.TaxRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
@@ -47,7 +48,7 @@ func (c *taxController) Create(ctx *gin.Context) {
 }
 
 func (c *taxController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	idStr := ctx.Param("id")
 
 	if idStr == "" {
@@ -55,8 +56,8 @@ func (c *taxController) Update(ctx *gin.Context) {
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
+	id, err := uuid.Parse(idStr)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
@@ -78,7 +79,8 @@ func (c *taxController) Update(ctx *gin.Context) {
 }
 
 func (c *taxController) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
@@ -94,8 +96,8 @@ func (c *taxController) Delete(ctx *gin.Context) {
 }
 
 func (c *taxController) FindById(ctx *gin.Context) {
-	taxIdParam := ctx.Param("id")
-	taxId, err := strconv.Atoi(taxIdParam)
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		response := helper.BuildErrorResponse(
 			"Parameter id tidak valid",
@@ -108,15 +110,13 @@ func (c *taxController) FindById(ctx *gin.Context) {
 		return
 	}
 
-	// hanya satu return value
-	taxResponse := c.taxService.FindById(taxId)
-
+	taxResponse := c.taxService.FindById(id)
 	response := helper.BuildResponse(true, "Berhasil mengambil data tax", taxResponse)
 	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *taxController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -158,7 +158,7 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -183,7 +183,7 @@ func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
 	taxes, nextCursor, hasNext, err := c.taxService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))
+			"Gagal mengambil data tax", "internal_error", "tax", err.Error(), nil))
 		return
 	}
 
@@ -197,7 +197,7 @@ func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Data brand berhasil diambil",
+		"Data tax berhasil diambil",
 		taxes,
 		paginationMeta,
 	))

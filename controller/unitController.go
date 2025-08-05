@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -30,7 +31,7 @@ func NewUnitController(s service.UnitService, jwtService service.JWTService) Uni
 }
 
 func (c *unitController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 	var input request.UnitRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -49,32 +50,32 @@ func (c *unitController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat satuan produk", res))
 }
 
+// Update function: UnitController
 func (c *unitController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
 		return
 	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
+	id, err := uuid.Parse(idStr)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
 	}
 
 	var input request.UnitRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
 	input.BusinessId = businessId
-	res, err := c.service.Update(id, input)
+
+	res, err := c.service.Update(id, input) // <-- Pastikan service menerima uuid.UUID
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengubah satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
@@ -82,17 +83,16 @@ func (c *unitController) Update(ctx *gin.Context) {
 }
 
 func (c *unitController) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	err = c.service.Delete(id)
+	err = c.service.Delete(id) // <-- Pastikan service menerima uuid.UUID
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal menghapus satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus satuan produk", "INTERNAL_ERROR", "product_unit", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
@@ -100,29 +100,22 @@ func (c *unitController) Delete(ctx *gin.Context) {
 }
 
 func (c *unitController) FindById(ctx *gin.Context) {
-	unitIdParam := ctx.Param("id")
-	unitId, err := strconv.Atoi(unitIdParam)
+	unitIdStr := ctx.Param("id")
+	unitId, err := uuid.Parse(unitIdStr)
 	if err != nil {
-		response := helper.BuildErrorResponse(
-			"Parameter id tidak valid",
-			"invalid_parameter",
-			"id",
-			err.Error(),
-			helper.EmptyObj{},
-		)
+		response := helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), helper.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	// hanya satu return value
-	unitResponse := c.service.FindById(unitId)
+	unitResponse := c.service.FindById(unitId) // <-- Pastikan service menerima uuid.UUID
 
 	response := helper.BuildResponse(true, "Berhasil mengambil data unit", unitResponse)
 	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *unitController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
@@ -175,7 +168,7 @@ func (c *unitController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *unitController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")

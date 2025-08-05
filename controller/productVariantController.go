@@ -2,9 +2,9 @@ package controller
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/service"
@@ -39,7 +39,7 @@ func (c *productVariantController) Create(ctx *gin.Context) {
 	}
 
 	productIdStr := ctx.Param("id")
-	productId, err := strconv.Atoi(productIdStr)
+	productId, err := uuid.Parse(productIdStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Parameter product_id tidak valid", "BAD_REQUEST", "product_id", err.Error(), helper.EmptyObj{}))
@@ -58,7 +58,7 @@ func (c *productVariantController) Create(ctx *gin.Context) {
 
 func (c *productVariantController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
@@ -83,7 +83,7 @@ func (c *productVariantController) Update(ctx *gin.Context) {
 
 func (c *productVariantController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
@@ -101,7 +101,7 @@ func (c *productVariantController) Delete(ctx *gin.Context) {
 
 func (c *productVariantController) FindById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
@@ -120,7 +120,7 @@ func (c *productVariantController) FindById(ctx *gin.Context) {
 
 func (c *productVariantController) FindByProductId(ctx *gin.Context) {
 	productIdStr := ctx.Param("productId")
-	productId, err := strconv.Atoi(productIdStr)
+	productId, err := uuid.Parse(productIdStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Product ID tidak valid", "BAD_REQUEST", "product_id", err.Error(), helper.EmptyObj{}))
@@ -138,7 +138,8 @@ func (c *productVariantController) FindByProductId(ctx *gin.Context) {
 }
 
 func (c *productVariantController) SetActive(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))
@@ -164,7 +165,8 @@ func (c *productVariantController) SetActive(ctx *gin.Context) {
 }
 
 func (c *productVariantController) SetAvailable(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"ID tidak valid", "BAD_REQUEST", "id", err.Error(), helper.EmptyObj{}))

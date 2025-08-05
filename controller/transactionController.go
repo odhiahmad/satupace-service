@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -34,7 +35,7 @@ func NewTransactionController(transactionService service.TransactionService, jwt
 }
 
 func (c *transactionController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
 
 	var input request.TransactionCreateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -54,8 +55,8 @@ func (c *transactionController) Create(ctx *gin.Context) {
 }
 
 func (c *transactionController) Payment(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(int)
-	id, err := strconv.Atoi(ctx.Param("id"))
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	id, err := uuid.Parse(ctx.Param("id"))
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
@@ -79,8 +80,8 @@ func (c *transactionController) Payment(ctx *gin.Context) {
 }
 
 func (c *transactionController) AddOrUpdateItem(ctx *gin.Context) {
-	transactionId, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil || transactionId <= 0 {
+	transactionId, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID transaksi tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
 	}
@@ -101,7 +102,7 @@ func (c *transactionController) AddOrUpdateItem(ctx *gin.Context) {
 }
 
 func (c *transactionController) FindById(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
@@ -117,7 +118,7 @@ func (c *transactionController) FindById(ctx *gin.Context) {
 }
 
 func (c *transactionController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessID := ctx.MustGet("business_id").(uuid.UUID)
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
@@ -177,11 +178,9 @@ func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *transactionController) Refund(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(int)
-	businessId := ctx.MustGet("business_id").(int)
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))
 		return
@@ -207,11 +206,9 @@ func (c *transactionController) Refund(ctx *gin.Context) {
 }
 
 func (c *transactionController) Cancel(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(int)
-	businessId := ctx.MustGet("business_id").(int)
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))
 		return
