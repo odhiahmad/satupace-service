@@ -46,7 +46,12 @@ func (c *businessController) Create(ctx *gin.Context) {
 }
 
 func (c *businessController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 
 	var input request.BusinessUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {

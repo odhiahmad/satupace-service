@@ -39,7 +39,12 @@ func NewProductController(productService service.ProductService, jwtService serv
 }
 
 func (c *productController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	var input request.ProductRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
@@ -58,7 +63,12 @@ func (c *productController) Create(ctx *gin.Context) {
 }
 
 func (c *productController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -213,7 +223,12 @@ func (c *productController) SetAvailable(ctx *gin.Context) {
 }
 
 func (c *productController) SearchProducts(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	search := ctx.Query("search")
 
 	product, err := c.productService.SearchProductsRedisOnly(businessId, search, 10)
@@ -228,7 +243,12 @@ func (c *productController) SearchProducts(ctx *gin.Context) {
 }
 
 func (c *productController) FindWithPagination(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	search := ctx.DefaultQuery("search", "")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	pageStr := ctx.DefaultQuery("page", "1")
@@ -304,7 +324,12 @@ func (c *productController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *productController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	search := ctx.DefaultQuery("search", "")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")

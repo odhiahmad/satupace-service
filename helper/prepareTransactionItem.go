@@ -56,8 +56,21 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				return result, err
 			}
 
-			if item.Quantity < *product.MinimumSales {
-				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			if product.MinimumSales != nil {
+				if item.Quantity < *product.MinimumSales {
+					return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+				}
+			}
+
+			if item.ProductVariantId != nil && *item.ProductVariantId != uuid.Nil {
+				for _, variant := range product.Variants {
+					if variant.Id == *item.ProductVariantId {
+						if variant.MinimumSales != nil && item.Quantity < *variant.MinimumSales {
+							return result, errors.New("minimum pembelian untuk varian produk tidak terpenuhi")
+						}
+						break
+					}
+				}
 			}
 
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
@@ -173,8 +186,21 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				return result, err
 			}
 
-			if item.Quantity < *product.MinimumSales {
-				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			if product.MinimumSales != nil {
+				if item.Quantity < *product.MinimumSales {
+					return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+				}
+			}
+
+			if item.ProductVariantId != nil && *item.ProductVariantId != uuid.Nil {
+				for _, variant := range product.Variants {
+					if variant.Id == *item.ProductVariantId {
+						if variant.MinimumSales != nil && item.Quantity < *variant.MinimumSales {
+							return result, errors.New("minimum pembelian untuk varian produk tidak terpenuhi")
+						}
+						break
+					}
+				}
 			}
 
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)

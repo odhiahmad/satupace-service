@@ -36,7 +36,12 @@ func NewBundleController(bundleService service.BundleService, jwtService service
 }
 
 func (c *bundleController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	var input request.BundleRequest
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -57,7 +62,12 @@ func (c *bundleController) Create(ctx *gin.Context) {
 
 func (c *bundleController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
@@ -190,7 +200,12 @@ func (c *bundleController) SetIsAvailable(ctx *gin.Context) {
 }
 
 func (c *bundleController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -227,7 +242,12 @@ func (c *bundleController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *bundleController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")

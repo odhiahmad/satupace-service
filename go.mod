@@ -9,9 +9,9 @@ require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.10.9
-	github.com/mashingan/smapping v0.1.11
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/redis/go-redis/v9 v9.11.0
 	go.mau.fi/whatsmeow v0.0.0-20250701221811-9adf672adc90
@@ -39,7 +39,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

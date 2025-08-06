@@ -35,7 +35,12 @@ func NewTransactionController(transactionService service.TransactionService, jwt
 }
 
 func (c *transactionController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 
 	var input request.TransactionCreateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -55,7 +60,12 @@ func (c *transactionController) Create(ctx *gin.Context) {
 }
 
 func (c *transactionController) Payment(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(uuid.UUID)
+	userIdStr := ctx.MustGet("user_id").(string)
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	id, err := uuid.Parse(ctx.Param("id"))
 
 	if err != nil {
@@ -118,7 +128,12 @@ func (c *transactionController) FindById(ctx *gin.Context) {
 }
 
 func (c *transactionController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
@@ -178,8 +193,18 @@ func (c *transactionController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *transactionController) Refund(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(uuid.UUID)
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	userIdStr := ctx.MustGet("user_id").(string)
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))
@@ -206,8 +231,18 @@ func (c *transactionController) Refund(ctx *gin.Context) {
 }
 
 func (c *transactionController) Cancel(ctx *gin.Context) {
-	userId := ctx.MustGet("user_id").(uuid.UUID)
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	userIdStr := ctx.MustGet("user_id").(string)
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "path", err.Error(), nil))

@@ -42,7 +42,6 @@ func (s *unitService) Create(req request.UnitRequest) (entity.Unit, error) {
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
-		Multiplier: req.Multiplier,
 	}
 
 	return s.repo.Create(unit)
@@ -58,7 +57,6 @@ func (s *unitService) Update(id uuid.UUID, req request.UnitRequest) (entity.Unit
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
-		Multiplier: req.Multiplier,
 	}
 
 	return s.repo.Update(unit)

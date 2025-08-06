@@ -31,15 +31,19 @@ func NewBrandController(brandService service.BrandService, jwtService service.JW
 }
 
 func (c *brandController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(string)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	var input request.BrandRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
 	}
 
-	businessUUID, err := uuid.Parse(businessId)
-	input.BusinessId = businessUUID
+	input.BusinessId = businessId
 
 	res, err := c.brandService.Create(input)
 	if err != nil {
@@ -52,7 +56,12 @@ func (c *brandController) Create(ctx *gin.Context) {
 
 func (c *brandController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	businessId := ctx.MustGet("business_id").(string)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
@@ -71,8 +80,7 @@ func (c *brandController) Update(ctx *gin.Context) {
 		return
 	}
 
-	businessUUID, err := uuid.Parse(businessId)
-	input.BusinessId = businessUUID
+	input.BusinessId = businessId
 
 	res, err := c.brandService.Update(id, input)
 	if err != nil {
@@ -113,8 +121,12 @@ func (c *brandController) FindById(ctx *gin.Context) {
 }
 
 func (c *brandController) FindWithPagination(ctx *gin.Context) {
-	businessIDStr := ctx.MustGet("business_id").(string)
-	businessID, err := uuid.Parse(businessIDStr)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -156,8 +168,12 @@ func (c *brandController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *brandController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessIDStr := ctx.MustGet("business_id").(string)
-	businessID, err := uuid.Parse(businessIDStr)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")

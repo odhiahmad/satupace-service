@@ -31,7 +31,12 @@ func NewTaxController(taxService service.TaxService, jwtService service.JWTServi
 }
 
 func (c *taxController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	var input request.TaxRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
@@ -48,7 +53,12 @@ func (c *taxController) Create(ctx *gin.Context) {
 }
 
 func (c *taxController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	idStr := ctx.Param("id")
 
 	if idStr == "" {
@@ -116,7 +126,12 @@ func (c *taxController) FindById(ctx *gin.Context) {
 }
 
 func (c *taxController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -158,7 +173,12 @@ func (c *taxController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *taxController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(uuid.UUID)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")

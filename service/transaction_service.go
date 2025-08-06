@@ -130,33 +130,41 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 		for _, item := range transaction.Items {
 			qty := item.Quantity
 
-			if item.ProductVariant != nil && *item.ProductVariant.TrackStock {
-				if *item.ProductVariant.IgnoreStockCheck {
-					continue
+			if v := item.ProductVariant; v != nil &&
+				v.TrackStock != nil && *v.TrackStock &&
+				v.IgnoreStockCheck != nil && !*v.IgnoreStockCheck {
+
+				if v.Stock == nil {
+					return nil, fmt.Errorf("stok produk varian tidak tersedia: %s", helper.SafeString(v.SKU))
 				}
 
-				newStock := *item.ProductVariant.Stock - qty
+				newStock := *v.Stock - qty
 				if newStock < 0 {
-					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", *item.ProductVariant.SKU)
+					return nil, fmt.Errorf("stok produk varian tidak mencukupi: %s", helper.SafeString(v.SKU))
 				}
+
 				if err := s.db.Model(&entity.ProductVariant{}).
-					Where("id = ?", item.ProductVariant.Id).
+					Where("id = ?", v.Id).
 					Update("stock", newStock).Error; err != nil {
 					return nil, err
 				}
 			}
 
-			if item.Product != nil && *item.Product.TrackStock {
-				if *item.Product.IgnoreStockCheck {
-					continue
+			if p := item.Product; p != nil &&
+				p.TrackStock != nil && *p.TrackStock &&
+				p.IgnoreStockCheck != nil && !*p.IgnoreStockCheck {
+
+				if p.Stock == nil {
+					return nil, fmt.Errorf("stok produk tidak tersedia: %s", p.Name)
 				}
 
-				newStock := *item.Product.Stock - qty
+				newStock := *p.Stock - qty
 				if newStock < 0 {
-					return nil, fmt.Errorf("stok produk tidak mencukupi: %s", item.Product.Name)
+					return nil, fmt.Errorf("stok produk tidak mencukupi: %s", p.Name)
 				}
+
 				if err := s.db.Model(&entity.Product{}).
-					Where("id = ?", item.Product.Id).
+					Where("id = ?", p.Id).
 					Update("stock", newStock).Error; err != nil {
 					return nil, err
 				}

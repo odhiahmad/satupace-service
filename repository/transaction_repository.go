@@ -108,19 +108,21 @@ func (conn *transactionConnection) Update(transaction *entity.Transaction) (*ent
 		}
 
 		for i := range transaction.Items {
+			transaction.Items[i].Id = uuid.Nil
 			transaction.Items[i].TransactionId = transaction.Id
+
 			if err := tx.Create(&transaction.Items[i]).Error; err != nil {
 				return err
 			}
 
 			for j := range transaction.Items[i].Attributes {
+				transaction.Items[i].Attributes[j].Id = uuid.Nil
 				transaction.Items[i].Attributes[j].TransactionItemId = transaction.Items[i].Id
 				if err := tx.Create(&transaction.Items[i].Attributes[j]).Error; err != nil {
 					return err
 				}
 			}
 		}
-
 		return nil
 	})
 

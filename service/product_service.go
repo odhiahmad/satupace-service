@@ -144,7 +144,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 					SKU:              v.SKU,
 					Stock:            v.Stock,
 					TrackStock:       v.TrackStock,
-					IgnoreStockCheck: req.IgnoreStockCheck,
+					IgnoreStockCheck: v.IgnoreStockCheck,
 					IsAvailable:      v.IsAvailable,
 					IsActive:         v.IsActive,
 				})

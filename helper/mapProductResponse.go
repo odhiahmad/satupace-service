@@ -110,10 +110,9 @@ func MapUnit(unit *entity.Unit) *response.UnitResponse {
 	}
 
 	return &response.UnitResponse{
-		Id:         unit.Id,
-		Name:       caser.String(unit.Name),
-		Alias:      caser.String(unit.Alias),
-		Multiplier: unit.Multiplier,
+		Id:    unit.Id,
+		Name:  caser.String(unit.Name),
+		Alias: caser.String(unit.Alias),
 	}
 }
 
