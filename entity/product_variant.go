@@ -19,9 +19,9 @@ type ProductVariant struct {
 	BasePrice        *float64       `json:"base_price"`
 	SellPrice        *float64       `json:"sell_price"`
 	MinimumSales     *int           `json:"minimum_sales"`
+	TrackStock       *bool          `json:"track_stock"`
 	IgnoreStockCheck *bool          `json:"ignore_stock_check"`
 	Stock            *int           `json:"stock"`
-	TrackStock       *bool          `json:"track_stock"`
 	IsAvailable      *bool          `json:"is_available"`
 	IsActive         *bool          `json:"is_active"`
 	CreatedAt        time.Time      `json:"created_at"`

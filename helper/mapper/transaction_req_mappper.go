@@ -1,4 +1,4 @@
-package helper
+package mapper
 
 import (
 	"github.com/odhiahmad/kasirku-service/data/request"

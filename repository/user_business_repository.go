@@ -11,6 +11,7 @@ import (
 
 type UserBusinessRepository interface {
 	InsertUserBusiness(userBusiness entity.UserBusiness) (entity.UserBusiness, error)
+	CreateEmployee(user *entity.UserBusiness) error
 	FindById(id uuid.UUID) (userBusiness entity.UserBusiness, err error)
 	FindAll() []entity.UserBusiness
 	Delete(userBusinessId uuid.UUID)
@@ -19,6 +20,7 @@ type UserBusinessRepository interface {
 	FindByEmailOrPhone(identifier string) (entity.UserBusiness, error)
 	FindByVerificationToken(token string) (entity.UserBusiness, error)
 	Update(user *entity.UserBusiness) error
+	FindByPhoneAndBusinessId(businessId uuid.UUID, phone string) (*entity.UserBusiness, error)
 }
 
 type userBusinessConnection struct {
@@ -34,6 +36,10 @@ func (conn *userBusinessConnection) InsertUserBusiness(user entity.UserBusiness)
 	helper.ErrorPanic(result.Error)
 
 	return user, result.Error
+}
+
+func (r *userBusinessConnection) CreateEmployee(user *entity.UserBusiness) error {
+	return r.db.Create(user).Error
 }
 
 func (conn *userBusinessConnection) FindById(id uuid.UUID) (userBusinesss entity.UserBusiness, err error) {
@@ -120,4 +126,13 @@ func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
 	}
 
 	return nil
+}
+
+func (r *userBusinessConnection) FindByPhoneAndBusinessId(businessId uuid.UUID, phone string) (*entity.UserBusiness, error) {
+	var user entity.UserBusiness
+	err := r.db.Where("business_id = ? AND phone_number = ?", businessId, phone).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

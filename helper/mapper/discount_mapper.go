@@ -1,4 +1,4 @@
-package helper
+package mapper
 
 import (
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -7,9 +7,14 @@ import (
 	"golang.org/x/text/language"
 )
 
-func ToDiscountResponse(discount entity.Discount) response.DiscountResponse {
+func MapDiscount(discount *entity.Discount) *response.DiscountResponse {
 	caser := cases.Title(language.Indonesian)
-	return response.DiscountResponse{
+
+	if discount == nil {
+		return nil
+	}
+
+	return &response.DiscountResponse{
 		Id:           discount.Id,
 		Name:         caser.String(discount.Name),
 		Description:  caser.String(discount.Description),

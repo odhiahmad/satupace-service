@@ -8,7 +8,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -50,7 +50,7 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 		return response.BusinessResponse{}, err
 	}
 
-	return MapToBusinessResponse(created), nil
+	return *mapper.MapBusiness(&created), nil
 }
 func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessResponse, error) {
 	if err := s.validate.Struct(req); err != nil {
@@ -74,7 +74,7 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 		return response.BusinessResponse{}, err
 	}
 
-	return MapToBusinessResponse(updated), nil
+	return *mapper.MapBusiness(&updated), nil
 }
 
 func (s *businessService) Delete(id uuid.UUID) error {
@@ -90,7 +90,7 @@ func (s *businessService) FindById(id uuid.UUID) (response.BusinessResponse, err
 	if err != nil {
 		return response.BusinessResponse{}, err
 	}
-	return MapToBusinessResponse(business), nil
+	return *mapper.MapBusiness(&business), nil
 }
 
 func (s *businessService) FindWithPagination(pagination request.Pagination) ([]response.BusinessResponse, int64, error) {
@@ -101,19 +101,8 @@ func (s *businessService) FindWithPagination(pagination request.Pagination) ([]r
 
 	var responses []response.BusinessResponse
 	for _, b := range businesses {
-		responses = append(responses, MapToBusinessResponse(b))
+		responses = append(responses, *mapper.MapBusiness(&b))
 	}
 
 	return responses, total, nil
-}
-
-func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
-	return response.BusinessResponse{
-		Id:           b.Id,
-		Name:         b.Name,
-		OwnerName:    b.OwnerName,
-		BusinessType: helper.MapBusinessTypeToResponse(b.BusinessType),
-		Image:        b.Image,
-		IsActive:     b.IsActive,
-	}
 }

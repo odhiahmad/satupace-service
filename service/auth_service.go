@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -70,7 +71,7 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	}
 
 	token := service.jwtService.GenerateToken(user, membership.EndDate)
-	res := helper.MapAuthResponse(&user, token)
+	res := mapper.MapAuth(&user, token)
 
 	return res, nil
 }
@@ -125,7 +126,7 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 	}
 
 	token := s.jwtService.GenerateToken(user, membership.EndDate)
-	res := helper.MapAuthResponse(&user, token)
+	res := mapper.MapAuth(&user, token)
 	return res, nil
 }
 
@@ -217,6 +218,6 @@ func (s *authService) ResetPassword(req request.ResetPasswordRequest) (*response
 	}
 
 	token := s.jwtService.GenerateToken(user, membership.EndDate)
-	res := helper.MapAuthResponse(&user, token)
+	res := mapper.MapAuth(&user, token)
 	return res, nil
 }

@@ -40,6 +40,8 @@ var (
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
 	tableRepository          repository.TableRepository          = repository.NewTableRepository(db)
 	orderTypeRepository      repository.OrderTypeRepository      = repository.NewOrderTypeRepository(db)
+	shiftRepository          repository.ShiftRepository          = repository.NewShiftRepository(db)
+	terminalRepository       repository.TerminalRepository       = repository.NewTerminalRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
@@ -61,6 +63,8 @@ var (
 	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
 	tableService          service.TableService          = service.NewTableService(tableRepository, validate)
 	orderTypeService      service.OrderTypeService      = service.NewOrderTypeService(orderTypeRepository, validate)
+	shiftService          service.ShiftService          = service.NewShiftService(userBusinessRepository, shiftRepository)
+	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
@@ -81,6 +85,8 @@ var (
 	locationController       controller.LocationController       = controller.NewLocationController(locationService)
 	tableController          controller.TableController          = controller.NewTableController(tableService, jwtService)
 	orderTypeController      controller.OrderTypeController      = controller.NewOrderTypeController(orderTypeService, jwtService)
+	shiftController          controller.ShiftController          = controller.NewShiftController(shiftService, jwtService)
+	terminalController       controller.TerminalController       = controller.NewTerminalController(terminalService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -140,28 +146,28 @@ func SetupRouter() *gin.Engine {
 		libRoutes.POST("/tax", taxController.Create)
 		libRoutes.POST("/unit", unitController.Create)
 		libRoutes.POST("/discount", discountController.Create)
-		libRoutes.POST("/table", tableController.Create)
+		libRoutes.POST("/terminal", terminalController.Create)
 
 		libRoutes.PUT("/category/:id", categoryController.Update)
 		libRoutes.PUT("/brand/:id", brandController.Update)
 		libRoutes.PUT("/tax/:id", taxController.Update)
 		libRoutes.PUT("/unit/:id", unitController.Update)
 		libRoutes.PUT("/discount/:id", discountController.Update)
-		libRoutes.PUT("/table/:id", tableController.Update)
+		libRoutes.PUT("/terminal/:id", terminalController.Update)
 
 		libRoutes.GET("/category/:id", categoryController.FindById)
 		libRoutes.GET("/brand/:id", brandController.FindById)
 		libRoutes.GET("/tax/:id", taxController.FindById)
 		libRoutes.GET("/unit/:id", unitController.FindById)
 		libRoutes.GET("/discount/:id", discountController.FindById)
-		libRoutes.GET("/table/:id", tableController.FindById)
+		libRoutes.GET("/terminal/:id", terminalController.FindById)
 
 		libRoutes.GET("/category", categoryController.FindWithPagination)
 		libRoutes.GET("/brand", brandController.FindWithPagination)
 		libRoutes.GET("/tax", taxController.FindWithPagination)
 		libRoutes.GET("/unit", unitController.FindWithPagination)
 		libRoutes.GET("/discount", discountController.FindWithPagination)
-		libRoutes.GET("/table", tableController.FindWithPagination)
+		libRoutes.GET("/terminal", terminalController.FindWithPagination)
 
 		libRoutes.GET("/brand/cursor", brandController.FindWithPaginationCursor)
 		libRoutes.GET("/category/cursor", categoryController.FindWithPaginationCursor)
@@ -169,14 +175,14 @@ func SetupRouter() *gin.Engine {
 		libRoutes.GET("/tax/cursor", taxController.FindWithPaginationCursor)
 		libRoutes.GET("/unit/cursor", unitController.FindWithPaginationCursor)
 		libRoutes.GET("/discount/cursor", discountController.FindWithPaginationCursor)
-		libRoutes.GET("/table/cursor", tableController.FindWithPaginationCursor)
+		libRoutes.GET("/terminal/cursor", terminalController.FindWithPaginationCursor)
 
 		libRoutes.DELETE("/category/:id", categoryController.Delete)
 		libRoutes.DELETE("/brand/:id", brandController.Delete)
 		libRoutes.DELETE("/tax/:id", taxController.Delete)
 		libRoutes.DELETE("/unit/:id", unitController.Delete)
 		libRoutes.DELETE("/discount/:id", discountController.Delete)
-		libRoutes.DELETE("/table/:id", tableController.Delete)
+		libRoutes.DELETE("/terminal/:id", terminalController.Delete)
 
 		libRoutes.PUT("/discount/:id/active", discountController.SetIsActive)
 
@@ -245,11 +251,29 @@ func SetupRouter() *gin.Engine {
 	orderTypeRoutes := r.Group("order-type", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		orderTypeRoutes.POST("", orderTypeController.Create)
-		orderTypeRoutes.PATCH("/:id", orderTypeController.Update)
+		orderTypeRoutes.PUT("/:id", orderTypeController.Update)
 		orderTypeRoutes.GET("", orderTypeController.FindWithPagination)
 		orderTypeRoutes.GET("/cursor", orderTypeController.FindWithPaginationCursor)
 		orderTypeRoutes.GET("/:id", orderTypeController.FindById)
 		orderTypeRoutes.DELETE("/:id", orderTypeController.Delete)
+	}
+
+	tableRoutes := r.Group("table", middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		tableRoutes.POST("", tableController.Create)
+		tableRoutes.PUT("/:id", tableController.Update)
+		tableRoutes.GET("", tableController.FindWithPagination)
+		tableRoutes.GET("/cursor", tableController.FindWithPaginationCursor)
+		tableRoutes.GET("/:id", tableController.FindById)
+		tableRoutes.DELETE("/:id", tableController.Delete)
+	}
+
+	shiftRoutes := r.Group("shift", middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		shiftRoutes.GET("", shiftController.EmployeePinLogin)
+		shiftRoutes.POST("", shiftController.OpenShift)
+		shiftRoutes.PUT("/:id", shiftController.CloseShift)
+		shiftRoutes.GET("/cursor", shiftController.GetActiveShift)
 	}
 
 	return r

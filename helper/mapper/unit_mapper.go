@@ -1,4 +1,4 @@
-package helper
+package mapper
 
 import (
 	"github.com/odhiahmad/kasirku-service/data/response"
@@ -7,14 +7,15 @@ import (
 	"golang.org/x/text/language"
 )
 
-func MapOrderType(orderType *entity.OrderType) *response.OrderTypeResponse {
+func MapUnit(unit *entity.Unit) *response.UnitResponse {
 	caser := cases.Title(language.Indonesian)
-	if orderType == nil {
+	if unit == nil {
 		return nil
 	}
 
-	return &response.OrderTypeResponse{
-		Id:   orderType.Id,
-		Name: caser.String(orderType.Name),
+	return &response.UnitResponse{
+		Id:    unit.Id,
+		Name:  caser.String(unit.Name),
+		Alias: caser.String(unit.Alias),
 	}
 }

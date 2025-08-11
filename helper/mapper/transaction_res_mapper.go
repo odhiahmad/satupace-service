@@ -1,11 +1,11 @@
-package helper
+package mapper
 
 import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func MapTransactionResponse(trx *entity.Transaction) *response.TransactionResponse {
+func MapTransaction(trx *entity.Transaction) *response.TransactionResponse {
 	var itemResponses []response.TransactionItemResponse
 
 	for _, item := range trx.Items {
@@ -20,7 +20,7 @@ func MapTransactionResponse(trx *entity.Transaction) *response.TransactionRespon
 
 		var productResponses []response.ProductResponse
 		if item.Product != nil {
-			productResponses = append(productResponses, MapProductToResponse(*item.Product))
+			productResponses = append(productResponses, MapProduct(*item.Product))
 		}
 
 		itemResponses = append(itemResponses, response.TransactionItemResponse{
@@ -43,7 +43,7 @@ func MapTransactionResponse(trx *entity.Transaction) *response.TransactionRespon
 
 	var cashierRes response.UserBusinessResponse
 	if trx.Cashier != nil {
-		if cashierPtr := MapUserBusinessResponse(*trx.Cashier); cashierPtr != nil {
+		if cashierPtr := MapUserBusiness(*trx.Cashier); cashierPtr != nil {
 			cashierRes = *cashierPtr
 		}
 	}

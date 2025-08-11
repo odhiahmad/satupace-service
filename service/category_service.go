@@ -12,6 +12,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/redis/go-redis/v9"
 )
@@ -61,7 +62,7 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 	pattern := fmt.Sprintf("categories:business:%d*", req.BusinessId)
 	helper.DeleteKeysByPattern(context.Background(), s.Redis, pattern)
 
-	categoryResponse := helper.MapCategory(&createdCategory)
+	categoryResponse := mapper.MapCategory(&createdCategory)
 	return *categoryResponse, nil
 }
 
@@ -88,7 +89,7 @@ func (s *categoryService) Update(id uuid.UUID, req request.CategoryRequest) (res
 	cacheKey := fmt.Sprintf("category:%d", id)
 	s.Redis.Del(context.Background(), cacheKey)
 
-	categoryResponse := helper.MapCategory(&updatedCategory)
+	categoryResponse := mapper.MapCategory(&updatedCategory)
 	return *categoryResponse, nil
 }
 
@@ -96,7 +97,7 @@ func (s *categoryService) FindById(brandId uuid.UUID) response.CategoryResponse 
 	categories, err := s.repo.FindById(brandId)
 	helper.ErrorPanic(err)
 
-	category := helper.MapCategory(&categories)
+	category := mapper.MapCategory(&categories)
 	return *category
 }
 
@@ -146,7 +147,7 @@ func (s *categoryService) FindWithPagination(businessId uuid.UUID, pagination re
 
 	var result []response.CategoryResponse
 	for _, category := range categories {
-		result = append(result, *helper.MapCategory(&category))
+		result = append(result, *mapper.MapCategory(&category))
 	}
 
 	_ = helper.SetJSONToRedis(ctx, s.Redis, cacheKey, result, time.Minute*10)
@@ -162,7 +163,7 @@ func (s *categoryService) FindWithPaginationCursor(businessId uuid.UUID, paginat
 
 	var result []response.CategoryResponse
 	for _, category := range categories {
-		result = append(result, *helper.MapCategory(&category))
+		result = append(result, *mapper.MapCategory(&category))
 	}
 
 	return result, nextCursor, hasNext, nil
@@ -176,7 +177,7 @@ func (s *categoryService) FindWithPaginationCursorProduct(businessId uuid.UUID, 
 
 	var result []response.CategoryResponse
 	for _, category := range categories {
-		result = append(result, *helper.MapCategory(&category))
+		result = append(result, *mapper.MapCategory(&category))
 	}
 
 	return result, nextCursor, hasNext, nil

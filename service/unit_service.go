@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -90,7 +91,7 @@ func (s *unitService) FindById(unitId uuid.UUID) response.UnitResponse {
 	unitData, err := s.repo.FindById(unitId)
 	helper.ErrorPanic(err)
 
-	unitResponse := helper.MapUnit(&unitData)
+	unitResponse := mapper.MapUnit(&unitData)
 	return *unitResponse
 }
 
@@ -102,7 +103,7 @@ func (s *unitService) FindWithPagination(businessId uuid.UUID, pagination reques
 
 	var result []response.UnitResponse
 	for _, unit := range units {
-		result = append(result, *helper.MapUnit(&unit))
+		result = append(result, *mapper.MapUnit(&unit))
 	}
 
 	return result, total, nil
@@ -116,7 +117,7 @@ func (s *unitService) FindWithPaginationCursor(businessId uuid.UUID, pagination 
 
 	var result []response.UnitResponse
 	for _, unit := range units {
-		result = append(result, *helper.MapUnit(&unit))
+		result = append(result, *mapper.MapUnit(&unit))
 	}
 
 	return result, nextCursor, hasNext, nil

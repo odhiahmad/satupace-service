@@ -16,6 +16,7 @@ type UserBusiness struct {
 	PendingEmail *string     `gorm:"type:varchar(255)" json:"pending_email"`
 	PhoneNumber  string      `gorm:"type:varchar(255);uniqueIndex" json:"phone_number"`
 	Password     string      `gorm:"->;<-;not null" json:"-"`
+	PinCode      string      `gorm:"type:varchar(255)" json:"-"`
 	Token        string      `gorm:"-" json:"token"`
 	IsVerified   bool        `gorm:"not null; column:is_verified"`
 	IsActive     bool        `gorm:"default:false" json:"is_active"`

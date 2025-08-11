@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -47,7 +48,7 @@ func (s *orderTypeService) Create(req request.OrderTypeRequest) (response.OrderT
 		return response.OrderTypeResponse{}, err
 	}
 
-	orderTypeResponse := helper.MapOrderType(&createdOrderType)
+	orderTypeResponse := mapper.MapOrderType(&createdOrderType)
 
 	return *orderTypeResponse, nil
 }
@@ -67,7 +68,7 @@ func (s *orderTypeService) Update(id uuid.UUID, req request.OrderTypeRequest) (r
 		return response.OrderTypeResponse{}, err
 	}
 
-	orderTypeResponse := helper.MapOrderType(&updatedOrderType)
+	orderTypeResponse := mapper.MapOrderType(&updatedOrderType)
 
 	return *orderTypeResponse, nil
 }
@@ -100,7 +101,7 @@ func (s *orderTypeService) FindById(id uuid.UUID) response.OrderTypeResponse {
 	orderTypeData, err := s.repo.FindById(id)
 	helper.ErrorPanic(err)
 
-	orderTypeResponse := helper.MapOrderType(&orderTypeData)
+	orderTypeResponse := mapper.MapOrderType(&orderTypeData)
 	return *orderTypeResponse
 }
 
@@ -112,7 +113,7 @@ func (s *orderTypeService) FindWithPagination(pagination request.Pagination) ([]
 
 	var result []response.OrderTypeResponse
 	for _, orderType := range orderTypees {
-		result = append(result, *helper.MapOrderType(&orderType))
+		result = append(result, *mapper.MapOrderType(&orderType))
 	}
 
 	return result, total, nil
@@ -126,7 +127,7 @@ func (s *orderTypeService) FindWithPaginationCursor(pagination request.Paginatio
 
 	var result []response.OrderTypeResponse
 	for _, orderType := range orderTypes {
-		result = append(result, *helper.MapOrderType(&orderType))
+		result = append(result, *mapper.MapOrderType(&orderType))
 	}
 
 	return result, nextCursor, hasNext, nil

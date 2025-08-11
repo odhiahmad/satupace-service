@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -48,7 +49,7 @@ func (s *brandService) Create(req request.BrandRequest) (response.BrandResponse,
 		return response.BrandResponse{}, err
 	}
 
-	brandResponse := helper.MapBrand(&createdBrand)
+	brandResponse := mapper.MapBrand(&createdBrand)
 
 	return *brandResponse, nil
 }
@@ -68,7 +69,7 @@ func (s *brandService) Update(id uuid.UUID, req request.BrandRequest) (response.
 		return response.BrandResponse{}, err
 	}
 
-	brandResponse := helper.MapBrand(&updatedBrand)
+	brandResponse := mapper.MapBrand(&updatedBrand)
 
 	return *brandResponse, nil
 }
@@ -101,7 +102,7 @@ func (s *brandService) FindById(brandId uuid.UUID) response.BrandResponse {
 	brandData, err := s.repo.FindById(brandId)
 	helper.ErrorPanic(err)
 
-	brandResponse := helper.MapBrand(&brandData)
+	brandResponse := mapper.MapBrand(&brandData)
 	return *brandResponse
 }
 
@@ -113,7 +114,7 @@ func (s *brandService) FindWithPagination(businessId uuid.UUID, pagination reque
 
 	var result []response.BrandResponse
 	for _, brand := range brandes {
-		result = append(result, *helper.MapBrand(&brand))
+		result = append(result, *mapper.MapBrand(&brand))
 	}
 
 	return result, total, nil
@@ -127,7 +128,7 @@ func (s *brandService) FindWithPaginationCursor(businessId uuid.UUID, pagination
 
 	var result []response.BrandResponse
 	for _, brand := range brands {
-		result = append(result, *helper.MapBrand(&brand))
+		result = append(result, *mapper.MapBrand(&brand))
 	}
 
 	return result, nextCursor, hasNext, nil

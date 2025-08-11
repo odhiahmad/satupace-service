@@ -26,6 +26,22 @@ func NewUserBusinessController(s service.UserBusinessService, jwtService service
 	return &userBusinessController{service: s, jwtService: jwtService}
 }
 
+func (c *userBusinessController) CreateEmployee(ctx *gin.Context) {
+	var req request.CreateEmployeeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	emp, err := c.service.CreateEmployee(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": emp})
+}
+
 func (c *userBusinessController) FindById(ctx *gin.Context) {
 	userId := ctx.MustGet("user_id").(uuid.UUID)
 

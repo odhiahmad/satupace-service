@@ -10,6 +10,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -126,7 +127,7 @@ func (s *discountService) FindById(id uuid.UUID) (response.DiscountResponse, err
 	if err != nil {
 		return response.DiscountResponse{}, err
 	}
-	return helper.ToDiscountResponse(discount), nil
+	return *mapper.MapDiscount(&discount), nil
 }
 
 func (s *discountService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.DiscountResponse, int64, error) {
@@ -137,7 +138,7 @@ func (s *discountService) FindWithPagination(businessId uuid.UUID, pagination re
 
 	var responses []response.DiscountResponse
 	for _, d := range discounts {
-		responses = append(responses, helper.ToDiscountResponse(d)) // fungsi mapping
+		responses = append(responses, *mapper.MapDiscount(&d)) // fungsi mapping
 	}
 
 	return responses, total, nil
@@ -151,7 +152,7 @@ func (s *discountService) FindWithPaginationCursor(businessId uuid.UUID, paginat
 
 	var responses []response.DiscountResponse
 	for _, d := range discounts {
-		responses = append(responses, helper.ToDiscountResponse(d))
+		responses = append(responses, *mapper.MapDiscount(&d))
 	}
 
 	return responses, nextCursor, hasNext, nil

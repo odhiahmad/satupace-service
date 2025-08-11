@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -53,7 +54,7 @@ func (s *taxService) Create(req request.TaxRequest) (response.TaxResponse, error
 		return response.TaxResponse{}, err
 	}
 
-	taxResponse := helper.MapTax(&createdTax)
+	taxResponse := mapper.MapTax(&createdTax)
 
 	return *taxResponse, nil
 }
@@ -79,7 +80,7 @@ func (s *taxService) Update(id uuid.UUID, req request.TaxRequest) (response.TaxR
 		return response.TaxResponse{}, err
 	}
 
-	taxResponse := helper.MapTax(&updatedTax)
+	taxResponse := mapper.MapTax(&updatedTax)
 
 	return *taxResponse, nil
 }
@@ -112,7 +113,7 @@ func (s *taxService) FindById(taxId uuid.UUID) response.TaxResponse {
 	taxData, err := s.repo.FindById(taxId)
 	helper.ErrorPanic(err)
 
-	taxResponse := helper.MapTax(&taxData)
+	taxResponse := mapper.MapTax(&taxData)
 	return *taxResponse
 }
 
@@ -124,7 +125,7 @@ func (s *taxService) FindWithPagination(businessId uuid.UUID, pagination request
 
 	var result []response.TaxResponse
 	for _, tax := range taxes {
-		result = append(result, *helper.MapTax(&tax))
+		result = append(result, *mapper.MapTax(&tax))
 	}
 
 	return result, total, nil
@@ -138,7 +139,7 @@ func (s *taxService) FindWithPaginationCursor(businessId uuid.UUID, pagination r
 
 	var result []response.TaxResponse
 	for _, tax := range taxes {
-		result = append(result, *helper.MapTax(&tax))
+		result = append(result, *mapper.MapTax(&tax))
 	}
 
 	return result, nextCursor, hasNext, nil

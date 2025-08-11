@@ -9,6 +9,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -49,7 +50,7 @@ func (s *tableService) Create(req request.TableRequest) (response.TableResponse,
 		return response.TableResponse{}, err
 	}
 
-	tableResponse := helper.MapTable(&createdTable)
+	tableResponse := mapper.MapTable(&createdTable)
 
 	return *tableResponse, nil
 }
@@ -71,7 +72,7 @@ func (s *tableService) Update(id uuid.UUID, req request.TableRequest) (response.
 		return response.TableResponse{}, err
 	}
 
-	tableResponse := helper.MapTable(&updatedTable)
+	tableResponse := mapper.MapTable(&updatedTable)
 
 	return *tableResponse, nil
 }
@@ -104,7 +105,7 @@ func (s *tableService) FindById(tableId uuid.UUID) response.TableResponse {
 	tableData, err := s.repo.FindById(tableId)
 	helper.ErrorPanic(err)
 
-	tableResponse := helper.MapTable(&tableData)
+	tableResponse := mapper.MapTable(&tableData)
 	return *tableResponse
 }
 
@@ -116,7 +117,7 @@ func (s *tableService) FindWithPagination(businessId uuid.UUID, pagination reque
 
 	var result []response.TableResponse
 	for _, table := range tablees {
-		result = append(result, *helper.MapTable(&table))
+		result = append(result, *mapper.MapTable(&table))
 	}
 
 	return result, total, nil
@@ -130,7 +131,7 @@ func (s *tableService) FindWithPaginationCursor(businessId uuid.UUID, pagination
 
 	var result []response.TableResponse
 	for _, table := range tables {
-		result = append(result, *helper.MapTable(&table))
+		result = append(result, *mapper.MapTable(&table))
 	}
 
 	return result, nextCursor, hasNext, nil

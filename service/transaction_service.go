@@ -11,6 +11,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"gorm.io/gorm"
 )
@@ -82,7 +83,7 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(savedTx), nil
+	return mapper.MapTransaction(savedTx), nil
 }
 
 func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymentRequest) (*response.TransactionResponse, error) {
@@ -179,7 +180,7 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(savedTx), nil
+	return mapper.MapTransaction(savedTx), nil
 }
 
 func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq request.TransactionItemCreate) (*response.TransactionResponse, error) {
@@ -222,7 +223,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq re
 
 	prepared, err := helper.PrepareTransactionItemsUpdate(helper.TransactionItemInputUpdate{
 		DB:            s.db,
-		Items:         helper.ToTransactionItemRequests(items),
+		Items:         mapper.ToTransactionItemRequests(items),
 		AllProductIds: allProductIds,
 	})
 	if err != nil {
@@ -249,7 +250,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq re
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(savedTx), nil
+	return mapper.MapTransaction(savedTx), nil
 }
 
 func (s *transactionService) FindById(id uuid.UUID) (*response.TransactionResponse, error) {
@@ -258,7 +259,7 @@ func (s *transactionService) FindById(id uuid.UUID) (*response.TransactionRespon
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(&transaction), nil
+	return mapper.MapTransaction(&transaction), nil
 }
 
 func (s *transactionService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]*response.TransactionResponse, int64, error) {
@@ -269,7 +270,7 @@ func (s *transactionService) FindWithPagination(businessId uuid.UUID, pagination
 
 	var responses []*response.TransactionResponse
 	for _, trx := range transactions {
-		responses = append(responses, helper.MapTransactionResponse(&trx)) // kalau trx adalah entity.Transaction
+		responses = append(responses, mapper.MapTransaction(&trx)) // kalau trx adalah entity.Transaction
 	}
 
 	return responses, total, nil
@@ -298,7 +299,7 @@ func (s *transactionService) Refund(itemReq request.TransactionRefundRequest) (*
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(savedTx), nil
+	return mapper.MapTransaction(savedTx), nil
 }
 
 func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error) {
@@ -328,5 +329,5 @@ func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*
 		return nil, err
 	}
 
-	return helper.MapTransactionResponse(savedTx), nil
+	return mapper.MapTransaction(savedTx), nil
 }

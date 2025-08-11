@@ -10,6 +10,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
@@ -41,7 +42,6 @@ func (s *bundleService) CreateBundle(req request.BundleRequest) (response.Bundle
 		return response.BundleResponse{}, err
 	}
 
-	// Upload gambar produk utama
 	var imageURL *string
 	if req.Image != nil && *req.Image != "" {
 		url, err := helper.UploadBase64ToCloudinary(*req.Image, "product")
@@ -82,7 +82,7 @@ func (s *bundleService) CreateBundle(req request.BundleRequest) (response.Bundle
 		return response.BundleResponse{}, err
 	}
 
-	bundleResponse := helper.MapBundleToResponse(createdBundle)
+	bundleResponse := mapper.MapBundle(createdBundle)
 
 	return bundleResponse, nil
 }
@@ -127,7 +127,7 @@ func (s *bundleService) UpdateBundle(id uuid.UUID, req request.BundleRequest) (r
 		return response.BundleResponse{}, err
 	}
 
-	bundleResponse := helper.MapBundleToResponse(updatedBundle)
+	bundleResponse := mapper.MapBundle(updatedBundle)
 
 	return bundleResponse, nil
 }
@@ -137,7 +137,7 @@ func (s *bundleService) FindById(id uuid.UUID) (response.BundleResponse, error) 
 	if err != nil {
 		return response.BundleResponse{}, err
 	}
-	return helper.MapBundleToResponse(bundle), nil
+	return mapper.MapBundle(bundle), nil
 }
 
 func (s *bundleService) Delete(id uuid.UUID) error {
@@ -160,7 +160,7 @@ func (s *bundleService) FindWithPagination(businessId uuid.UUID, pagination requ
 
 	var result []response.BundleResponse
 	for _, bundleItem := range bundles {
-		result = append(result, helper.MapBundleToResponse(bundleItem))
+		result = append(result, mapper.MapBundle(bundleItem))
 	}
 
 	return result, total, nil
@@ -174,7 +174,7 @@ func (s *bundleService) FindWithPaginationCursor(businessId uuid.UUID, paginatio
 
 	var result []response.BundleResponse
 	for _, bundleItem := range bundles {
-		result = append(result, helper.MapBundleToResponse(bundleItem))
+		result = append(result, mapper.MapBundle(bundleItem))
 	}
 
 	return result, nextCursor, hasNext, nil

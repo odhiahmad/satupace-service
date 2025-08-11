@@ -1,11 +1,12 @@
-package helper
+package mapper
 
 import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper"
 )
 
-func MapBundleToResponse(p entity.Bundle) response.BundleResponse {
+func MapBundle(p entity.Bundle) response.BundleResponse {
 	var items []response.BundleItemResponse
 	for _, i := range p.Items {
 		product := i.Product
@@ -39,8 +40,8 @@ func MapBundleToResponse(p entity.Bundle) response.BundleResponse {
 		})
 	}
 
-	description := StringOrDefault(p.Description, "")
-	image := StringOrDefault(p.Image, "")
+	description := helper.StringOrDefault(p.Description, "")
+	image := helper.StringOrDefault(p.Image, "")
 
 	return response.BundleResponse{
 		Id:          p.Id,

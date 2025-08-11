@@ -11,6 +11,7 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/redis/go-redis/v9"
 )
@@ -46,8 +47,6 @@ func NewProductService(productRepo repository.ProductRepository, variantRepo rep
 }
 
 func (s *productService) Create(req request.ProductRequest) (response.ProductResponse, error) {
-	falseVal := false
-
 	if err := s.Validate.Struct(req); err != nil {
 		return response.ProductResponse{}, err
 	}
@@ -92,19 +91,18 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 	}
 
 	product := entity.Product{
-		BusinessId:   req.BusinessId,
-		CategoryId:   req.CategoryId,
-		Name:         strings.ToLower(req.Name),
-		Description:  req.Description,
-		Image:        nil,
-		MinimumSales: req.MinimumSales,
-		HasVariant:   hasVariant,
-		BrandId:      req.BrandId,
-		TaxId:        req.TaxId,
-		DiscountId:   req.DiscountId,
-		UnitId:       req.UnitId,
-		IsAvailable:  req.IsAvailable,
-		IsActive:     req.IsActive,
+		BusinessId:  req.BusinessId,
+		CategoryId:  req.CategoryId,
+		Name:        strings.ToLower(req.Name),
+		Description: req.Description,
+		Image:       nil,
+		HasVariant:  hasVariant,
+		BrandId:     req.BrandId,
+		TaxId:       req.TaxId,
+		DiscountId:  req.DiscountId,
+		UnitId:      req.UnitId,
+		IsAvailable: req.IsAvailable,
+		IsActive:    req.IsActive,
 	}
 
 	if hasVariant {
@@ -112,8 +110,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
-		product.TrackStock = &falseVal
-		product.IgnoreStockCheck = &falseVal
+		product.MinimumSales = nil
 	} else {
 		product.BasePrice = req.BasePrice
 		product.SellPrice = req.SellPrice
@@ -121,6 +118,7 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		product.SKU = sku
 		product.TrackStock = req.TrackStock
 		product.IgnoreStockCheck = req.IgnoreStockCheck
+		product.MinimumSales = req.MinimumSales
 	}
 
 	err := s.ProductRepo.WithTransaction(func(txRepo repository.ProductRepository) error {
@@ -188,12 +186,10 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		log.Printf("[Redis Autocomplete] Gagal menambahkan: %v", err)
 	}
 
-	return helper.MapProductToResponse(createdProduct), nil
+	return mapper.MapProduct(createdProduct), nil
 }
 
 func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) (response.ProductResponse, error) {
-	falseVal := false
-
 	if err := s.Validate.Struct(req); err != nil {
 		return response.ProductResponse{}, err
 	}
@@ -262,8 +258,6 @@ func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) 
 		product.SellPrice = nil
 		product.Stock = nil
 		product.SKU = nil
-		product.TrackStock = &falseVal
-		product.IgnoreStockCheck = &falseVal
 		product.MinimumSales = nil
 	} else {
 		product.BasePrice = req.BasePrice
@@ -333,7 +327,7 @@ func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) 
 		return response.ProductResponse{}, fmt.Errorf("gagal mengambil data produk setelah update: %w", err)
 	}
 
-	return helper.MapProductToResponse(createdProduct), nil
+	return mapper.MapProduct(createdProduct), nil
 }
 
 func (s *productService) Delete(id uuid.UUID) error {
@@ -403,7 +397,7 @@ func (s *productService) SearchProducts(businessId uuid.UUID, search string, lim
 
 	var finalResults []response.ProductResponse
 	for _, p := range products {
-		res := helper.MapProductToResponse(p)
+		res := mapper.MapProduct(p)
 
 		if fromRedis, ok := autocompleteMap[p.Id]; ok && fromRedis.Image != nil && *fromRedis.Image != "" {
 			res.Image = fromRedis.Image
@@ -476,7 +470,7 @@ func (s *productService) UpdateImage(id uuid.UUID, base64Image string) (response
 		}(*oldImageURL)
 	}
 
-	return helper.MapProductToResponse(updatedProduct), nil
+	return mapper.MapProduct(updatedProduct), nil
 }
 
 func (s *productService) FindById(id uuid.UUID) (response.ProductResponse, error) {
@@ -484,7 +478,7 @@ func (s *productService) FindById(id uuid.UUID) (response.ProductResponse, error
 	if err != nil {
 		return response.ProductResponse{}, err
 	}
-	res := helper.MapProductToResponse(product)
+	res := mapper.MapProduct(product)
 	return res, nil
 }
 
@@ -496,7 +490,7 @@ func (s *productService) FindWithPagination(businessId uuid.UUID, pagination req
 
 	var result []response.ProductResponse
 	for _, p := range products {
-		result = append(result, helper.MapProductToResponse(p))
+		result = append(result, mapper.MapProduct(p))
 	}
 	return result, total, nil
 }
@@ -509,7 +503,7 @@ func (s *productService) FindWithPaginationCursor(businessId uuid.UUID, paginati
 
 	var result []response.ProductResponse
 	for _, p := range products {
-		result = append(result, helper.MapProductToResponse(p))
+		result = append(result, mapper.MapProduct(p))
 	}
 
 	return result, nextCursor, hasNext, nil
