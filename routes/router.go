@@ -38,6 +38,8 @@ var (
 	membershipRepository     repository.MembershipRepository     = repository.NewMembershipRepository(db)
 	brandRepository          repository.BrandRepository          = repository.NewBrandRepository(db)
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
+	tableRepository          repository.TableRepository          = repository.NewTableRepository(db)
+	orderTypeRepository      repository.OrderTypeRepository      = repository.NewOrderTypeRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
@@ -57,6 +59,8 @@ var (
 	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
 	brandService          service.BrandService          = service.NewBrandService(brandRepository, validate)
 	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
+	tableService          service.TableService          = service.NewTableService(tableRepository, validate)
+	orderTypeService      service.OrderTypeService      = service.NewOrderTypeService(orderTypeRepository, validate)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
@@ -75,6 +79,8 @@ var (
 	productVariantController controller.ProductVariantController = controller.NewProductVariantController(productVariantService, jwtService)
 	brandController          controller.BrandController          = controller.NewBrandController(brandService, jwtService)
 	locationController       controller.LocationController       = controller.NewLocationController(locationService)
+	tableController          controller.TableController          = controller.NewTableController(tableService, jwtService)
+	orderTypeController      controller.OrderTypeController      = controller.NewOrderTypeController(orderTypeService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -134,36 +140,43 @@ func SetupRouter() *gin.Engine {
 		libRoutes.POST("/tax", taxController.Create)
 		libRoutes.POST("/unit", unitController.Create)
 		libRoutes.POST("/discount", discountController.Create)
+		libRoutes.POST("/table", tableController.Create)
 
 		libRoutes.PUT("/category/:id", categoryController.Update)
 		libRoutes.PUT("/brand/:id", brandController.Update)
 		libRoutes.PUT("/tax/:id", taxController.Update)
 		libRoutes.PUT("/unit/:id", unitController.Update)
 		libRoutes.PUT("/discount/:id", discountController.Update)
+		libRoutes.PUT("/table/:id", tableController.Update)
 
 		libRoutes.GET("/category/:id", categoryController.FindById)
 		libRoutes.GET("/brand/:id", brandController.FindById)
 		libRoutes.GET("/tax/:id", taxController.FindById)
 		libRoutes.GET("/unit/:id", unitController.FindById)
 		libRoutes.GET("/discount/:id", discountController.FindById)
+		libRoutes.GET("/table/:id", tableController.FindById)
 
 		libRoutes.GET("/category", categoryController.FindWithPagination)
 		libRoutes.GET("/brand", brandController.FindWithPagination)
 		libRoutes.GET("/tax", taxController.FindWithPagination)
 		libRoutes.GET("/unit", unitController.FindWithPagination)
 		libRoutes.GET("/discount", discountController.FindWithPagination)
+		libRoutes.GET("/table", tableController.FindWithPagination)
 
 		libRoutes.GET("/brand/cursor", brandController.FindWithPaginationCursor)
 		libRoutes.GET("/category/cursor", categoryController.FindWithPaginationCursor)
+		libRoutes.GET("/category/product", categoryController.FindWithPaginationCursor)
 		libRoutes.GET("/tax/cursor", taxController.FindWithPaginationCursor)
 		libRoutes.GET("/unit/cursor", unitController.FindWithPaginationCursor)
 		libRoutes.GET("/discount/cursor", discountController.FindWithPaginationCursor)
+		libRoutes.GET("/table/cursor", tableController.FindWithPaginationCursor)
 
 		libRoutes.DELETE("/category/:id", categoryController.Delete)
 		libRoutes.DELETE("/brand/:id", brandController.Delete)
 		libRoutes.DELETE("/tax/:id", taxController.Delete)
 		libRoutes.DELETE("/unit/:id", unitController.Delete)
 		libRoutes.DELETE("/discount/:id", discountController.Delete)
+		libRoutes.DELETE("/table/:id", tableController.Delete)
 
 		libRoutes.PUT("/discount/:id/active", discountController.SetIsActive)
 
@@ -227,6 +240,16 @@ func SetupRouter() *gin.Engine {
 		locationRoutes.GET("/cities", locationController.GetCities)
 		locationRoutes.GET("/districts", locationController.GetDistricts)
 		locationRoutes.GET("/villages", locationController.GetVillages)
+	}
+
+	orderTypeRoutes := r.Group("order-type", middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		orderTypeRoutes.POST("", orderTypeController.Create)
+		orderTypeRoutes.PATCH("/:id", orderTypeController.Update)
+		orderTypeRoutes.GET("", orderTypeController.FindWithPagination)
+		orderTypeRoutes.GET("/cursor", orderTypeController.FindWithPaginationCursor)
+		orderTypeRoutes.GET("/:id", orderTypeController.FindById)
+		orderTypeRoutes.DELETE("/:id", orderTypeController.Delete)
 	}
 
 	return r

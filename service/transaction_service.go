@@ -62,17 +62,19 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 	}
 
 	transaction := &entity.Transaction{
-		BusinessId: req.BusinessId,
-		CustomerId: req.CustomerId,
-		BillNumber: billNumber,
-		Items:      res.Items,
-		Status:     "unpaid",
-		FinalPrice: res.FinalPrice,
-		BasePrice:  res.BasePrice,
-		SellPrice:  res.SellPrice,
-		Discount:   res.TotalDiscount,
-		Tax:        res.TotalTax,
-		CreatedAt:  time.Now(),
+		BusinessId:  req.BusinessId,
+		CustomerId:  req.CustomerId,
+		OrderTypeId: req.OrderTypeId,
+		TableId:     req.TableId,
+		BillNumber:  billNumber,
+		Items:       res.Items,
+		Status:      "unpaid",
+		FinalPrice:  res.FinalPrice,
+		BasePrice:   res.BasePrice,
+		SellPrice:   res.SellPrice,
+		Discount:    res.TotalDiscount,
+		Tax:         res.TotalTax,
+		CreatedAt:   time.Now(),
 	}
 
 	savedTx, err := s.transactionRepo.Create(transaction)

@@ -25,6 +25,10 @@ type Transaction struct {
 	Discount        float64           `json:"discount"`
 	Promo           float64           `json:"promo"`
 	Tax             float64           `json:"tax"`
+	OrderTypeId     uuid.UUID         `gorm:"type:uuid;not null" json:"order_type_id"`
+	OrderType       *OrderType        `gorm:"foreignKey:OrderTypeId"`
+	TableId         *uuid.UUID        `gorm:"type:uuid" json:"table_id"`
+	Table           *Table            `gorm:"foreignKey:TableId"`
 	Status          string            `gorm:"type:varchar(255);index" json:"status"`
 	Rating          *float64          `json:"rating"`
 	Notes           *string           `gorm:"type:varchar(255)" json:"notes"`

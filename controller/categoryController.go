@@ -19,6 +19,7 @@ type CategoryController interface {
 	Delete(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 	FindWithPaginationCursor(ctx *gin.Context)
+	FindWithPaginationCursorProduct(ctx *gin.Context)
 }
 
 type categoryController struct {
@@ -164,6 +165,50 @@ func (c *categoryController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *categoryController) FindWithPaginationCursor(ctx *gin.Context) {
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessID, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
+	limitStr := ctx.DefaultQuery("limit", "10")
+	sortBy := ctx.DefaultQuery("sort_by", "created_at")
+	orderBy := ctx.DefaultQuery("order_by", "desc")
+	search := ctx.DefaultQuery("search", "")
+	cursor := ctx.DefaultQuery("cursor", "")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter limit tidak valid", "INVALID_PARAM", "limit", err.Error(), nil))
+		return
+	}
+
+	pagination := request.Pagination{
+		Cursor:  cursor,
+		Limit:   limit,
+		SortBy:  sortBy,
+		OrderBy: orderBy,
+		Search:  search,
+	}
+
+	categories, nextCursor, hasNext, err := c.categoryService.FindWithPaginationCursor(businessID, pagination)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data kategori", "FETCH_FAILED", "category", err.Error(), nil))
+		return
+	}
+
+	paginationMeta := response.CursorPaginatedResponse{
+		Limit:      limit,
+		SortBy:     sortBy,
+		OrderBy:    orderBy,
+		NextCursor: nextCursor,
+		HasNext:    hasNext,
+	}
+
+	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(true, "Data kategori berhasil diambil", categories, paginationMeta))
+}
+
+func (c *categoryController) FindWithPaginationCursorProduct(ctx *gin.Context) {
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessID, err := uuid.Parse(businessIdStr)
 	if err != nil {

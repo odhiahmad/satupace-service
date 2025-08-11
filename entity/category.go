@@ -15,6 +15,7 @@ type Category struct {
 	ParentId   *uuid.UUID     `gorm:"index" json:"parent_id"`
 	Children   []Category     `gorm:"foreignKey:ParentId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"children"`
 	IsActive   bool           `gorm:"not null" json:"is_active"`
+	HasProduct bool           `gorm:"column:has_product" json:"has_product"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`

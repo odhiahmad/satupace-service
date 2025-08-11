@@ -45,6 +45,8 @@ type TransactionResponse struct {
 	Discount        float64                   `json:"discount"`
 	Promo           float64                   `json:"promo"`
 	Tax             float64                   `json:"tax"`
+	OrderType       OrderTypeResponse         `json:"order_type"`
+	Table           *TableResponse            `json:"table"`
 	Status          string                    `json:"status"`
 	Rating          *float64                  `json:"rating"`
 	Notes           *string                   `json:"notes"`

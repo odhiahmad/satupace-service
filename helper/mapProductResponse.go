@@ -11,9 +11,11 @@ import (
 )
 
 func MapProductToResponse(product entity.Product) response.ProductResponse {
+	caser := cases.Title(language.Indonesian)
+
 	return response.ProductResponse{
 		Id:               product.Id,
-		Name:             product.Name,
+		Name:             caser.String(product.Name),
 		Description:      product.Description,
 		Image:            product.Image,
 		BasePrice:        product.BasePrice,

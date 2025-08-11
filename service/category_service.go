@@ -23,6 +23,7 @@ type CategoryService interface {
 	Delete(id uuid.UUID) error
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
+	FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
 }
 
 type categoryService struct {
@@ -155,6 +156,20 @@ func (s *categoryService) FindWithPagination(businessId uuid.UUID, pagination re
 
 func (s *categoryService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
 	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	var result []response.CategoryResponse
+	for _, category := range categories {
+		result = append(result, *helper.MapCategory(&category))
+	}
+
+	return result, nextCursor, hasNext, nil
+}
+
+func (s *categoryService) FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
+	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursorProduct(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err
 	}

@@ -21,6 +21,7 @@ type CategoryRepository interface {
 	FindById(categoryId uuid.UUID) (entity.Category, error)
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, int64, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, string, bool, error)
+	FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, string, bool, error)
 }
 
 type categoryConnection struct {
@@ -130,6 +131,73 @@ func (conn *categoryConnection) FindWithPaginationCursor(businessId uuid.UUID, p
 
 	query := conn.Db.Model(&entity.Category{}).
 		Where("business_id = ?", businessId)
+
+	if pagination.Search != "" {
+		search := "%" + pagination.Search + "%"
+		query = query.Where("name ILIKE ?", search)
+	}
+
+	sortBy := pagination.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	order := "ASC"
+	if pagination.OrderBy == "desc" {
+		order = "DESC"
+	}
+
+	if pagination.Cursor != "" {
+		cursorID, err := helper.DecodeCursorID(pagination.Cursor)
+		if err != nil {
+			return nil, "", false, err
+		}
+
+		if order == "ASC" {
+			query = query.Where("id > ?", cursorID)
+		} else {
+			query = query.Where("id < ?", cursorID)
+		}
+	}
+
+	limit := pagination.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order)).Limit(limit + 1)
+
+	if err := query.Find(&categories).Error; err != nil {
+		return nil, "", false, err
+	}
+
+	var nextCursor string
+	hasNext := false
+
+	if len(categories) > limit {
+		last := categories[limit-1]
+		nextCursor = helper.EncodeCursorID(last.Id.String())
+		categories = categories[:limit]
+		hasNext = true
+	}
+
+	return categories, nextCursor, hasNext, nil
+}
+
+func (conn *categoryConnection) FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]entity.Category, string, bool, error) {
+	var categories []entity.Category
+
+	query := conn.Db.Model(&entity.Category{}).
+		Where("business_id = ?", businessId)
+
+	query = query.Select(`
+    categories.*,
+    EXISTS (
+        SELECT 1 
+        FROM products 
+        WHERE products.category_id = categories.id
+    	) AS has_product
+	`)
 
 	if pagination.Search != "" {
 		search := "%" + pagination.Search + "%"

@@ -66,13 +66,13 @@ func (s *userBusinessService) ChangeEmail(req request.ChangeEmailRequest) error 
 
 	err = s.redisHelper.SaveOTP("otp", *req.Email, otpCode, 5*time.Minute)
 	if err != nil {
-		log.Println("Gagal menyimpan OTP verifikasi email baru di Redis:", err)
+		log.Println("gagal menyimpan otp verifikasi email baru di redis:", err)
 		return err
 	}
 
 	subject, text, html := helper.BuildLinkEmailVerification(*req.Email, otpCode)
 	if err := s.emailHelper.Send(*req.Email, subject, text, html); err != nil {
-		log.Println("Gagal mengirim OTP verifikasi email baru:", err)
+		log.Println("gagal mengirim otp verifikasi email baru:", err)
 		return err
 	}
 
@@ -108,5 +108,5 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 }
 
 func (s *userBusinessService) Delete(userId uuid.UUID) {
-	s.Delete(userId)
+	s.repo.Delete(userId)
 }
