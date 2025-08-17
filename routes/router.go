@@ -65,6 +65,7 @@ var (
 	orderTypeService      service.OrderTypeService      = service.NewOrderTypeService(orderTypeRepository, validate)
 	shiftService          service.ShiftService          = service.NewShiftService(userBusinessRepository, shiftRepository)
 	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
+	employeeService       service.EmployeeService       = service.NewEmployeeService(userBusinessRepository, validate)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
@@ -87,6 +88,7 @@ var (
 	orderTypeController      controller.OrderTypeController      = controller.NewOrderTypeController(orderTypeService, jwtService)
 	shiftController          controller.ShiftController          = controller.NewShiftController(shiftService, jwtService)
 	terminalController       controller.TerminalController       = controller.NewTerminalController(terminalService, jwtService)
+	employeeController       controller.EmployeeController       = controller.NewEmployeeController(employeeService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -95,6 +97,7 @@ func SetupRouter() *gin.Engine {
 	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
+		authRoutes.GET("/pin-business", authController.LoginPin)
 		authRoutes.POST("/verify-otp", authController.VerifyOTP)
 		authRoutes.POST("/retry-otp", authController.RetryOTP)
 		authRoutes.POST("/registration", registrationController.Register)
@@ -110,6 +113,16 @@ func SetupRouter() *gin.Engine {
 		userRoutes.PUT("/change-password", userBusinessController.ChangePassword)
 		userRoutes.PUT("/business", businessController.Update)
 		userRoutes.POST("/verify-otp", authController.VerifyOTP)
+	}
+
+	employeeRoutes := r.Group("employee", middleware.AuthorizeJWT(jwtService), middleware.AuthorizeOwner(), middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		employeeRoutes.POST("/", employeeController.Create)
+		employeeRoutes.PUT("/:id", employeeController.Update)
+		employeeRoutes.GET("", employeeController.FindWithPagination)
+		employeeRoutes.GET("/cursor", employeeController.FindWithPaginationCursor)
+		employeeRoutes.GET("/:id", employeeController.FindById)
+		employeeRoutes.DELETE("/:id", employeeController.Delete)
 	}
 
 	roleRoutes := r.Group("role", middleware.RateLimit(redisHelper, 20, time.Minute))
@@ -258,19 +271,19 @@ func SetupRouter() *gin.Engine {
 		orderTypeRoutes.DELETE("/:id", orderTypeController.Delete)
 	}
 
-	tableRoutes := r.Group("table", middleware.RateLimit(redisHelper, 20, time.Minute))
+	tableRoutes := r.Group("table", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		tableRoutes.POST("", tableController.Create)
 		tableRoutes.PUT("/:id", tableController.Update)
 		tableRoutes.GET("", tableController.FindWithPagination)
 		tableRoutes.GET("/cursor", tableController.FindWithPaginationCursor)
 		tableRoutes.GET("/:id", tableController.FindById)
+		tableRoutes.GET("/all", tableController.GetActiveTables)
 		tableRoutes.DELETE("/:id", tableController.Delete)
 	}
 
-	shiftRoutes := r.Group("shift", middleware.RateLimit(redisHelper, 20, time.Minute))
+	shiftRoutes := r.Group("shift", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
-		shiftRoutes.GET("", shiftController.EmployeePinLogin)
 		shiftRoutes.POST("", shiftController.OpenShift)
 		shiftRoutes.PUT("/:id", shiftController.CloseShift)
 		shiftRoutes.GET("/cursor", shiftController.GetActiveShift)

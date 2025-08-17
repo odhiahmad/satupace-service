@@ -20,6 +20,7 @@ type TableService interface {
 	FindById(roleId uuid.UUID) response.TableResponse
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.TableResponse, int64, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.TableResponse, string, bool, error)
+	GetActiveTables(businessId uuid.UUID) ([]response.TableWithTransactionsResponse, error)
 }
 
 type tableService struct {
@@ -135,4 +136,18 @@ func (s *tableService) FindWithPaginationCursor(businessId uuid.UUID, pagination
 	}
 
 	return result, nextCursor, hasNext, nil
+}
+
+func (s *tableService) GetActiveTables(businessId uuid.UUID) ([]response.TableWithTransactionsResponse, error) {
+	tables, err := s.repo.GetActiveTables(businessId)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []response.TableWithTransactionsResponse
+	for _, tbl := range tables {
+		result = append(result, *mapper.MapTableWithTransactions(&tbl))
+	}
+
+	return result, nil
 }

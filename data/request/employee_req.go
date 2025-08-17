@@ -2,7 +2,7 @@ package request
 
 import "github.com/google/uuid"
 
-type CreateEmployeeRequest struct {
+type EmployeeRequest struct {
 	BusinessId  uuid.UUID `json:"business_id" binding:"required"`
 	RoleId      int       `json:"role_id" binding:"required"`
 	Email       *string   `json:"email"`
@@ -11,10 +11,10 @@ type CreateEmployeeRequest struct {
 	PinCode     string    `json:"pin_code" binding:"required"`
 }
 
-type EmployeePinLoginRequest struct {
+type PinLoginRequest struct {
 	BusinessId  uuid.UUID `json:"business_id" binding:"required"`
 	PhoneNumber string    `json:"phone_number" binding:"required"`
-	PinCode     string    `json:"pin_code" binding:"required"` // 4-6 digit
+	PinCode     string    `json:"pin_code" binding:"required"`
 	TerminalId  uuid.UUID `json:"terminal_id" binding:"required"`
 }
 

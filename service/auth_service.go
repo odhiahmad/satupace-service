@@ -11,10 +11,12 @@ import (
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService interface {
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
+	PinLogin(req request.PinLoginRequest) (*response.AuthResponse, error)
 	VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error)
 	RetryOTP(req request.RetryOTPRequest) error
 	RequestForgotPassword(req request.ForgotPasswordRequest) error
@@ -63,6 +65,31 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 		}
 
 		return nil, helper.ErrEmailNotVerified
+	}
+
+	membership, err := service.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	if err != nil {
+		return nil, helper.ErrMembershipInactive
+	}
+
+	token := service.jwtService.GenerateToken(user, membership.EndDate)
+	res := mapper.MapAuth(&user, token)
+
+	return res, nil
+}
+
+func (service *authService) PinLogin(req request.PinLoginRequest) (*response.AuthResponse, error) {
+	user, err := service.userBusinessRepository.FindByPhoneAndBusinessId(req.BusinessId, req.PhoneNumber)
+	if err != nil {
+		return nil, helper.ErrUserNotFound
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(user.PinCode), []byte(req.PinCode)) != nil {
+		return nil, errors.New("PIN salah")
+	}
+
+	if !user.IsActive {
+		return nil, errors.New("pegawai tidak aktif")
 	}
 
 	membership, err := service.membershipRepository.FindActiveMembershipByUserID(user.Id)

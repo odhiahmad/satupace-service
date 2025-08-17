@@ -11,7 +11,6 @@ import (
 )
 
 type ShiftController interface {
-	EmployeePinLogin(ctx *gin.Context)
 	OpenShift(ctx *gin.Context)
 	CloseShift(ctx *gin.Context)
 	GetActiveShift(ctx *gin.Context)
@@ -24,22 +23,6 @@ type shiftController struct {
 
 func NewShiftController(shiftService service.ShiftService, jwtService service.JWTService) ShiftController {
 	return &shiftController{shiftService: shiftService, jwtService: jwtService}
-}
-
-func (c *shiftController) EmployeePinLogin(ctx *gin.Context) {
-	var req request.EmployeePinLoginRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
-		return
-	}
-
-	user, err := c.shiftService.EmployeePinLogin(req)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, helper.BuildErrorResponse("Login gagal", "unauthorized", "pin", err.Error(), nil))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Login berhasil", user))
 }
 
 func (c *shiftController) OpenShift(ctx *gin.Context) {

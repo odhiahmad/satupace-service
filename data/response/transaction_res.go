@@ -34,7 +34,7 @@ type TransactionItemResponse struct {
 type TransactionResponse struct {
 	Id              uuid.UUID                 `json:"transaction_id"`
 	BusinessId      uuid.UUID                 `json:"business_id"`
-	CustomerId      *uuid.UUID                `json:"customer_id"`
+	Customer        CustomerResponse          `json:"customer"`
 	Cashier         UserBusinessResponse      `json:"cashier"`
 	PaymentMethodId *int                      `json:"payment_method_id"`
 	BillNumber      string                    `json:"bill_number"`

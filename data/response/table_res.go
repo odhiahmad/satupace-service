@@ -14,3 +14,10 @@ type TableResponse struct {
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
+
+type TableWithTransactionsResponse struct {
+	Id           uuid.UUID             `json:"id"`
+	Number       string                `json:"number"`
+	Status       string                `json:"status"`
+	Transactions []TransactionResponse `json:"transactions"`
+}

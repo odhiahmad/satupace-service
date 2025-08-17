@@ -9,11 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserBusinessService interface {
@@ -21,7 +19,6 @@ type UserBusinessService interface {
 	ChangePassword(req request.ChangePasswordRequest) error
 	ChangeEmail(req request.ChangeEmailRequest) error
 	ChangePhone(req request.ChangePhoneRequest) error
-	CreateEmployee(req request.CreateEmployeeRequest) (*entity.UserBusiness, error)
 }
 
 type userBusinessService struct {
@@ -32,41 +29,6 @@ type userBusinessService struct {
 
 func NewUserBusinessService(repo repository.UserBusinessRepository, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper) UserBusinessService {
 	return &userBusinessService{repo: repo, redisHelper: redisHelper, emailHelper: emailHelper}
-}
-
-func (s *userBusinessService) CreateEmployee(req request.CreateEmployeeRequest) (*entity.UserBusiness, error) {
-	existing, _ := s.repo.FindByPhoneAndBusinessId(req.BusinessId, req.PhoneNumber)
-	if existing != nil {
-		return nil, errors.New("nomor HP sudah terdaftar")
-	}
-
-	var hashedPassword string
-	if req.Password != "" {
-		passHash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		hashedPassword = string(passHash)
-	}
-
-	pinHash, _ := bcrypt.GenerateFromPassword([]byte(req.PinCode), bcrypt.DefaultCost)
-
-	user := entity.UserBusiness{
-		Id:          uuid.New(),
-		RoleId:      req.RoleId,
-		BusinessId:  req.BusinessId,
-		Email:       req.Email,
-		PhoneNumber: req.PhoneNumber,
-		Password:    hashedPassword,
-		PinCode:     string(pinHash),
-		IsVerified:  true,
-		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-
-	if err := s.repo.CreateEmployee(&user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
 }
 
 func (s *userBusinessService) FindById(id uuid.UUID) (response.UserBusinessResponse, error) {
@@ -142,8 +104,4 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 	}
 
 	return s.repo.Update(&user)
-}
-
-func (s *userBusinessService) Delete(userId uuid.UUID) {
-	s.repo.Delete(userId)
 }

@@ -21,6 +21,7 @@ type TableRepository interface {
 	FindById(tableId uuid.UUID) (tablees entity.Table, err error)
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Table, int64, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Table, string, bool, error)
+	GetActiveTables(businessId uuid.UUID) ([]entity.Table, error)
 }
 
 type tableConnection struct {
@@ -166,4 +167,35 @@ func (conn *tableConnection) FindWithPaginationCursor(businessId uuid.UUID, pagi
 	}
 
 	return tables, nextCursor, hasNext, nil
+}
+
+func (conn *tableConnection) GetActiveTables(businessId uuid.UUID) ([]entity.Table, error) {
+	var tables []entity.Table
+
+	err := conn.db.
+		Model(&entity.Table{}).
+		Joins("JOIN transactions ON transactions.table_id = tables.id").
+		Where("tables.business_id = ?", businessId).
+		Where("transactions.status IN (?) AND transactions.is_canceled = ? AND transactions.is_refunded = ?",
+			[]string{"active", "in_progress"}, false, false).
+		Preload("Business").
+		Preload("Business.Owner").
+		Preload("Business.Address").
+		Preload("Business.Users").
+		Preload("Transactions", func(db *gorm.DB) *gorm.DB {
+			return db.
+				Where("transactions.status IN (?) AND transactions.is_canceled = ? AND transactions.is_refunded = ?",
+					[]string{"active", "in_progress"}, false, false).
+				Preload("Customer").
+				Preload("Cashier").
+				Preload("Cashier.User").
+				Preload("OrderType")
+		}).
+		Find(&tables).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tables, nil
 }

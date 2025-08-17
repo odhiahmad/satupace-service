@@ -22,3 +22,25 @@ func MapTable(table *entity.Table) *response.TableResponse {
 		UpdatedAt:  table.UpdatedAt,
 	}
 }
+
+func MapTableWithTransactions(tbl *entity.Table) *response.TableWithTransactionsResponse {
+	var transactions []response.TransactionResponse
+	for _, trx := range tbl.Transactions {
+		transactions = append(transactions, response.TransactionResponse{
+			Id:         trx.Id,
+			Status:     trx.Status,
+			Customer:   *MapCustomer(trx.Customer),
+			Cashier:    *MapUserBusiness(*trx.Cashier),
+			OrderType:  *MapOrderType(trx.OrderType),
+			FinalPrice: trx.FinalPrice,
+			CreatedAt:  trx.CreatedAt,
+		})
+	}
+
+	return &response.TableWithTransactionsResponse{
+		Id:           tbl.Id,
+		Number:       tbl.Number,
+		Status:       tbl.Status,
+		Transactions: transactions,
+	}
+}

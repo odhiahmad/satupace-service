@@ -48,10 +48,17 @@ func MapTransaction(trx *entity.Transaction) *response.TransactionResponse {
 		}
 	}
 
+	var customerRes response.CustomerResponse
+	if trx.Customer != nil {
+		if customerPtr := MapCustomer(trx.Customer); customerPtr != nil {
+			customerRes = *customerPtr
+		}
+	}
+
 	return &response.TransactionResponse{
 		Id:              trx.Id,
 		BusinessId:      trx.BusinessId,
-		CustomerId:      trx.CustomerId,
+		Customer:        customerRes,
 		Cashier:         cashierRes,
 		PaymentMethodId: trx.PaymentMethodId,
 		BillNumber:      trx.BillNumber,

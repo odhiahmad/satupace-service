@@ -12,33 +12,32 @@ import (
 	"github.com/odhiahmad/kasirku-service/service"
 )
 
-type TableController interface {
+type EmployeeController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindWithPagination(ctx *gin.Context)
 	FindWithPaginationCursor(ctx *gin.Context)
-	GetActiveTables(ctx *gin.Context)
 }
 
-type tableController struct {
-	tableService service.TableService
-	jwtService   service.JWTService
+type employeeController struct {
+	employeeService service.EmployeeService
+	jwtService      service.JWTService
 }
 
-func NewTableController(tableService service.TableService, jwtService service.JWTService) TableController {
-	return &tableController{tableService: tableService, jwtService: jwtService}
+func NewEmployeeController(employeeService service.EmployeeService, jwtService service.JWTService) EmployeeController {
+	return &employeeController{employeeService: employeeService, jwtService: jwtService}
 }
 
-func (c *tableController) Create(ctx *gin.Context) {
+func (c *employeeController) Create(ctx *gin.Context) {
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessId, err := uuid.Parse(businessIdStr)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
 		return
 	}
-	var input request.TableRequest
+	var input request.EmployeeRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
@@ -46,16 +45,16 @@ func (c *tableController) Create(ctx *gin.Context) {
 
 	input.BusinessId = businessId
 
-	res, err := c.tableService.Create(input)
+	res, err := c.employeeService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat table", "internal_error", "table", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat table", res))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat employee", res))
 }
 
-func (c *tableController) Update(ctx *gin.Context) {
+func (c *employeeController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessId, err := uuid.Parse(businessIdStr)
@@ -75,7 +74,7 @@ func (c *tableController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var input request.TableRequest
+	var input request.EmployeeRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
@@ -83,16 +82,16 @@ func (c *tableController) Update(ctx *gin.Context) {
 
 	input.BusinessId = businessId
 
-	res, err := c.tableService.Update(id, input)
+	res, err := c.employeeService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah table", "internal_error", "table", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah table", res))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah employee", res))
 }
 
-func (c *tableController) Delete(ctx *gin.Context) {
+func (c *employeeController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -100,16 +99,16 @@ func (c *tableController) Delete(ctx *gin.Context) {
 		return
 	}
 
-	err = c.tableService.Delete(id)
+	err = c.employeeService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus table", "internal_error", "table", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus table", nil))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus employee", nil))
 }
 
-func (c *tableController) FindById(ctx *gin.Context) {
+func (c *employeeController) FindById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -117,11 +116,11 @@ func (c *tableController) FindById(ctx *gin.Context) {
 		return
 	}
 
-	tableResponse := c.tableService.FindById(id)
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil data table", tableResponse))
+	employeeResponse := c.employeeService.FindById(id)
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil data employee", employeeResponse))
 }
 
-func (c *tableController) FindWithPagination(ctx *gin.Context) {
+func (c *employeeController) FindWithPagination(ctx *gin.Context) {
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessID, err := uuid.Parse(businessIdStr)
 	if err != nil {
@@ -146,9 +145,9 @@ func (c *tableController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	tablees, total, err := c.tableService.FindWithPagination(businessID, pagination)
+	employeees, total, err := c.employeeService.FindWithPagination(businessID, pagination)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data table", "internal_error", "table", err.Error(), nil))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengambil data employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
@@ -162,13 +161,13 @@ func (c *tableController) FindWithPagination(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, helper.BuildResponsePagination(
 		true,
-		"Data table berhasil diambil",
-		tablees,
+		"Data employee berhasil diambil",
+		employeees,
 		paginationMeta,
 	))
 }
 
-func (c *tableController) FindWithPaginationCursor(ctx *gin.Context) {
+func (c *employeeController) FindWithPaginationCursor(ctx *gin.Context) {
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessID, err := uuid.Parse(businessIdStr)
 	if err != nil {
@@ -196,10 +195,10 @@ func (c *tableController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	tables, nextCursor, hasNext, err := c.tableService.FindWithPaginationCursor(businessID, pagination)
+	employees, nextCursor, hasNext, err := c.employeeService.FindWithPaginationCursor(businessID, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil data table", "internal_error", "table", err.Error(), nil))
+			"Gagal mengambil data employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
@@ -213,31 +212,8 @@ func (c *tableController) FindWithPaginationCursor(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(
 		true,
-		"Data table berhasil diambil",
-		tables,
+		"Data employee berhasil diambil",
+		employees,
 		paginationMeta,
 	))
-}
-
-func (c *tableController) GetActiveTables(ctx *gin.Context) {
-	businessIdStr := ctx.MustGet("business_id").(string)
-	businessID, err := uuid.Parse(businessIdStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
-		return
-	}
-
-	tables, err := c.tableService.GetActiveTables(businessID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengambil table", "internal_error", "table", err.Error(), nil))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, helper.BuildResponse(
-		true,
-		"Data table berhasil diambil",
-		tables,
-	))
-
 }

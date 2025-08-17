@@ -8,11 +8,9 @@ import (
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/repository"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type ShiftService interface {
-	EmployeePinLogin(req request.EmployeePinLoginRequest) (*entity.UserBusiness, error)
 	OpenShift(req request.OpenShiftRequest) (*entity.Shift, error)
 	CloseShift(req request.CloseShiftRequest) (*entity.Shift, error)
 	GetActiveShift(terminalId string) (*entity.Shift, error)
@@ -25,23 +23,6 @@ type shiftService struct {
 
 func NewShiftService(userRepo repository.UserBusinessRepository, shiftRepo repository.ShiftRepository) ShiftService {
 	return &shiftService{userRepo, shiftRepo}
-}
-
-func (s *shiftService) EmployeePinLogin(req request.EmployeePinLoginRequest) (*entity.UserBusiness, error) {
-	user, err := s.userRepo.FindByPhoneAndBusinessId(req.BusinessId, req.PhoneNumber)
-	if err != nil {
-		return nil, errors.New("pegawai tidak ditemukan")
-	}
-
-	if bcrypt.CompareHashAndPassword([]byte(user.PinCode), []byte(req.PinCode)) != nil {
-		return nil, errors.New("PIN salah")
-	}
-
-	if !user.IsActive {
-		return nil, errors.New("pegawai tidak aktif")
-	}
-
-	return user, nil
 }
 
 func (s *shiftService) OpenShift(req request.OpenShiftRequest) (*entity.Shift, error) {
