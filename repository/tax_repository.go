@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -14,12 +15,12 @@ type TaxRepository interface {
 	Create(tax entity.Tax) (entity.Tax, error)
 	Update(tax entity.Tax) (entity.Tax, error)
 	Delete(tax entity.Tax) error
-	HasRelation(brandId int) (bool, error)
-	SoftDelete(id int) error
-	HardDelete(id int) error
-	FindById(taxId int) (taxes entity.Tax, err error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, bool, error)
+	HasRelation(brandId uuid.UUID) (bool, error)
+	SoftDelete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
+	FindById(taxId uuid.UUID) (taxes entity.Tax, err error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Tax, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Tax, string, bool, error)
 }
 
 type taxConnection struct {
@@ -59,21 +60,21 @@ func (conn *taxConnection) Delete(tax entity.Tax) error {
 	return conn.db.Delete(&tax).Error
 }
 
-func (conn *taxConnection) HasRelation(taxId int) (bool, error) {
+func (conn *taxConnection) HasRelation(taxId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.db.Model(&entity.Product{}).Where("tax_id = ?", taxId).Count(&count).Error
 	return count > 0, err
 }
 
-func (conn *taxConnection) SoftDelete(id int) error {
+func (conn *taxConnection) SoftDelete(id uuid.UUID) error {
 	return conn.db.Delete(&entity.Tax{}, id).Error // akan mengisi deleted_at
 }
 
-func (conn *taxConnection) HardDelete(id int) error {
+func (conn *taxConnection) HardDelete(id uuid.UUID) error {
 	return conn.db.Unscoped().Delete(&entity.Tax{}, id).Error // delete permanen
 }
 
-func (conn *taxConnection) FindById(taxId int) (taxes entity.Tax, err error) {
+func (conn *taxConnection) FindById(taxId uuid.UUID) (taxes entity.Tax, err error) {
 	var tax entity.Tax
 	result := conn.db.Find(&tax, taxId)
 	if result != nil {
@@ -83,7 +84,7 @@ func (conn *taxConnection) FindById(taxId int) (taxes entity.Tax, err error) {
 	}
 }
 
-func (conn *taxConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Tax, int64, error) {
+func (conn *taxConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Tax, int64, error) {
 	var tax []entity.Tax
 	var total int64
 
@@ -109,7 +110,7 @@ func (conn *taxConnection) FindWithPagination(businessId int, pagination request
 	return tax, total, nil
 }
 
-func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Tax, string, bool, error) {
+func (conn *taxConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Tax, string, bool, error) {
 	var taxes []entity.Tax
 
 	query := conn.db.Model(&entity.Tax{}).
@@ -159,7 +160,7 @@ func (conn *taxConnection) FindWithPaginationCursor(businessId int, pagination r
 
 	if len(taxes) > limit {
 		last := taxes[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		taxes = taxes[:limit]
 		hasNext = true
 	}

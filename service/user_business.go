@@ -6,14 +6,16 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type UserBusinessService interface {
-	FindById(id int) (response.UserBusinessResponse, error)
+	FindById(id uuid.UUID) (response.UserBusinessResponse, error)
 	ChangePassword(req request.ChangePasswordRequest) error
 	ChangeEmail(req request.ChangeEmailRequest) error
 	ChangePhone(req request.ChangePhoneRequest) error
@@ -29,12 +31,12 @@ func NewUserBusinessService(repo repository.UserBusinessRepository, redisHelper 
 	return &userBusinessService{repo: repo, redisHelper: redisHelper, emailHelper: emailHelper}
 }
 
-func (s *userBusinessService) FindById(id int) (response.UserBusinessResponse, error) {
+func (s *userBusinessService) FindById(id uuid.UUID) (response.UserBusinessResponse, error) {
 	user, err := s.repo.FindById(id)
 	if err != nil {
 		return response.UserBusinessResponse{}, err
 	}
-	return *helper.MapUserBusinessResponse(user), nil
+	return *mapper.MapUserBusiness(user), nil
 }
 
 func (s *userBusinessService) ChangePassword(req request.ChangePasswordRequest) error {
@@ -43,12 +45,10 @@ func (s *userBusinessService) ChangePassword(req request.ChangePasswordRequest) 
 		return err
 	}
 
-	// Verifikasi password lama
 	if !helper.ComparePassword(user.Password, req.OldPassword) {
 		return errors.New("password lama salah")
 	}
 
-	// Hash password baru
 	hashedPassword := helper.HashAndSalt([]byte(req.NewPassword))
 	user.Password = hashedPassword
 
@@ -65,13 +65,13 @@ func (s *userBusinessService) ChangeEmail(req request.ChangeEmailRequest) error 
 
 	err = s.redisHelper.SaveOTP("otp", *req.Email, otpCode, 5*time.Minute)
 	if err != nil {
-		log.Println("Gagal menyimpan OTP verifikasi email baru di Redis:", err)
+		log.Println("gagal menyimpan otp verifikasi email baru di redis:", err)
 		return err
 	}
 
 	subject, text, html := helper.BuildLinkEmailVerification(*req.Email, otpCode)
 	if err := s.emailHelper.Send(*req.Email, subject, text, html); err != nil {
-		log.Println("Gagal mengirim OTP verifikasi email baru:", err)
+		log.Println("gagal mengirim otp verifikasi email baru:", err)
 		return err
 	}
 
@@ -104,8 +104,4 @@ func (s *userBusinessService) ChangePhone(req request.ChangePhoneRequest) error 
 	}
 
 	return s.repo.Update(&user)
-}
-
-func (s *userBusinessService) Delete(userId int) {
-	s.Delete(userId)
 }

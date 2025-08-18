@@ -11,7 +11,7 @@ var (
 	ErrUserNotFound         = errors.New("user not found")
 	ErrEmailNotVerified     = errors.New("no hp belum diverifikasi")
 	ErrEmailAlreadyVerified = errors.New("no hp sudah diverifikasi")
-	ErrProductFailedSaved   = errors.New("Gagal menyimpan variant")
+	ErrProductFailedSaved   = errors.New("gagal menyimpan variant")
 )
 
 // ErrorPanic akan memunculkan panic jika terjadi error, serta mencatatnya ke log

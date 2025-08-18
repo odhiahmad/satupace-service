@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"gorm.io/gorm"
@@ -13,13 +14,13 @@ import (
 type TransactionItemInput struct {
 	DB            *gorm.DB
 	Items         []request.TransactionItemCreate // alias tipe dari item request
-	AllProductIds []int
+	AllProductIds []uuid.UUID
 }
 
 type TransactionItemInputUpdate struct {
 	DB            *gorm.DB
 	Items         []request.TransactionItemUpdate // alias tipe dari item request
-	AllProductIds []int
+	AllProductIds []uuid.UUID
 }
 
 type TransactionItemResult struct {
@@ -44,8 +45,8 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 			})
 		}
 
-		productId := IntOrDefault(item.ProductId, 0)
-		if productId != 0 {
+		productId := item.ProductId
+		if *productId != uuid.Nil {
 			var product entity.Product
 			err := input.DB.Preload("Variants").
 				Preload("Discount").
@@ -55,8 +56,21 @@ func PrepareTransactionItemsCreate(input TransactionItemInput) (TransactionItemR
 				return result, err
 			}
 
-			if item.Quantity < *product.MinimumSales {
-				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			if product.MinimumSales != nil {
+				if item.Quantity < *product.MinimumSales {
+					return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+				}
+			}
+
+			if item.ProductVariantId != nil && *item.ProductVariantId != uuid.Nil {
+				for _, variant := range product.Variants {
+					if variant.Id == *item.ProductVariantId {
+						if variant.MinimumSales != nil && item.Quantity < *variant.MinimumSales {
+							return result, errors.New("minimum pembelian untuk varian produk tidak terpenuhi")
+						}
+						break
+					}
+				}
 			}
 
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)
@@ -161,8 +175,8 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 			})
 		}
 
-		productId := IntOrDefault(item.ProductId, 0)
-		if productId != 0 {
+		productId := item.ProductId
+		if *productId != uuid.Nil {
 			var product entity.Product
 			err := input.DB.Preload("Variants").
 				Preload("Discount").
@@ -172,8 +186,21 @@ func PrepareTransactionItemsUpdate(input TransactionItemInputUpdate) (Transactio
 				return result, err
 			}
 
-			if item.Quantity < *product.MinimumSales {
-				return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+			if product.MinimumSales != nil {
+				if item.Quantity < *product.MinimumSales {
+					return result, errors.New("minimum pembelian untuk produk tidak terpenuhi")
+				}
+			}
+
+			if item.ProductVariantId != nil && *item.ProductVariantId != uuid.Nil {
+				for _, variant := range product.Variants {
+					if variant.Id == *item.ProductVariantId {
+						if variant.MinimumSales != nil && item.Quantity < *variant.MinimumSales {
+							return result, errors.New("minimum pembelian untuk varian produk tidak terpenuhi")
+						}
+						break
+					}
+				}
 			}
 
 			pricing, err := HitungHargaTransaksi(product, item.ProductVariantId, item.Quantity, input.AllProductIds)

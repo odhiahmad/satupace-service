@@ -20,8 +20,8 @@ func DecodeCursor(encoded string) (string, error) {
 	return string(decoded), nil
 }
 
-func EncodeCursorID(id int64) string {
-	return base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(id, 10)))
+func EncodeCursorID(id string) string {
+	return base64.StdEncoding.EncodeToString([]byte(id))
 }
 
 func DecodeCursorID(cursor string) (int64, error) {

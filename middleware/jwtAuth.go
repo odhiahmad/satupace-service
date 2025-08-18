@@ -44,16 +44,34 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 
 		claims := token.Claims.(jwt.MapClaims)
 
-		c.Set("user_id", int(claims["user_id"].(float64)))
-		c.Set("business_id", int(claims["business_id"].(float64)))
-		if claims["branch_id"] != nil {
-			c.Set("branch_id", int(claims["branch_id"].(float64)))
+		if userID, ok := claims["user_id"].(string); ok {
+			c.Set("user_id", userID)
+		} else {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(
+				"Unauthorized", "INVALID_TOKEN", "user_id", "user_id is not string (UUID)", nil,
+			))
+			return
 		}
+
+		if businessID, ok := claims["business_id"].(string); ok {
+			c.Set("business_id", businessID)
+		} else {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(
+				"Unauthorized", "INVALID_TOKEN", "business_id", "business_id is not string (UUID)", nil,
+			))
+			return
+		}
+
 		if claims["role_id"] != nil {
-			c.Set("role_id", int(claims["role_id"].(float64)))
+			if roleID, ok := claims["role_id"].(float64); ok {
+				c.Set("role_id", int(roleID))
+			}
 		}
+
 		if claims["email"] != nil {
-			c.Set("email", claims["email"].(string))
+			if email, ok := claims["email"].(string); ok {
+				c.Set("email", email)
+			}
 		}
 
 		c.Next()

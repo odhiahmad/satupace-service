@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -12,13 +13,13 @@ import (
 )
 
 type ProductVariantService interface {
-	Create(req request.ProductVariantRequest, productId int) (*entity.ProductVariant, error)
-	Update(id int, req request.ProductVariantRequest) (*entity.ProductVariant, error)
-	Delete(id int) error
-	FindById(id int) (*entity.ProductVariant, error)
-	FindByProductId(productId int) ([]entity.ProductVariant, error)
-	SetActive(id int, isActive bool) error
-	SetAvailable(id int, isAvailable bool) error
+	Create(req request.ProductVariantRequest, productId uuid.UUID) (*entity.ProductVariant, error)
+	Update(id uuid.UUID, req request.ProductVariantRequest) (*entity.ProductVariant, error)
+	Delete(id uuid.UUID) error
+	FindById(id uuid.UUID) (*entity.ProductVariant, error)
+	FindByProductId(productId uuid.UUID) ([]entity.ProductVariant, error)
+	SetActive(id uuid.UUID, isActive bool) error
+	SetAvailable(id uuid.UUID, isAvailable bool) error
 }
 
 type productVariantService struct {
@@ -35,7 +36,7 @@ func NewProductVariantService(repo repository.ProductVariantRepository, productR
 	}
 }
 
-func (s *productVariantService) Create(req request.ProductVariantRequest, productId int) (*entity.ProductVariant, error) {
+func (s *productVariantService) Create(req request.ProductVariantRequest, productId uuid.UUID) (*entity.ProductVariant, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return nil, err
 	}
@@ -53,7 +54,7 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 		sku = *req.SKU
 	}
 
-	exist, err := s.repo.IsSKUExist(sku, *req.BusinessId)
+	exist, err := s.repo.IsSKUExist(sku, req.BusinessId)
 	if err != nil {
 		return nil, fmt.Errorf("gagal cek SKU: %w", err)
 	}
@@ -90,7 +91,7 @@ func (s *productVariantService) Create(req request.ProductVariantRequest, produc
 	return &variant, nil
 }
 
-func (s *productVariantService) Update(id int, req request.ProductVariantRequest) (*entity.ProductVariant, error) {
+func (s *productVariantService) Update(id uuid.UUID, req request.ProductVariantRequest) (*entity.ProductVariant, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 		sku = &s
 	}
 
-	exist, err := s.repo.IsSKUExistExcept(*sku, *req.BusinessId, id)
+	exist, err := s.repo.IsSKUExistExcept(*sku, req.BusinessId, id)
 	if err != nil {
 		return nil, fmt.Errorf("gagal cek SKU: %w", err)
 	}
@@ -128,7 +129,7 @@ func (s *productVariantService) Update(id int, req request.ProductVariantRequest
 	return &existing, nil
 }
 
-func (s *productVariantService) Delete(id int) error {
+func (s *productVariantService) Delete(id uuid.UUID) error {
 	variant, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -152,7 +153,7 @@ func (s *productVariantService) Delete(id int) error {
 	return nil
 }
 
-func (s *productVariantService) FindById(id int) (*entity.ProductVariant, error) {
+func (s *productVariantService) FindById(id uuid.UUID) (*entity.ProductVariant, error) {
 	variant, err := s.repo.FindById(id)
 	if err != nil {
 		return nil, err
@@ -160,14 +161,14 @@ func (s *productVariantService) FindById(id int) (*entity.ProductVariant, error)
 	return &variant, nil
 }
 
-func (s *productVariantService) FindByProductId(productId int) ([]entity.ProductVariant, error) {
+func (s *productVariantService) FindByProductId(productId uuid.UUID) ([]entity.ProductVariant, error) {
 	return s.repo.FindByProductId(productId)
 }
 
-func (s *productVariantService) SetActive(id int, isActive bool) error {
+func (s *productVariantService) SetActive(id uuid.UUID, isActive bool) error {
 	return s.repo.SetActive(id, isActive)
 }
 
-func (s *productVariantService) SetAvailable(id int, isAvailable bool) error {
+func (s *productVariantService) SetAvailable(id uuid.UUID, isAvailable bool) error {
 	return s.repo.SetAvailable(id, isAvailable)
 }

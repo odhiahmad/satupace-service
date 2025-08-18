@@ -1,18 +1,21 @@
 package response
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type AuthResponse struct {
-	Id          int                     `json:"id"`
-	Email       string                  `json:"email"`
-	PhoneNumber string                  `json:"phone_number"`
-	Token       string                  `json:"token"`
-	IsVerified  bool                    `json:"is_verified"`
-	IsActive    bool                    `json:"is_active"`
-	CreatedAt   time.Time               `json:"created_at"`
-	UpdatedAt   time.Time               `json:"updated_at"`
-	Role        RoleResponse            `json:"role"`
-	Business    BusinessResponse        `json:"business"`
-	Branch      *BusinessBranchResponse `json:"branch"`
-	Memberships *MembershipResponse     `json:"memberships"` // ✅ Tambahkan ini
+	Id          uuid.UUID           `json:"id"`
+	Email       string              `json:"email"`
+	PhoneNumber string              `json:"phone_number"`
+	Token       string              `json:"token"`
+	IsVerified  bool                `json:"is_verified"`
+	IsActive    bool                `json:"is_active"`
+	CreatedAt   time.Time           `json:"created_at"`
+	UpdatedAt   time.Time           `json:"updated_at"`
+	Role        RoleResponse        `json:"role"`
+	Business    BusinessResponse    `json:"business"`
+	Memberships *MembershipResponse `json:"memberships"`
 }

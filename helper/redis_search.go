@@ -7,17 +7,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/redis/go-redis/v9"
 )
 
 var ctx = context.Background()
 
-func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, productName string) error {
+func AddProductToAutocomplete(rdb *redis.Client, businessID uuid.UUID, productID uuid.UUID, productName string) error {
 	ctx := context.Background()
 
-	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
-	keyData := fmt.Sprintf("autocomplete:product:%d:data", businessID)
+	keyIndex := fmt.Sprintf("autocomplete:product:%s:index", businessID)
+	keyData := fmt.Sprintf("autocomplete:product:%s:data", businessID)
 	normalized := strings.ToLower(productName)
 
 	product := map[string]interface{}{
@@ -38,11 +39,11 @@ func AddProductToAutocomplete(rdb *redis.Client, businessID, productID int, prod
 	return err
 }
 
-func UpdateProductAutocomplete(rdb *redis.Client, businessID int, oldName, newName string, productID int) error {
+func UpdateProductAutocomplete(rdb *redis.Client, businessID uuid.UUID, oldName, newName string, productID uuid.UUID) error {
 	ctx := context.Background()
 
-	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
-	keyData := fmt.Sprintf("autocomplete:product:%d:data", businessID)
+	keyIndex := fmt.Sprintf("autocomplete:product:%s:index", businessID)
+	keyData := fmt.Sprintf("autocomplete:product:%s:data", businessID)
 
 	oldNorm := strings.ToLower(oldName)
 	newNorm := strings.ToLower(newName)
@@ -72,11 +73,10 @@ func UpdateProductAutocomplete(rdb *redis.Client, businessID int, oldName, newNa
 	return err
 }
 
-func GetProductAutocomplete(rdb *redis.Client, businessID int, prefix string, limit int64) ([]response.ProductResponse, error) {
+func GetProductAutocomplete(rdb *redis.Client, businessID uuid.UUID, prefix string, limit int64) ([]response.ProductResponse, error) {
 	ctx := context.Background()
-
-	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
-	keyData := fmt.Sprintf("autocomplete:product:%d:data", businessID)
+	keyIndex := fmt.Sprintf("autocomplete:product:%s:index", businessID)
+	keyData := fmt.Sprintf("autocomplete:product:%s:data", businessID)
 
 	start := "[" + strings.ToLower(prefix)
 	end := "[" + strings.ToLower(prefix) + "\xff"
@@ -117,8 +117,8 @@ func GetProductAutocomplete(rdb *redis.Client, businessID int, prefix string, li
 	return results, nil
 }
 
-func DeleteProductFromAutocomplete(rdb *redis.Client, businessID int, productName string) error {
-	keyIndex := fmt.Sprintf("autocomplete:product:%d:index", businessID)
+func DeleteProductFromAutocomplete(rdb *redis.Client, businessID uuid.UUID, productName string) error {
+	keyIndex := fmt.Sprintf("autocomplete:product:%s:index", businessID)
 	normalized := strings.ToLower(productName)
 
 	if err := rdb.ZRem(ctx, keyIndex, normalized).Err(); err != nil {

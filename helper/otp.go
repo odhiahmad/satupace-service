@@ -36,7 +36,7 @@ func (r *RedisHelper) AllowRequest(identifier string, maxTry int, window time.Du
 	}
 
 	if int(count) > maxTry {
-		return fmt.Errorf("Terlalu sering meminta OTP. Silakan coba lagi nanti.")
+		return fmt.Errorf("terlalu sering meminta otp, silakan coba lagi nanti")
 	}
 
 	return nil

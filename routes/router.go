@@ -21,7 +21,6 @@ var (
 	redisHelper              *helper.RedisHelper                 = helper.NewRedisHelper(redisClient)
 	validate                 *validator.Validate                 = validator.New()
 	db                       *gorm.DB                            = config.SetupDatabaseConnection()
-	userRepository           repository.UserRepository           = repository.NewUserRepository(db)
 	userBusinessRepository   repository.UserBusinessRepository   = repository.NewUserBusinessRepository(db)
 	roleRepository           repository.RoleRepository           = repository.NewRoleRepository(db)
 	businessTypeRepository   repository.BusinessTypeRepository   = repository.NewBusinessTypeRepository(db)
@@ -39,10 +38,13 @@ var (
 	membershipRepository     repository.MembershipRepository     = repository.NewMembershipRepository(db)
 	brandRepository          repository.BrandRepository          = repository.NewBrandRepository(db)
 	locationRepository       repository.LocationRepository       = repository.NewLocationRepository(db)
+	tableRepository          repository.TableRepository          = repository.NewTableRepository(db)
+	orderTypeRepository      repository.OrderTypeRepository      = repository.NewOrderTypeRepository(db)
+	shiftRepository          repository.ShiftRepository          = repository.NewShiftRepository(db)
+	terminalRepository       repository.TerminalRepository       = repository.NewTerminalRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
-	authService           service.AuthService           = service.NewAuthService(userRepository, userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
-	userService           service.UserService           = service.NewUserService(userRepository, validate)
+	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
 	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper, emailHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
@@ -59,9 +61,13 @@ var (
 	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
 	brandService          service.BrandService          = service.NewBrandService(brandRepository, validate)
 	locationService       service.LocationService       = service.NewLocationService(locationRepository, redisClient)
+	tableService          service.TableService          = service.NewTableService(tableRepository, validate)
+	orderTypeService      service.OrderTypeService      = service.NewOrderTypeService(orderTypeRepository, validate)
+	shiftService          service.ShiftService          = service.NewShiftService(userBusinessRepository, shiftRepository)
+	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
+	employeeService       service.EmployeeService       = service.NewEmployeeService(userBusinessRepository, validate)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
-	userController           controller.UserController           = controller.NewUserController(userService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
 	roleController           controller.RoleController           = controller.NewRoleController(roleService, jwtService)
 	businessTypeController   controller.BusinessTypeController   = controller.NewBusinessTypeController(businessTypeService, jwtService)
@@ -78,6 +84,11 @@ var (
 	productVariantController controller.ProductVariantController = controller.NewProductVariantController(productVariantService, jwtService)
 	brandController          controller.BrandController          = controller.NewBrandController(brandService, jwtService)
 	locationController       controller.LocationController       = controller.NewLocationController(locationService)
+	tableController          controller.TableController          = controller.NewTableController(tableService, jwtService)
+	orderTypeController      controller.OrderTypeController      = controller.NewOrderTypeController(orderTypeService, jwtService)
+	shiftController          controller.ShiftController          = controller.NewShiftController(shiftService, jwtService)
+	terminalController       controller.TerminalController       = controller.NewTerminalController(terminalService, jwtService)
+	employeeController       controller.EmployeeController       = controller.NewEmployeeController(employeeService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -86,6 +97,7 @@ func SetupRouter() *gin.Engine {
 	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
+		authRoutes.GET("/pin-business", authController.LoginPin)
 		authRoutes.POST("/verify-otp", authController.VerifyOTP)
 		authRoutes.POST("/retry-otp", authController.RetryOTP)
 		authRoutes.POST("/registration", registrationController.Register)
@@ -101,6 +113,16 @@ func SetupRouter() *gin.Engine {
 		userRoutes.PUT("/change-password", userBusinessController.ChangePassword)
 		userRoutes.PUT("/business", businessController.Update)
 		userRoutes.POST("/verify-otp", authController.VerifyOTP)
+	}
+
+	employeeRoutes := r.Group("employee", middleware.AuthorizeJWT(jwtService), middleware.AuthorizeOwner(), middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		employeeRoutes.POST("/", employeeController.Create)
+		employeeRoutes.PUT("/:id", employeeController.Update)
+		employeeRoutes.GET("", employeeController.FindWithPagination)
+		employeeRoutes.GET("/cursor", employeeController.FindWithPaginationCursor)
+		employeeRoutes.GET("/:id", employeeController.FindById)
+		employeeRoutes.DELETE("/:id", employeeController.Delete)
 	}
 
 	roleRoutes := r.Group("role", middleware.RateLimit(redisHelper, 20, time.Minute))
@@ -137,36 +159,43 @@ func SetupRouter() *gin.Engine {
 		libRoutes.POST("/tax", taxController.Create)
 		libRoutes.POST("/unit", unitController.Create)
 		libRoutes.POST("/discount", discountController.Create)
+		libRoutes.POST("/terminal", terminalController.Create)
 
 		libRoutes.PUT("/category/:id", categoryController.Update)
 		libRoutes.PUT("/brand/:id", brandController.Update)
 		libRoutes.PUT("/tax/:id", taxController.Update)
 		libRoutes.PUT("/unit/:id", unitController.Update)
 		libRoutes.PUT("/discount/:id", discountController.Update)
+		libRoutes.PUT("/terminal/:id", terminalController.Update)
 
 		libRoutes.GET("/category/:id", categoryController.FindById)
 		libRoutes.GET("/brand/:id", brandController.FindById)
 		libRoutes.GET("/tax/:id", taxController.FindById)
 		libRoutes.GET("/unit/:id", unitController.FindById)
 		libRoutes.GET("/discount/:id", discountController.FindById)
+		libRoutes.GET("/terminal/:id", terminalController.FindById)
 
 		libRoutes.GET("/category", categoryController.FindWithPagination)
 		libRoutes.GET("/brand", brandController.FindWithPagination)
 		libRoutes.GET("/tax", taxController.FindWithPagination)
 		libRoutes.GET("/unit", unitController.FindWithPagination)
 		libRoutes.GET("/discount", discountController.FindWithPagination)
+		libRoutes.GET("/terminal", terminalController.FindWithPagination)
 
 		libRoutes.GET("/brand/cursor", brandController.FindWithPaginationCursor)
 		libRoutes.GET("/category/cursor", categoryController.FindWithPaginationCursor)
+		libRoutes.GET("/category/product", categoryController.FindWithPaginationCursor)
 		libRoutes.GET("/tax/cursor", taxController.FindWithPaginationCursor)
 		libRoutes.GET("/unit/cursor", unitController.FindWithPaginationCursor)
 		libRoutes.GET("/discount/cursor", discountController.FindWithPaginationCursor)
+		libRoutes.GET("/terminal/cursor", terminalController.FindWithPaginationCursor)
 
 		libRoutes.DELETE("/category/:id", categoryController.Delete)
 		libRoutes.DELETE("/brand/:id", brandController.Delete)
 		libRoutes.DELETE("/tax/:id", taxController.Delete)
 		libRoutes.DELETE("/unit/:id", unitController.Delete)
 		libRoutes.DELETE("/discount/:id", discountController.Delete)
+		libRoutes.DELETE("/terminal/:id", terminalController.Delete)
 
 		libRoutes.PUT("/discount/:id/active", discountController.SetIsActive)
 
@@ -230,6 +259,34 @@ func SetupRouter() *gin.Engine {
 		locationRoutes.GET("/cities", locationController.GetCities)
 		locationRoutes.GET("/districts", locationController.GetDistricts)
 		locationRoutes.GET("/villages", locationController.GetVillages)
+	}
+
+	orderTypeRoutes := r.Group("order-type", middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		orderTypeRoutes.POST("", orderTypeController.Create)
+		orderTypeRoutes.PUT("/:id", orderTypeController.Update)
+		orderTypeRoutes.GET("", orderTypeController.FindWithPagination)
+		orderTypeRoutes.GET("/cursor", orderTypeController.FindWithPaginationCursor)
+		orderTypeRoutes.GET("/:id", orderTypeController.FindById)
+		orderTypeRoutes.DELETE("/:id", orderTypeController.Delete)
+	}
+
+	tableRoutes := r.Group("table", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		tableRoutes.POST("", tableController.Create)
+		tableRoutes.PUT("/:id", tableController.Update)
+		tableRoutes.GET("", tableController.FindWithPagination)
+		tableRoutes.GET("/cursor", tableController.FindWithPaginationCursor)
+		tableRoutes.GET("/:id", tableController.FindById)
+		tableRoutes.GET("/all", tableController.GetActiveTables)
+		tableRoutes.DELETE("/:id", tableController.Delete)
+	}
+
+	shiftRoutes := r.Group("shift", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		shiftRoutes.POST("", shiftController.OpenShift)
+		shiftRoutes.PUT("/:id", shiftController.CloseShift)
+		shiftRoutes.GET("/cursor", shiftController.GetActiveShift)
 	}
 
 	return r

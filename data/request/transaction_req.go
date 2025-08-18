@@ -1,21 +1,23 @@
 package request
 
+import "github.com/google/uuid"
+
 type TransactionItemAttributeCreate struct {
-	ProductAttributeId int     `json:"product_attribute_id" validate:"required"`
-	AdditionalPrice    float64 `json:"additional_price" validate:"required"`
+	ProductAttributeId uuid.UUID `json:"product_attribute_id" validate:"required"`
+	AdditionalPrice    float64   `json:"additional_price" validate:"required"`
 }
 
 type TransactionItemAttributeUpdate struct {
-	Id                 int     `json:"id"`
-	ProductAttributeId int     `json:"product_attribute_id"`
-	AdditionalPrice    float64 `json:"additional_price"`
+	Id                 uuid.UUID `json:"id"`
+	ProductAttributeId uuid.UUID `json:"product_attribute_id"`
+	AdditionalPrice    float64   `json:"additional_price"`
 }
 
 type TransactionItemCreate struct {
-	ProductId          *int                             `json:"product_id,omitempty"`
-	BundleId           *int                             `json:"bundle_id,omitempty"`
-	ProductAttributeId *int                             `json:"product_attribute_id,omitempty"`
-	ProductVariantId   *int                             `json:"product_variant_id,omitempty"`
+	ProductId          *uuid.UUID                       `json:"product_id"`
+	BundleId           *uuid.UUID                       `json:"bundle_id"`
+	ProductAttributeId *uuid.UUID                       `json:"product_attribute_id"`
+	ProductVariantId   *uuid.UUID                       `json:"product_variant_id"`
 	Quantity           int                              `json:"quantity"`
 	Discount           float64                          `json:"discount"`
 	Promo              float64                          `json:"promo"`
@@ -27,11 +29,11 @@ type TransactionItemCreate struct {
 }
 
 type TransactionItemUpdate struct {
-	Id                 int                              `json:"id"`
-	ProductId          *int                             `json:"product_id,omitempty"`
-	BundleId           *int                             `json:"bundle_id,omitempty"`
-	ProductAttributeId *int                             `json:"product_attribute_id,omitempty"`
-	ProductVariantId   *int                             `json:"product_variant_id,omitempty"`
+	Id                 uuid.UUID                        `json:"id"`
+	ProductId          *uuid.UUID                       `json:"product_id"`
+	BundleId           *uuid.UUID                       `json:"bundle_id"`
+	ProductAttributeId *uuid.UUID                       `json:"product_attribute_id"`
+	ProductVariantId   *uuid.UUID                       `json:"product_variant_id"`
 	Quantity           int                              `json:"quantity"`
 	UnitPrice          float64                          `json:"unitPrice"`
 	Total              float64                          `json:"total"`
@@ -43,33 +45,35 @@ type TransactionItemUpdate struct {
 }
 
 type TransactionCreateRequest struct {
-	BusinessId int                     `json:"business_id" validate:"required"`
-	CustomerId *int                    `json:"customer_id,omitempty"`
-	Items      []TransactionItemCreate `json:"items" validate:"required,dive"`
+	BusinessId  uuid.UUID               `json:"business_id" validate:"required"`
+	CustomerId  *uuid.UUID              `json:"customer_id"`
+	OrderTypeId uuid.UUID               `json:"order_type_id" validate:"required"`
+	TableId     *uuid.UUID              `json:"table_id"`
+	Items       []TransactionItemCreate `json:"items" validate:"required,dive"`
 }
 
 type TransactionPaymentRequest struct {
-	Id              int      `json:"id"`
-	CustomerId      *int     `json:"customer_id,omitempty"`
-	CashierId       int      `json:"cashier_id,omitempty"`
-	PaymentMethodId *int     `json:"payment_method_id,omitempty"`
-	Rating          *float64 `json:"rating"`
-	Notes           *string  `json:"notes"`
-	AmountReceived  *float64 `json:"amount_received"`
+	Id              uuid.UUID  `json:"id"`
+	CustomerId      *uuid.UUID `json:"customer_id"`
+	CashierId       uuid.UUID  `json:"cashier_id"`
+	PaymentMethodId *int       `json:"payment_method_id"`
+	Rating          *float64   `json:"rating"`
+	Notes           *string    `json:"notes"`
+	AmountReceived  *float64   `json:"amount_received"`
 }
 
 type TransactionCancelRequest struct {
-	Id         int     `json:"id"`
-	CustomerId *int    `json:"customer_id,omitempty"`
-	BusinessId int     `json:"business_id" validate:"required"`
-	UserId     int     `json:"user_id,omitempty"`
-	Reason     *string `json:"reason"`
+	Id         uuid.UUID  `json:"id"`
+	CustomerId *uuid.UUID `json:"customer_id"`
+	BusinessId uuid.UUID  `json:"business_id" validate:"required"`
+	UserId     uuid.UUID  `json:"user_id"`
+	Reason     *string    `json:"reason"`
 }
 
 type TransactionRefundRequest struct {
-	Id         int     `json:"id"`
-	CustomerId *int    `json:"customer_id,omitempty"`
-	BusinessId int     `json:"business_id" validate:"required"`
-	UserId     int     `json:"user_id,omitempty"`
-	Reason     *string `json:"reason"`
+	Id         uuid.UUID  `json:"id"`
+	CustomerId *uuid.UUID `json:"customer_id"`
+	BusinessId uuid.UUID  `json:"business_id" validate:"required"`
+	UserId     uuid.UUID  `json:"user_id"`
+	Reason     *string    `json:"reason"`
 }

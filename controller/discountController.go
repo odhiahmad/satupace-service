@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -31,206 +32,112 @@ func NewDiscountController(discountService service.DiscountService, jwtService s
 }
 
 func (c *discountController) Create(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	var input request.DiscountRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Input tidak valid",
-			"INVALID_REQUEST",
-			"body",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil))
 		return
 	}
-
 	input.BusinessId = businessId
-
 	res, err := c.discountService.Create(input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal membuat diskon",
-			"CREATE_FAILED",
-			"internal",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat diskon", "CREATE_FAILED", "internal", err.Error(), nil))
 		return
 	}
-
 	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat diskon", res))
 }
 
 func (c *discountController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	idStr := ctx.Param("id")
-
-	if idStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id wajib diisi",
-			"MISSING_ID",
-			"id",
-			"Parameter 'id' tidak ditemukan dalam path",
-			helper.EmptyObj{},
-		))
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id tidak valid",
-			"INVALID_ID",
-			"id",
-			err.Error(),
-			helper.EmptyObj{},
-		))
-		return
-	}
-
 	var input request.DiscountRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Input tidak valid",
-			"INVALID_REQUEST",
-			"body",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil))
 		return
 	}
-
 	input.BusinessId = businessId
 	res, err := c.discountService.Update(id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengubah diskon",
-			"UPDATE_FAILED",
-			"internal",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah diskon", "UPDATE_FAILED", "internal", err.Error(), nil))
 		return
 	}
-
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah diskon", res))
 }
 
 func (c *discountController) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"ID tidak valid",
-			"INVALID_ID",
-			"id",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil))
 		return
 	}
-
 	err = c.discountService.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal menghapus diskon",
-			"DELETE_FAILED",
-			"internal",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal menghapus diskon", "DELETE_FAILED", "internal", err.Error(), nil))
 		return
 	}
-
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil menghapus diskon", nil))
 }
 
 func (c *discountController) FindById(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"ID tidak valid",
-			"INVALID_ID",
-			"id",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "INVALID_ID", "id", err.Error(), nil))
 		return
 	}
-
 	res, err := c.discountService.FindById(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse(
-			"Diskon tidak ditemukan",
-			"NOT_FOUND",
-			"id",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusNotFound, helper.BuildErrorResponse("Diskon tidak ditemukan", "NOT_FOUND", "id", err.Error(), nil))
 		return
 	}
-
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengambil diskon", res))
 }
 
 func (c *discountController) SetIsActive(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	if idStr == "" {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id wajib diisi",
-			"MISSING_ID",
-			"id",
-			"Parameter 'id' tidak ditemukan dalam path",
-			helper.EmptyObj{},
-		))
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "INVALID_ID", "id", err.Error(), helper.EmptyObj{}))
 		return
 	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Parameter id tidak valid",
-			"INVALID_ID",
-			"id",
-			err.Error(),
-			helper.EmptyObj{},
-		))
-		return
-	}
-
 	var input request.IsActive
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
-			"Input tidak valid",
-			"INVALID_REQUEST",
-			"body",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "INVALID_REQUEST", "body", err.Error(), nil))
 		return
 	}
-
 	err = c.discountService.SetIsActive(id, input.IsActive)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
-			"Gagal mengubah status diskon",
-			"UPDATE_STATUS_FAILED",
-			"internal",
-			err.Error(),
-			nil,
-		))
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah status diskon", "UPDATE_STATUS_FAILED", "internal", err.Error(), nil))
 		return
 	}
-
 	statusMsg := "dinonaktifkan"
 	if input.IsActive {
 		statusMsg = "diaktifkan"
 	}
-
 	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Diskon berhasil "+statusMsg, nil))
 }
 
 func (c *discountController) FindWithPagination(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	pageStr := ctx.DefaultQuery("page", "1")
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
@@ -269,7 +176,7 @@ func (c *discountController) FindWithPagination(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	discounts, total, err := c.discountService.FindWithPagination(businessID, pagination)
+	discounts, total, err := c.discountService.FindWithPagination(businessId, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengambil data diskon",
@@ -298,7 +205,12 @@ func (c *discountController) FindWithPagination(ctx *gin.Context) {
 }
 
 func (c *discountController) FindWithPaginationCursor(ctx *gin.Context) {
-	businessID := ctx.MustGet("business_id").(int)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
 	limitStr := ctx.DefaultQuery("limit", "10")
 	sortBy := ctx.DefaultQuery("sort_by", "created_at")
 	orderBy := ctx.DefaultQuery("order_by", "desc")
@@ -325,7 +237,7 @@ func (c *discountController) FindWithPaginationCursor(ctx *gin.Context) {
 		Search:  search,
 	}
 
-	discounts, nextCursor, hasNext, err := c.discountService.FindWithPaginationCursor(businessID, pagination)
+	discounts, nextCursor, hasNext, err := c.discountService.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal mengambil data brand", "internal_error", "brand", err.Error(), nil))

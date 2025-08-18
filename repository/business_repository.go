@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -11,7 +12,7 @@ type BusinessRepository interface {
 	Create(business entity.Business) (entity.Business, error)
 	Update(business entity.Business) (entity.Business, error)
 	Delete(business entity.Business) error
-	FindById(id int) (entity.Business, error)
+	FindById(id uuid.UUID) (entity.Business, error)
 	FindWithPagination(pagination request.Pagination) ([]entity.Business, int64, error)
 }
 
@@ -41,7 +42,7 @@ func (conn *businessConnection) Delete(business entity.Business) error {
 }
 
 // FindById retrieves a business entity by its ID, with branches and business type preloaded.
-func (conn *businessConnection) FindById(id int) (entity.Business, error) {
+func (conn *businessConnection) FindById(id uuid.UUID) (entity.Business, error) {
 	var business entity.Business
 	err := conn.db.Preload("BusinessType").First(&business, id).Error
 	return business, err

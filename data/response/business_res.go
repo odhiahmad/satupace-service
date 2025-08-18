@@ -1,7 +1,9 @@
 package response
 
+import "github.com/google/uuid"
+
 type BusinessResponse struct {
-	Id           int                   `json:"id"`
+	Id           uuid.UUID             `json:"id"`
 	Name         string                `json:"business_name"`
 	OwnerName    string                `json:"owner_name"`
 	Image        *string               `json:"image"`

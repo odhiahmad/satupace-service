@@ -11,6 +11,7 @@ import (
 
 type AuthController interface {
 	LoginBusiness(ctx *gin.Context)
+	LoginPin(ctx *gin.Context)
 	VerifyOTP(ctx *gin.Context)
 	RetryOTP(ctx *gin.Context)
 	RequestForgotPassword(ctx *gin.Context)
@@ -99,6 +100,59 @@ func (c *authController) LoginBusiness(ctx *gin.Context) {
 	}
 
 	response := helper.BuildResponse(true, "Berhasil login", user)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *authController) LoginPin(ctx *gin.Context) {
+	var req request.PinLoginRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		response := helper.BuildErrorResponse(
+			"Input tidak valid",
+			"VALIDATION_ERROR",
+			"pin_login",
+			err.Error(),
+			nil,
+		)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	authRes, err := c.authService.PinLogin(req)
+	if err != nil {
+		var response helper.ResponseError
+
+		switch err {
+		case helper.ErrUserNotFound:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_USER_NOT_FOUND",
+				"user",
+				"Nomor HP tidak ditemukan pada bisnis ini",
+				nil,
+			)
+		case helper.ErrMembershipInactive:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_MEMBERSHIP_INACTIVE",
+				"membership",
+				"Membership Anda tidak aktif atau telah kedaluwarsa",
+				nil,
+			)
+		default:
+			response = helper.BuildErrorResponse(
+				"Login gagal",
+				"AUTH_PIN_ERROR",
+				"pin",
+				err.Error(),
+				nil,
+			)
+		}
+
+		ctx.JSON(http.StatusUnauthorized, response)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Berhasil login dengan PIN", authRes)
 	ctx.JSON(http.StatusOK, response)
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,12 +14,12 @@ import (
 type TransactionRepository interface {
 	Create(transaction *entity.Transaction) (*entity.Transaction, error)
 	Update(transaction *entity.Transaction) (*entity.Transaction, error)
-	FindById(id int) (entity.Transaction, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error)
-	AddOrReplaceItem(transactionId int, item entity.TransactionItem) error
-	FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error)
+	FindById(id uuid.UUID) (entity.Transaction, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Transaction, int64, error)
+	AddOrReplaceItem(transactionId uuid.UUID, item entity.TransactionItem) error
+	FindItemsByTransactionId(transactionId uuid.UUID) ([]entity.TransactionItem, error)
 	UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error)
-	UpdateItemFields(transactionId int, item entity.TransactionItem) error
+	UpdateItemFields(transactionId uuid.UUID, item entity.TransactionItem) error
 }
 
 type transactionConnection struct {
@@ -39,7 +40,7 @@ func (conn *transactionConnection) Create(transaction *entity.Transaction) (*ent
 		}
 
 		for i := range items {
-			items[i].Id = 0
+			items[i].Id = uuid.Nil
 			items[i].TransactionId = transaction.Id
 		}
 
@@ -51,7 +52,7 @@ func (conn *transactionConnection) Create(transaction *entity.Transaction) (*ent
 		for _, item := range items {
 			for j := range item.Attributes {
 				attr := &item.Attributes[j]
-				attr.Id = 0
+				attr.Id = uuid.Nil
 				attr.TransactionItemId = item.Id
 				allAttributes = append(allAttributes, *attr)
 			}
@@ -107,19 +108,21 @@ func (conn *transactionConnection) Update(transaction *entity.Transaction) (*ent
 		}
 
 		for i := range transaction.Items {
+			transaction.Items[i].Id = uuid.Nil
 			transaction.Items[i].TransactionId = transaction.Id
+
 			if err := tx.Create(&transaction.Items[i]).Error; err != nil {
 				return err
 			}
 
 			for j := range transaction.Items[i].Attributes {
+				transaction.Items[i].Attributes[j].Id = uuid.Nil
 				transaction.Items[i].Attributes[j].TransactionItemId = transaction.Items[i].Id
 				if err := tx.Create(&transaction.Items[i].Attributes[j]).Error; err != nil {
 					return err
 				}
 			}
 		}
-
 		return nil
 	})
 
@@ -181,7 +184,7 @@ func (conn *transactionConnection) UpdateTotals(transaction *entity.Transaction)
 	return &existing, nil
 }
 
-func (conn *transactionConnection) UpdateItemFields(transactionId int, item entity.TransactionItem) error {
+func (conn *transactionConnection) UpdateItemFields(transactionId uuid.UUID, item entity.TransactionItem) error {
 	if item.ProductId == nil {
 		return fmt.Errorf("product_id kosong pada item")
 	}
@@ -200,7 +203,7 @@ func (conn *transactionConnection) UpdateItemFields(transactionId int, item enti
 		}).Error
 }
 
-func (conn *transactionConnection) FindById(id int) (entity.Transaction, error) {
+func (conn *transactionConnection) FindById(id uuid.UUID) (entity.Transaction, error) {
 	var transaction entity.Transaction
 	err := conn.db.
 		Preload("Customer").
@@ -219,7 +222,7 @@ func (conn *transactionConnection) FindById(id int) (entity.Transaction, error) 
 	return transaction, err
 }
 
-func (conn *transactionConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Transaction, int64, error) {
+func (conn *transactionConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Transaction, int64, error) {
 	var transactions []entity.Transaction
 	var total int64
 
@@ -251,7 +254,7 @@ func (conn *transactionConnection) FindWithPagination(businessId int, pagination
 	return transactions, total, nil
 }
 
-func (conn *transactionConnection) AddOrReplaceItem(transactionId int, item entity.TransactionItem) error {
+func (conn *transactionConnection) AddOrReplaceItem(transactionId uuid.UUID, item entity.TransactionItem) error {
 	return conn.db.Transaction(func(tx *gorm.DB) error {
 		var existing entity.TransactionItem
 
@@ -340,7 +343,7 @@ func (conn *transactionConnection) AddOrReplaceItem(transactionId int, item enti
 	})
 }
 
-func (conn *transactionConnection) FindItemsByTransactionId(transactionId int) ([]entity.TransactionItem, error) {
+func (conn *transactionConnection) FindItemsByTransactionId(transactionId uuid.UUID) ([]entity.TransactionItem, error) {
 	var items []entity.TransactionItem
 
 	err := conn.db.

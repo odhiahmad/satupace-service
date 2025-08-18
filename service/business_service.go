@@ -4,18 +4,19 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type BusinessService interface {
 	Create(req request.BusinessCreate) (response.BusinessResponse, error)
 	Update(req request.BusinessUpdate) (response.BusinessResponse, error)
-	Delete(id int) error
-	FindById(id int) (response.BusinessResponse, error)
+	Delete(id uuid.UUID) error
+	FindById(id uuid.UUID) (response.BusinessResponse, error)
 	FindWithPagination(pagination request.Pagination) ([]response.BusinessResponse, int64, error)
 }
 
@@ -49,15 +50,13 @@ func (s *businessService) Create(req request.BusinessCreate) (response.BusinessR
 		return response.BusinessResponse{}, err
 	}
 
-	return MapToBusinessResponse(created), nil
+	return *mapper.MapBusiness(&created), nil
 }
 func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessResponse, error) {
-	// Validasi input
 	if err := s.validate.Struct(req); err != nil {
 		return response.BusinessResponse{}, err
 	}
 
-	// Mapping request ke entity
 	business := entity.Business{
 		Id:             req.Id,
 		Name:           strings.ToLower(req.Name),
@@ -70,16 +69,15 @@ func (s *businessService) Update(req request.BusinessUpdate) (response.BusinessR
 		IsActive:       req.IsActive,
 	}
 
-	// Update ke repository
 	updated, err := s.repo.Update(business)
 	if err != nil {
 		return response.BusinessResponse{}, err
 	}
 
-	return MapToBusinessResponse(updated), nil
+	return *mapper.MapBusiness(&updated), nil
 }
 
-func (s *businessService) Delete(id int) error {
+func (s *businessService) Delete(id uuid.UUID) error {
 	business, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -87,12 +85,12 @@ func (s *businessService) Delete(id int) error {
 	return s.repo.Delete(business)
 }
 
-func (s *businessService) FindById(id int) (response.BusinessResponse, error) {
+func (s *businessService) FindById(id uuid.UUID) (response.BusinessResponse, error) {
 	business, err := s.repo.FindById(id)
 	if err != nil {
 		return response.BusinessResponse{}, err
 	}
-	return MapToBusinessResponse(business), nil
+	return *mapper.MapBusiness(&business), nil
 }
 
 func (s *businessService) FindWithPagination(pagination request.Pagination) ([]response.BusinessResponse, int64, error) {
@@ -103,19 +101,8 @@ func (s *businessService) FindWithPagination(pagination request.Pagination) ([]r
 
 	var responses []response.BusinessResponse
 	for _, b := range businesses {
-		responses = append(responses, MapToBusinessResponse(b))
+		responses = append(responses, *mapper.MapBusiness(&b))
 	}
 
 	return responses, total, nil
-}
-
-func MapToBusinessResponse(b entity.Business) response.BusinessResponse {
-	return response.BusinessResponse{
-		Id:           b.Id,
-		Name:         b.Name,
-		OwnerName:    b.OwnerName,
-		BusinessType: helper.MapBusinessTypeToResponse(b.BusinessType),
-		Image:        b.Image,
-		IsActive:     b.IsActive,
-	}
 }

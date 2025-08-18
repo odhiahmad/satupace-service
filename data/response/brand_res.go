@@ -1,6 +1,8 @@
 package response
 
+import "github.com/google/uuid"
+
 type BrandResponse struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"` // "Pcs", "Kg", dll
+	Id   uuid.UUID `json:"id"`
+	Name string    `json:"name"` // "Pcs", "Kg", dll
 }

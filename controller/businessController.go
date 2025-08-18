@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -45,7 +46,13 @@ func (c *businessController) Create(ctx *gin.Context) {
 }
 
 func (c *businessController) Update(ctx *gin.Context) {
-	businessId := ctx.MustGet("business_id").(int)
+	businessIdStr := ctx.MustGet("business_id").(string)
+	businessId, err := uuid.Parse(businessIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
+
 	var input request.BusinessUpdate
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "BAD_REQUEST", "body", err.Error(), nil))
@@ -63,7 +70,8 @@ func (c *businessController) Update(ctx *gin.Context) {
 }
 
 func (c *businessController) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return
@@ -79,7 +87,8 @@ func (c *businessController) Delete(ctx *gin.Context) {
 }
 
 func (c *businessController) FindById(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idStr := ctx.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "BAD_REQUEST", "id", err.Error(), nil))
 		return

@@ -1,9 +1,13 @@
 package request
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type DiscountRequest struct {
-	BusinessId  int       `json:"business_id" validate:"required"`
+	BusinessId  uuid.UUID `json:"business_id" validate:"required"`
 	Name        string    `json:"name" validate:"required"`
 	Description string    `json:"description"`
 	Amount      float64   `json:"amount" validate:"required"`

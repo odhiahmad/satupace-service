@@ -65,7 +65,6 @@ func (c *businessTypeController) UpdateBusinessType(ctx *gin.Context) {
 		return
 	}
 
-	// Konversi businessTypeId dari string ke int
 	businessTypeIdParam := ctx.Param("businessTypeId")
 	businessTypeId, err := strconv.Atoi(businessTypeIdParam)
 	if err != nil {
@@ -80,7 +79,6 @@ func (c *businessTypeController) UpdateBusinessType(ctx *gin.Context) {
 		return
 	}
 
-	// Kirim ke service
 	c.businessTypeService.UpdateBusinessType(businessTypeId, businessTypeUpdate)
 
 	response := helper.BuildResponse(true, "!OK", nil)

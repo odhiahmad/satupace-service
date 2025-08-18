@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
@@ -17,9 +18,9 @@ type TransactionPricing struct {
 
 func HitungHargaTransaksi(
 	product entity.Product,
-	productVariantId *int,
+	productVariantId *uuid.UUID,
 	quantity int,
-	allProductIds []int,
+	allProductIds []uuid.UUID,
 ) (*TransactionPricing, error) {
 	var price float64
 	var sellPrice float64

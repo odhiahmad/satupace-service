@@ -4,20 +4,22 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type UnitService interface {
 	Create(req request.UnitRequest) (entity.Unit, error)
-	Update(id int, req request.UnitRequest) (entity.Unit, error)
-	Delete(id int) error
-	FindById(id int) response.UnitResponse
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.UnitResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, bool, error)
+	Update(id uuid.UUID, req request.UnitRequest) (entity.Unit, error)
+	Delete(id uuid.UUID) error
+	FindById(id uuid.UUID) response.UnitResponse
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.UnitResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.UnitResponse, string, bool, error)
 }
 
 type unitService struct {
@@ -41,13 +43,12 @@ func (s *unitService) Create(req request.UnitRequest) (entity.Unit, error) {
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
-		Multiplier: req.Multiplier,
 	}
 
 	return s.repo.Create(unit)
 }
 
-func (s *unitService) Update(id int, req request.UnitRequest) (entity.Unit, error) {
+func (s *unitService) Update(id uuid.UUID, req request.UnitRequest) (entity.Unit, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Unit{}, err
 	}
@@ -57,13 +58,12 @@ func (s *unitService) Update(id int, req request.UnitRequest) (entity.Unit, erro
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
 		Alias:      req.Alias,
-		Multiplier: req.Multiplier,
 	}
 
 	return s.repo.Update(unit)
 }
 
-func (s *unitService) Delete(id int) error {
+func (s *unitService) Delete(id uuid.UUID) error {
 	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -87,15 +87,15 @@ func (s *unitService) Delete(id int) error {
 	return nil
 }
 
-func (s *unitService) FindById(unitId int) response.UnitResponse {
+func (s *unitService) FindById(unitId uuid.UUID) response.UnitResponse {
 	unitData, err := s.repo.FindById(unitId)
 	helper.ErrorPanic(err)
 
-	unitResponse := helper.MapUnit(&unitData)
+	unitResponse := mapper.MapUnit(&unitData)
 	return *unitResponse
 }
 
-func (s *unitService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.UnitResponse, int64, error) {
+func (s *unitService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.UnitResponse, int64, error) {
 	units, total, err := s.repo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -103,13 +103,13 @@ func (s *unitService) FindWithPagination(businessId int, pagination request.Pagi
 
 	var result []response.UnitResponse
 	for _, unit := range units {
-		result = append(result, *helper.MapUnit(&unit))
+		result = append(result, *mapper.MapUnit(&unit))
 	}
 
 	return result, total, nil
 }
 
-func (s *unitService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.UnitResponse, string, bool, error) {
+func (s *unitService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.UnitResponse, string, bool, error) {
 	units, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err
@@ -117,7 +117,7 @@ func (s *unitService) FindWithPaginationCursor(businessId int, pagination reques
 
 	var result []response.UnitResponse
 	for _, unit := range units {
-		result = append(result, *helper.MapUnit(&unit))
+		result = append(result, *mapper.MapUnit(&unit))
 	}
 
 	return result, nextCursor, hasNext, nil

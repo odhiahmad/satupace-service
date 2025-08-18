@@ -7,21 +7,24 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 	"github.com/redis/go-redis/v9"
 )
 
 type CategoryService interface {
 	Create(category request.CategoryRequest) (response.CategoryResponse, error)
-	Update(id int, category request.CategoryRequest) (response.CategoryResponse, error)
-	FindById(brandId int) response.CategoryResponse
-	Delete(id int) error
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
+	Update(id uuid.UUID, category request.CategoryRequest) (response.CategoryResponse, error)
+	FindById(brandId uuid.UUID) response.CategoryResponse
+	Delete(id uuid.UUID) error
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
+	FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error)
 }
 
 type categoryService struct {
@@ -59,11 +62,11 @@ func (s *categoryService) Create(req request.CategoryRequest) (response.Category
 	pattern := fmt.Sprintf("categories:business:%d*", req.BusinessId)
 	helper.DeleteKeysByPattern(context.Background(), s.Redis, pattern)
 
-	categoryResponse := helper.MapCategory(&createdCategory)
+	categoryResponse := mapper.MapCategory(&createdCategory)
 	return *categoryResponse, nil
 }
 
-func (s *categoryService) Update(id int, req request.CategoryRequest) (response.CategoryResponse, error) {
+func (s *categoryService) Update(id uuid.UUID, req request.CategoryRequest) (response.CategoryResponse, error) {
 	err := s.Validate.Struct(req)
 	if err != nil {
 		return response.CategoryResponse{}, err
@@ -86,19 +89,19 @@ func (s *categoryService) Update(id int, req request.CategoryRequest) (response.
 	cacheKey := fmt.Sprintf("category:%d", id)
 	s.Redis.Del(context.Background(), cacheKey)
 
-	categoryResponse := helper.MapCategory(&updatedCategory)
+	categoryResponse := mapper.MapCategory(&updatedCategory)
 	return *categoryResponse, nil
 }
 
-func (s *categoryService) FindById(brandId int) response.CategoryResponse {
+func (s *categoryService) FindById(brandId uuid.UUID) response.CategoryResponse {
 	categories, err := s.repo.FindById(brandId)
 	helper.ErrorPanic(err)
 
-	category := helper.MapCategory(&categories)
+	category := mapper.MapCategory(&categories)
 	return *category
 }
 
-func (s *categoryService) Delete(id int) error {
+func (s *categoryService) Delete(id uuid.UUID) error {
 	category, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -127,7 +130,7 @@ func (s *categoryService) Delete(id int) error {
 	return nil
 }
 
-func (s *categoryService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
+func (s *categoryService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, int64, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("categories:business:%d:page:%d:limit:%d:cat:%v", businessId, pagination.Page, pagination.Limit, pagination.CategoryID)
 
@@ -144,7 +147,7 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 
 	var result []response.CategoryResponse
 	for _, category := range categories {
-		result = append(result, *helper.MapCategory(&category))
+		result = append(result, *mapper.MapCategory(&category))
 	}
 
 	_ = helper.SetJSONToRedis(ctx, s.Redis, cacheKey, result, time.Minute*10)
@@ -152,7 +155,7 @@ func (s *categoryService) FindWithPagination(businessId int, pagination request.
 	return result, total, nil
 }
 
-func (s *categoryService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
+func (s *categoryService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
 	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err
@@ -160,7 +163,21 @@ func (s *categoryService) FindWithPaginationCursor(businessId int, pagination re
 
 	var result []response.CategoryResponse
 	for _, category := range categories {
-		result = append(result, *helper.MapCategory(&category))
+		result = append(result, *mapper.MapCategory(&category))
+	}
+
+	return result, nextCursor, hasNext, nil
+}
+
+func (s *categoryService) FindWithPaginationCursorProduct(businessId uuid.UUID, pagination request.Pagination) ([]response.CategoryResponse, string, bool, error) {
+	categories, nextCursor, hasNext, err := s.repo.FindWithPaginationCursorProduct(businessId, pagination)
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	var result []response.CategoryResponse
+	for _, category := range categories {
+		result = append(result, *mapper.MapCategory(&category))
 	}
 
 	return result, nextCursor, hasNext, nil

@@ -3,17 +3,19 @@ package entity
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Category struct {
-	Id         int            `gorm:"primaryKey;autoIncrement" json:"id"`
-	BusinessId int            `gorm:"not null" json:"business_id"`
+	Id         uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	BusinessId uuid.UUID      `gorm:"not null;index" json:"business_id"`
 	Business   *Business      `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"-"`
 	Name       string         `gorm:"type:varchar(255)" json:"name"`
-	ParentId   *int           `json:"parent_id,omitempty"`
-	Children   []Category     `gorm:"foreignKey:ParentId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"children,omitempty"`
+	ParentId   *uuid.UUID     `gorm:"index" json:"parent_id"`
+	Children   []Category     `gorm:"foreignKey:ParentId;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"children"`
 	IsActive   bool           `gorm:"not null" json:"is_active"`
+	HasProduct bool           `gorm:"column:has_product" json:"has_product"`
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`

@@ -21,7 +21,6 @@ func StringOrDefault(p *string, def string) string {
 	return def
 }
 
-// helper untuk menghindari nil pointer
 func DerefOrEmpty(s *string) string {
 	if s != nil {
 		return *s

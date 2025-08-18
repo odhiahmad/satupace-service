@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -13,15 +14,15 @@ import (
 type DiscountRepository interface {
 	Create(discount entity.Discount) (entity.Discount, error)
 	Update(discount entity.Discount) (entity.Discount, error)
-	Delete(id int) error
-	HasRelation(brandId int) (bool, error)
-	SoftDelete(id int) error
-	HardDelete(id int) error
-	SetIsActive(id int, isActive bool) error
-	FindById(id int) (entity.Discount, error)
-	FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, bool, error)
+	Delete(id uuid.UUID) error
+	HasRelation(brandId uuid.UUID) (bool, error)
+	SoftDelete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
+	SetIsActive(id uuid.UUID, isActive bool) error
+	FindById(id uuid.UUID) (entity.Discount, error)
+	FindActiveGlobalDiscount(businessId uuid.UUID, now time.Time) (*entity.Discount, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Discount, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Discount, string, bool, error)
 }
 
 type discountConnection struct {
@@ -45,43 +46,43 @@ func (conn *discountConnection) Update(discount entity.Discount) (entity.Discoun
 	return discount, nil
 }
 
-func (conn *discountConnection) Delete(id int) error {
+func (conn *discountConnection) Delete(id uuid.UUID) error {
 	return conn.db.Delete(&entity.Discount{}, id).Error
 }
 
-func (conn *discountConnection) HasRelation(discountId int) (bool, error) {
+func (conn *discountConnection) HasRelation(discountId uuid.UUID) (bool, error) {
 	var count int64
 	err := conn.db.Model(&entity.Product{}).Where("discount_id = ?", discountId).Count(&count).Error
 	return count > 0, err
 }
 
-func (conn *discountConnection) SoftDelete(id int) error {
-	return conn.db.Delete(&entity.Discount{}, id).Error // akan mengisi deleted_at
+func (conn *discountConnection) SoftDelete(id uuid.UUID) error {
+	return conn.db.Delete(&entity.Discount{}, id).Error
 }
 
-func (conn *discountConnection) HardDelete(id int) error {
-	return conn.db.Unscoped().Delete(&entity.Discount{}, id).Error // delete permanen
+func (conn *discountConnection) HardDelete(id uuid.UUID) error {
+	return conn.db.Unscoped().Delete(&entity.Discount{}, id).Error
 }
 
-func (conn *discountConnection) SetIsActive(id int, isActive bool) error {
+func (conn *discountConnection) SetIsActive(id uuid.UUID, isActive bool) error {
 	return conn.db.Model(&entity.Discount{}).
 		Where("id = ?", id).
 		Update("is_active", isActive).Error
 }
 
-func (conn *discountConnection) FindById(id int) (entity.Discount, error) {
+func (conn *discountConnection) FindById(id uuid.UUID) (entity.Discount, error) {
 	var discount entity.Discount
 	err := conn.db.First(&discount, id).Error
 	return discount, err
 }
 
-func (conn *discountConnection) FindByBusinessId(businessId int) ([]entity.Discount, error) {
+func (conn *discountConnection) FindByBusinessId(businessId uuid.UUID) ([]entity.Discount, error) {
 	var discounts []entity.Discount
 	err := conn.db.Where("business_id = ?", businessId).Find(&discounts).Error
 	return discounts, err
 }
 
-func (conn *discountConnection) FindActiveGlobalDiscount(businessId int, now time.Time) (*entity.Discount, error) {
+func (conn *discountConnection) FindActiveGlobalDiscount(businessId uuid.UUID, now time.Time) (*entity.Discount, error) {
 	var discount entity.Discount
 	err := conn.db.
 		Where("business_id = ? AND is_global = ? AND start_at <= ? AND end_at >= ?", businessId, true, now, now).
@@ -94,7 +95,7 @@ func (conn *discountConnection) FindActiveGlobalDiscount(businessId int, now tim
 	return &discount, nil
 }
 
-func (conn *discountConnection) FindWithPagination(businessId int, pagination request.Pagination) ([]entity.Discount, int64, error) {
+func (conn *discountConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Discount, int64, error) {
 	var discounts []entity.Discount
 	var total int64
 
@@ -120,7 +121,7 @@ func (conn *discountConnection) FindWithPagination(businessId int, pagination re
 	return discounts, total, nil
 }
 
-func (conn *discountConnection) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]entity.Discount, string, bool, error) {
+func (conn *discountConnection) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Discount, string, bool, error) {
 	var discounts []entity.Discount
 
 	query := conn.db.Model(&entity.Discount{}).
@@ -170,7 +171,7 @@ func (conn *discountConnection) FindWithPaginationCursor(businessId int, paginat
 
 	if len(discounts) > limit {
 		last := discounts[limit-1]
-		nextCursor = helper.EncodeCursorID(int64(last.Id))
+		nextCursor = helper.EncodeCursorID(last.Id.String())
 		discounts = discounts[:limit]
 		hasNext = true
 	}

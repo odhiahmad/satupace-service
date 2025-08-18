@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/odhiahmad/kasirku-service/entity"
+	seeders "github.com/odhiahmad/kasirku-service/seeder"
 	"github.com/vandyahmad24/golang-wilayah-indonesia/wilayah"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -45,7 +46,6 @@ func SetupDatabaseConnection() *gorm.DB {
 	if ginMode != "release" {
 		if err := db.AutoMigrate(
 			&entity.UserBusiness{},
-			&entity.User{},
 			&entity.BusinessType{},
 			&entity.Business{},
 			&entity.Membership{},
@@ -67,6 +67,8 @@ func SetupDatabaseConnection() *gorm.DB {
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}
+
+		seeders.RunAll(db)
 	} else {
 		log.Println("ℹ️ Production mode terdeteksi, AutoMigrate dilewati.")
 	}

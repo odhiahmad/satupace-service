@@ -5,21 +5,23 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type DiscountService interface {
 	Create(req request.DiscountRequest) (entity.Discount, error)
-	Update(id int, req request.DiscountRequest) (entity.Discount, error)
-	Delete(id int) error
-	SetIsActive(id int, active bool) error
-	FindById(id int) (response.DiscountResponse, error)
-	FindWithPagination(businessId int, pagination request.Pagination) ([]response.DiscountResponse, int64, error)
-	FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error)
+	Update(id uuid.UUID, req request.DiscountRequest) (entity.Discount, error)
+	Delete(id uuid.UUID) error
+	SetIsActive(id uuid.UUID, active bool) error
+	FindById(id uuid.UUID) (response.DiscountResponse, error)
+	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.DiscountResponse, int64, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error)
 }
 
 type discountService struct {
@@ -63,7 +65,7 @@ func (s *discountService) Create(req request.DiscountRequest) (entity.Discount, 
 	return s.repo.Create(discount)
 }
 
-func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Discount, error) {
+func (s *discountService) Update(id uuid.UUID, req request.DiscountRequest) (entity.Discount, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return entity.Discount{}, err
 	}
@@ -92,7 +94,7 @@ func (s *discountService) Update(id int, req request.DiscountRequest) (entity.Di
 	return s.repo.Update(discount)
 }
 
-func (s *discountService) Delete(id int) error {
+func (s *discountService) Delete(id uuid.UUID) error {
 	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -116,19 +118,19 @@ func (s *discountService) Delete(id int) error {
 	return nil
 }
 
-func (s *discountService) SetIsActive(id int, active bool) error {
+func (s *discountService) SetIsActive(id uuid.UUID, active bool) error {
 	return s.repo.SetIsActive(id, active)
 }
 
-func (s *discountService) FindById(id int) (response.DiscountResponse, error) {
+func (s *discountService) FindById(id uuid.UUID) (response.DiscountResponse, error) {
 	discount, err := s.repo.FindById(id)
 	if err != nil {
 		return response.DiscountResponse{}, err
 	}
-	return helper.ToDiscountResponse(discount), nil
+	return *mapper.MapDiscount(&discount), nil
 }
 
-func (s *discountService) FindWithPagination(businessId int, pagination request.Pagination) ([]response.DiscountResponse, int64, error) {
+func (s *discountService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.DiscountResponse, int64, error) {
 	discounts, total, err := s.repo.FindWithPagination(businessId, pagination)
 	if err != nil {
 		return nil, 0, err
@@ -136,13 +138,13 @@ func (s *discountService) FindWithPagination(businessId int, pagination request.
 
 	var responses []response.DiscountResponse
 	for _, d := range discounts {
-		responses = append(responses, helper.ToDiscountResponse(d)) // fungsi mapping
+		responses = append(responses, *mapper.MapDiscount(&d)) // fungsi mapping
 	}
 
 	return responses, total, nil
 }
 
-func (s *discountService) FindWithPaginationCursor(businessId int, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error) {
+func (s *discountService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.DiscountResponse, string, bool, error) {
 	discounts, nextCursor, hasNext, err := s.repo.FindWithPaginationCursor(businessId, pagination)
 	if err != nil {
 		return nil, "", false, err
@@ -150,7 +152,7 @@ func (s *discountService) FindWithPaginationCursor(businessId int, pagination re
 
 	var responses []response.DiscountResponse
 	for _, d := range discounts {
-		responses = append(responses, helper.ToDiscountResponse(d))
+		responses = append(responses, *mapper.MapDiscount(&d))
 	}
 
 	return responses, nextCursor, hasNext, nil

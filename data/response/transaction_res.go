@@ -1,21 +1,25 @@
 package response
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type TransactionItemAttributeResponse struct {
-	Id                 int     `json:"id"`
-	ProductAttributeId int     `json:"product_attribute_id"`
-	AdditionalPrice    float64 `json:"additional_price"`
+	Id                 uuid.UUID `json:"id"`
+	ProductAttributeId uuid.UUID `json:"product_attribute_id"`
+	AdditionalPrice    float64   `json:"additional_price"`
 }
 
 type TransactionItemResponse struct {
-	Id                 int                                `json:"id"`
-	ProductId          *int                               `json:"product_id"`
+	Id                 uuid.UUID                          `json:"id"`
+	ProductId          *uuid.UUID                         `json:"product_id"`
 	Product            []ProductResponse                  `json:"product"`
-	BundleId           *int                               `json:"bundle_id"`
+	BundleId           *uuid.UUID                         `json:"bundle_id"`
 	Bundle             []BundleResponse                   `json:"bundle"`
-	ProductAttributeId *int                               `json:"product_attribute_id"`
-	ProductVariantId   *int                               `json:"product_variant_id"`
+	ProductAttributeId *uuid.UUID                         `json:"product_attribute_id"`
+	ProductVariantId   *uuid.UUID                         `json:"product_variant_id"`
 	Quantity           int                                `json:"quantity"`
 	Attributes         []TransactionItemAttributeResponse `json:"attributes"`
 	Discount           float64                            `json:"discount"`
@@ -28,9 +32,9 @@ type TransactionItemResponse struct {
 }
 
 type TransactionResponse struct {
-	Id              int                       `json:"transaction_id"`
-	BusinessId      int                       `json:"business_id"`
-	CustomerId      *int                      `json:"customer_id"`
+	Id              uuid.UUID                 `json:"transaction_id"`
+	BusinessId      uuid.UUID                 `json:"business_id"`
+	Customer        CustomerResponse          `json:"customer"`
 	Cashier         UserBusinessResponse      `json:"cashier"`
 	PaymentMethodId *int                      `json:"payment_method_id"`
 	BillNumber      string                    `json:"bill_number"`
@@ -41,6 +45,8 @@ type TransactionResponse struct {
 	Discount        float64                   `json:"discount"`
 	Promo           float64                   `json:"promo"`
 	Tax             float64                   `json:"tax"`
+	OrderType       OrderTypeResponse         `json:"order_type"`
+	Table           *TableResponse            `json:"table"`
 	Status          string                    `json:"status"`
 	Rating          *float64                  `json:"rating"`
 	Notes           *string                   `json:"notes"`
@@ -48,13 +54,13 @@ type TransactionResponse struct {
 	Change          *float64                  `json:"change"`
 	PaidAt          *time.Time                `json:"paid_at"`
 	RefundedAt      *time.Time                `json:"refunded_at"`
-	RefundedBy      *int                      `json:"refunded_by"`
+	RefundedBy      *uuid.UUID                `json:"refunded_by"`
 	RefundReason    *string                   `json:"refund_reason"`
-	IsRefunded      *bool                     `json:"is_refunded"`
+	IsRefunded      bool                      `json:"is_refunded"`
 	CanceledAt      *time.Time                `json:"canceled_at"`
-	CanceledBy      *int                      `json:"canceled_by"`
+	CanceledBy      *uuid.UUID                `json:"canceled_by"`
 	CanceledReason  *string                   `json:"canceled_reason"`
-	IsCanceled      *bool                     `json:"is_canceled"`
+	IsCanceled      bool                      `json:"is_canceled"`
 	CreatedAt       time.Time                 `json:"created_at"`
 	UpdatedAt       time.Time                 `json:"updated_at"`
 }
