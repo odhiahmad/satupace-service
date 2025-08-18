@@ -240,12 +240,12 @@ func SetupRouter() *gin.Engine {
 	transactionRoutes := r.Group("transaction", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		transactionRoutes.POST("", transactionController.Create)
-		transactionRoutes.PUT("/:id/payment", transactionController.Payment)
+		transactionRoutes.PUT("/payment/:id", transactionController.Payment)
 		transactionRoutes.GET("/:id", transactionController.FindById)
 		transactionRoutes.GET("", transactionController.FindWithPagination)
-		transactionRoutes.PUT("/:id/items", transactionController.AddOrUpdateItem)
-		transactionRoutes.PUT("/:id/refund", transactionController.Refund)
-		transactionRoutes.PUT("/:id/canceled", transactionController.Cancel)
+		transactionRoutes.PUT("/items/:id", transactionController.AddOrUpdateItem)
+		transactionRoutes.PUT("/refund/:id", transactionController.Refund)
+		transactionRoutes.PUT("/canceled/:id", transactionController.Cancel)
 	}
 
 	businessRoutes := r.Group("business", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
