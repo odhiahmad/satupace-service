@@ -45,11 +45,12 @@ type TransactionItemUpdate struct {
 }
 
 type TransactionCreateRequest struct {
-	BusinessId  uuid.UUID               `json:"business_id" validate:"required"`
-	CustomerId  *uuid.UUID              `json:"customer_id"`
-	OrderTypeId uuid.UUID               `json:"order_type_id" validate:"required"`
-	TableId     *uuid.UUID              `json:"table_id"`
-	Items       []TransactionItemCreate `json:"items" validate:"required,dive"`
+	BusinessId   uuid.UUID               `json:"business_id" validate:"required"`
+	CustomerName *string                 `json:"customer_name"`
+	OrderTypeId  uuid.UUID               `json:"service_type" validate:"required"`
+	TableId      *uuid.UUID              `json:"table"`
+	Items        []TransactionItemCreate `json:"items" validate:"required,dive"`
+	Notes        *string                 `json:"notes"`
 }
 
 type TransactionPaymentRequest struct {
@@ -58,7 +59,6 @@ type TransactionPaymentRequest struct {
 	CashierId       uuid.UUID  `json:"cashier_id"`
 	PaymentMethodId *int       `json:"payment_method_id"`
 	Rating          *float64   `json:"rating"`
-	Notes           *string    `json:"notes"`
 	AmountReceived  *float64   `json:"amount_received"`
 }
 

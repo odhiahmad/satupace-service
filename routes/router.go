@@ -42,6 +42,7 @@ var (
 	orderTypeRepository      repository.OrderTypeRepository      = repository.NewOrderTypeRepository(db)
 	shiftRepository          repository.ShiftRepository          = repository.NewShiftRepository(db)
 	terminalRepository       repository.TerminalRepository       = repository.NewTerminalRepository(db)
+	customerRepository       repository.CustomerRepository       = repository.NewCustomerRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
 	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
@@ -55,7 +56,7 @@ var (
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
 	unitService           service.UnitService           = service.NewUnitService(unitRepository)
-	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, validate)
+	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, customerRepository, validate)
 	discountService       service.DiscountService       = service.NewDiscountService(discountRepository, validate)
 	businessService       service.BusinessService       = service.NewBusinessService(businessRepository, validate)
 	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
@@ -66,6 +67,7 @@ var (
 	shiftService          service.ShiftService          = service.NewShiftService(userBusinessRepository, shiftRepository)
 	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
 	employeeService       service.EmployeeService       = service.NewEmployeeService(userBusinessRepository, validate)
+	customerService       service.CustomerService       = service.NewCustomerService(customerRepository, validate)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
@@ -89,6 +91,7 @@ var (
 	shiftController          controller.ShiftController          = controller.NewShiftController(shiftService, jwtService)
 	terminalController       controller.TerminalController       = controller.NewTerminalController(terminalService, jwtService)
 	employeeController       controller.EmployeeController       = controller.NewEmployeeController(employeeService, jwtService)
+	customerController       controller.CustomerController       = controller.NewCustomerController(customerService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -259,6 +262,16 @@ func SetupRouter() *gin.Engine {
 		locationRoutes.GET("/cities", locationController.GetCities)
 		locationRoutes.GET("/districts", locationController.GetDistricts)
 		locationRoutes.GET("/villages", locationController.GetVillages)
+	}
+
+	customerRoutes := r.Group("customer", middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		customerRoutes.POST("", customerController.Create)
+		customerRoutes.PUT("/:id", customerController.Update)
+		customerRoutes.GET("", customerController.FindWithPagination)
+		customerRoutes.GET("/cursor", customerController.FindWithPaginationCursor)
+		customerRoutes.GET("/:id", customerController.FindById)
+		customerRoutes.DELETE("/:id", customerController.Delete)
 	}
 
 	orderTypeRoutes := r.Group("order-type", middleware.RateLimit(redisHelper, 20, time.Minute))

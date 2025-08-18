@@ -28,14 +28,16 @@ type TransactionService interface {
 
 type transactionService struct {
 	transactionRepo repository.TransactionRepository
+	customerRepo    repository.CustomerRepository
 	validate        *validator.Validate
 	db              *gorm.DB
 }
 
-func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, validate *validator.Validate) TransactionService {
+func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, customerRepo repository.CustomerRepository, validate *validator.Validate) TransactionService {
 	return &transactionService{
 		db:              db,
 		transactionRepo: repo,
+		customerRepo:    customerRepo,
 		validate:        validator.New(),
 	}
 }
@@ -62,12 +64,26 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		return nil, err
 	}
 
+	var customerId *uuid.UUID
+	if *req.CustomerName != "" {
+		newCustomer := entity.Customer{
+			BusinessId: req.BusinessId,
+			Name:       *req.CustomerName,
+		}
+		createdCustomer, err := s.customerRepo.Create(newCustomer)
+		if err != nil {
+			return nil, err
+		}
+		customerId = &createdCustomer.Id
+	}
+
 	transaction := &entity.Transaction{
 		BusinessId:  req.BusinessId,
-		CustomerId:  req.CustomerId,
+		CustomerId:  customerId,
 		OrderTypeId: req.OrderTypeId,
 		TableId:     req.TableId,
 		BillNumber:  billNumber,
+		Notes:       req.Notes,
 		Items:       res.Items,
 		Status:      "unpaid",
 		FinalPrice:  res.FinalPrice,
@@ -123,7 +139,6 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 	transaction.CustomerId = req.CustomerId
 	transaction.PaymentMethodId = req.PaymentMethodId
 	transaction.Rating = req.Rating
-	transaction.Notes = req.Notes
 	transaction.AmountReceived = &totalReceived
 	transaction.Change = &change
 	transaction.Status = status
