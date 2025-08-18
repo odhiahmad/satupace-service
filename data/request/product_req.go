@@ -10,8 +10,8 @@ type ProductRequest struct {
 	Brand            *string                 `json:"brand"`
 	Description      *string                 `json:"description"`
 	Image            *string                 `json:"image"`
-	BasePrice        *float64                `json:"base_price" validate:"gte=0"`
-	SellPrice        *float64                `json:"sell_price" validate:"gte=0"`
+	BasePrice        *float64                `json:"base_price"`
+	SellPrice        *float64                `json:"sell_price"`
 	SKU              *string                 `json:"sku"`
 	Stock            *int                    `json:"stock"`
 	TrackStock       *bool                   `json:"track_stock"`
@@ -34,8 +34,8 @@ type ProductUpdateRequest struct {
 	Brand            *string                       `json:"brand"`
 	Description      *string                       `json:"description"`
 	Image            *string                       `json:"image"`
-	BasePrice        *float64                      `json:"base_price" validate:"gte=0"`
-	SellPrice        *float64                      `json:"sell_price" validate:"gte=0"`
+	BasePrice        *float64                      `json:"base_price"`
+	SellPrice        *float64                      `json:"sell_price"`
 	SKU              *string                       `json:"sku"`
 	Stock            *int                          `json:"stock"`
 	TrackStock       *bool                         `json:"track_stock"`
