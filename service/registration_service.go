@@ -58,8 +58,10 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return errors.New("nomor telepon sudah digunakan")
 	}
 
+	var name = strings.ToLower(req.Name)
+
 	business := entity.Business{
-		Name:           strings.ToLower(req.Name),
+		Name:           name,
 		OwnerName:      req.OwnerName,
 		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
@@ -83,9 +85,10 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 
 	hashedPassword := helper.HashAndSalt([]byte(req.Password))
 	user := entity.UserBusiness{
+		Name:        &name,
 		Email:       req.Email,
 		Password:    hashedPassword,
-		RoleId:      req.RoleId,
+		RoleId:      1,
 		BusinessId:  savedBusiness.Id,
 		PhoneNumber: req.PhoneNumber,
 		IsActive:    true,
