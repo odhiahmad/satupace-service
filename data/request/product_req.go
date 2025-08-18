@@ -28,7 +28,7 @@ type ProductRequest struct {
 
 type ProductUpdateRequest struct {
 	BusinessId       uuid.UUID                     `json:"business_id" validate:"required"`
-	CategoryId       *uuid.UUID                    `json:"category_id" validate:"required"`
+	CategoryId       *uuid.UUID                    `json:"category_id"`
 	Name             string                        `json:"name" validate:"required"`
 	HasVariant       bool                          `json:"has_variant"`
 	Brand            *string                       `json:"brand"`
