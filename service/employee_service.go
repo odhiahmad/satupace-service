@@ -38,14 +38,14 @@ func (s *employeeService) Create(req request.EmployeeRequest) (*entity.UserBusin
 		return nil, err
 	}
 
-	_, err := s.repo.FindByPhoneAndBusinessId(req.BusinessId, req.PhoneNumber)
+	_, err := s.repo.FindByPhoneAndBusinessId(req.BusinessId, *req.PhoneNumber)
 	if err == nil {
 		return nil, errors.New("nomor HP sudah terdaftar")
 	}
 
 	var hashedPassword string
-	if req.Password != "" {
-		passHash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if *req.Password != "" {
+		passHash, _ := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		hashedPassword = string(passHash)
 	}
 
@@ -55,8 +55,9 @@ func (s *employeeService) Create(req request.EmployeeRequest) (*entity.UserBusin
 		Id:          uuid.New(),
 		RoleId:      req.RoleId,
 		BusinessId:  req.BusinessId,
+		Name:        &req.Name,
 		Email:       req.Email,
-		PhoneNumber: req.PhoneNumber,
+		PhoneNumber: *req.PhoneNumber,
 		Password:    hashedPassword,
 		PinCode:     string(pinHash),
 		IsVerified:  true,
@@ -84,12 +85,13 @@ func (s *employeeService) Update(id uuid.UUID, req request.EmployeeRequest) (*en
 
 	employee.RoleId = req.RoleId
 	employee.BusinessId = req.BusinessId
+	employee.Name = &req.Name
 	employee.Email = req.Email
-	employee.PhoneNumber = req.PhoneNumber
+	employee.PhoneNumber = *req.PhoneNumber
 	employee.UpdatedAt = time.Now()
 
-	if req.Password != "" {
-		passHash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if *req.Password != "" {
+		passHash, _ := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		employee.Password = string(passHash)
 	}
 

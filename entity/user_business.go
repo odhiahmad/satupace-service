@@ -8,6 +8,7 @@ import (
 
 type UserBusiness struct {
 	Id           uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	Name         *string   `gorm:"type:varchar(255)" json:"name"`
 	RoleId       int
 	Role         Role `gorm:"foreignKey:RoleId"`
 	BusinessId   uuid.UUID

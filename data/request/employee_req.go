@@ -3,11 +3,12 @@ package request
 import "github.com/google/uuid"
 
 type EmployeeRequest struct {
+	Name        string    `json:"name"`
 	BusinessId  uuid.UUID `json:"business_id" binding:"required"`
 	RoleId      int       `json:"role_id" binding:"required"`
 	Email       *string   `json:"email"`
-	PhoneNumber string    `json:"phone_number" binding:"required"`
-	Password    string    `json:"password"`
+	PhoneNumber *string   `json:"phone_number"`
+	Password    *string   `json:"password"`
 	PinCode     string    `json:"pin_code" binding:"required"`
 }
 

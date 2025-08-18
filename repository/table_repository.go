@@ -174,14 +174,8 @@ func (conn *tableConnection) GetActiveTables(businessId uuid.UUID) ([]entity.Tab
 
 	err := conn.db.
 		Model(&entity.Table{}).
-		Joins("JOIN transactions ON transactions.table_id = tables.id").
 		Where("tables.business_id = ?", businessId).
-		Where("transactions.status IN (?) AND transactions.is_canceled = ? AND transactions.is_refunded = ?",
-			[]string{"active", "in_progress"}, false, false).
 		Preload("Business").
-		Preload("Business.Owner").
-		Preload("Business.Address").
-		Preload("Business.Users").
 		Preload("Transactions", func(db *gorm.DB) *gorm.DB {
 			return db.
 				Where("transactions.status IN (?) AND transactions.is_canceled = ? AND transactions.is_refunded = ?",
