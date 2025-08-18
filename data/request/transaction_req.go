@@ -54,12 +54,11 @@ type TransactionCreateRequest struct {
 }
 
 type TransactionPaymentRequest struct {
-	Id              uuid.UUID  `json:"id"`
-	CustomerId      *uuid.UUID `json:"customer_id"`
-	CashierId       uuid.UUID  `json:"cashier_id"`
-	PaymentMethodId *int       `json:"payment_method_id"`
-	Rating          *float64   `json:"rating"`
-	AmountReceived  *float64   `json:"amount_received"`
+	Id              uuid.UUID `json:"id"`
+	CashierId       uuid.UUID `json:"cashier_id"`
+	PaymentMethodId *int      `json:"payment_method_id"`
+	Rating          *float64  `json:"rating"`
+	AmountReceived  *float64  `json:"amount_received"`
 }
 
 type TransactionCancelRequest struct {

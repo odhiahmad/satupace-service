@@ -19,6 +19,7 @@ type CustomerRepository interface {
 	SoftDelete(id uuid.UUID) error
 	HardDelete(id uuid.UUID) error
 	FindById(customerId uuid.UUID) (customeres entity.Customer, err error)
+	FindByBusinessIdAndName(businessId uuid.UUID, name string) (entity.Customer, error)
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Customer, int64, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Customer, string, bool, error)
 }
@@ -32,13 +33,11 @@ func NewCustomerRepository(db *gorm.DB) CustomerRepository {
 }
 
 func (conn *customerConnection) Create(customer entity.Customer) (entity.Customer, error) {
-	err := conn.db.Create(&customer).Error
-	if err != nil {
+	if err := conn.db.Create(&customer).Error; err != nil {
 		return entity.Customer{}, err
 	}
 
-	err = conn.db.First(&customer, customer.Id).Error
-	if err != nil {
+	if err := conn.db.First(&customer, "id = ?", customer.Id).Error; err != nil {
 		return entity.Customer{}, err
 	}
 
@@ -82,6 +81,16 @@ func (conn *customerConnection) FindById(customerId uuid.UUID) (customeres entit
 	} else {
 		return customer, errors.New("tag is not found")
 	}
+}
+
+func (conn *customerConnection) FindByBusinessIdAndName(businessId uuid.UUID, name string) (entity.Customer, error) {
+	var customer entity.Customer
+	err := conn.db.Where("business_id = ? AND name = ?", businessId, name).
+		First(&customer).Error
+	if err != nil {
+		return entity.Customer{}, err
+	}
+	return customer, nil
 }
 
 func (conn *customerConnection) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]entity.Customer, int64, error) {

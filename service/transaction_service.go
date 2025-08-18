@@ -65,16 +65,23 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 	}
 
 	var customerId *uuid.UUID
-	if *req.CustomerName != "" {
-		newCustomer := entity.Customer{
-			BusinessId: req.BusinessId,
-			Name:       *req.CustomerName,
-		}
-		createdCustomer, err := s.customerRepo.Create(newCustomer)
-		if err != nil {
+	if req.CustomerName != nil && *req.CustomerName != "" {
+		existingCustomer, err := s.customerRepo.FindByBusinessIdAndName(req.BusinessId, *req.CustomerName)
+		if err == nil {
+			customerId = &existingCustomer.Id
+		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+			newCustomer := entity.Customer{
+				BusinessId: req.BusinessId,
+				Name:       *req.CustomerName,
+			}
+			createdCustomer, err := s.customerRepo.Create(newCustomer)
+			if err != nil {
+				return nil, err
+			}
+			customerId = &createdCustomer.Id
+		} else {
 			return nil, err
 		}
-		customerId = &createdCustomer.Id
 	}
 
 	transaction := &entity.Transaction{
@@ -136,7 +143,7 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 
 	now := time.Now().UTC()
 
-	transaction.CustomerId = req.CustomerId
+	transaction.CashierId = &req.CashierId
 	transaction.PaymentMethodId = req.PaymentMethodId
 	transaction.Rating = req.Rating
 	transaction.AmountReceived = &totalReceived

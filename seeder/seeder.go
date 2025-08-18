@@ -6,4 +6,5 @@ func RunAll(db *gorm.DB) {
 	SeedOrderTypes(db)
 	SeedBusinessTypes(db)
 	SeedRoles(db)
+	SeedPaymentMethods(db)
 }

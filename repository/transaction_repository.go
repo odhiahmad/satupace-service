@@ -93,7 +93,18 @@ func (conn *transactionConnection) Create(transaction *entity.Transaction) (*ent
 
 func (conn *transactionConnection) Update(transaction *entity.Transaction) (*entity.Transaction, error) {
 	err := conn.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(transaction).Error; err != nil {
+		if err := tx.Model(&entity.Transaction{}).
+			Where("id = ?", transaction.Id).
+			Updates(map[string]interface{}{
+				"cashier_id":        transaction.CashierId,
+				"customer_id":       transaction.CustomerId,
+				"payment_method_id": transaction.PaymentMethodId,
+				"rating":            transaction.Rating,
+				"amount_received":   transaction.AmountReceived,
+				"change":            transaction.Change,
+				"status":            transaction.Status,
+				"paid_at":           transaction.PaidAt,
+			}).Error; err != nil {
 			return err
 		}
 

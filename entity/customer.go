@@ -20,3 +20,10 @@ type Customer struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+func (c *Customer) BeforeCreate(tx *gorm.DB) (err error) {
+	if c.Id == uuid.Nil {
+		c.Id = uuid.New()
+	}
+	return
+}
