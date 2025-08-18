@@ -92,7 +92,6 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 
 	product := entity.Product{
 		BusinessId:  req.BusinessId,
-		CategoryId:  req.CategoryId,
 		Name:        strings.ToLower(req.Name),
 		Description: req.Description,
 		Image:       nil,
@@ -103,6 +102,10 @@ func (s *productService) Create(req request.ProductRequest) (response.ProductRes
 		UnitId:      req.UnitId,
 		IsAvailable: req.IsAvailable,
 		IsActive:    req.IsActive,
+	}
+
+	if req.CategoryId != nil {
+		product.CategoryId = req.CategoryId
 	}
 
 	if hasVariant {
@@ -242,7 +245,6 @@ func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) 
 		}
 	}
 
-	product.CategoryId = req.CategoryId
 	product.Name = strings.ToLower(req.Name)
 	product.Description = req.Description
 	product.BrandId = req.BrandId
@@ -252,6 +254,10 @@ func (s *productService) Update(id uuid.UUID, req request.ProductUpdateRequest) 
 	product.HasVariant = hasVariant
 	product.IsAvailable = req.IsAvailable
 	product.IsActive = req.IsActive
+
+	if req.CategoryId != nil {
+		product.CategoryId = req.CategoryId
+	}
 
 	if hasVariant {
 		product.BasePrice = nil
