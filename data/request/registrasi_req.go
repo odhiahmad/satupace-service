@@ -1,7 +1,6 @@
 package request
 
 type RegistrationRequest struct {
-	RoleId         int     `json:"role_id" validate:"required"`
 	Email          *string `json:"email"`
 	Password       string  `json:"password" validate:"required,min=6"`
 	BusinessTypeId int     `json:"business_type_id" validate:"required"`
