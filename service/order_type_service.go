@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
@@ -15,9 +14,9 @@ import (
 
 type OrderTypeService interface {
 	Create(req request.OrderTypeRequest) (response.OrderTypeResponse, error)
-	Update(id uuid.UUID, req request.OrderTypeRequest) (response.OrderTypeResponse, error)
-	Delete(id uuid.UUID) error
-	FindById(id uuid.UUID) response.OrderTypeResponse
+	Update(id int, req request.OrderTypeRequest) (response.OrderTypeResponse, error)
+	Delete(id int) error
+	FindById(id int) response.OrderTypeResponse
 	FindWithPagination(pagination request.Pagination) ([]response.OrderTypeResponse, int64, error)
 	FindWithPaginationCursor(pagination request.Pagination) ([]response.OrderTypeResponse, string, bool, error)
 }
@@ -53,7 +52,7 @@ func (s *orderTypeService) Create(req request.OrderTypeRequest) (response.OrderT
 	return *orderTypeResponse, nil
 }
 
-func (s *orderTypeService) Update(id uuid.UUID, req request.OrderTypeRequest) (response.OrderTypeResponse, error) {
+func (s *orderTypeService) Update(id int, req request.OrderTypeRequest) (response.OrderTypeResponse, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return response.OrderTypeResponse{}, err
 	}
@@ -73,7 +72,7 @@ func (s *orderTypeService) Update(id uuid.UUID, req request.OrderTypeRequest) (r
 	return *orderTypeResponse, nil
 }
 
-func (s *orderTypeService) Delete(id uuid.UUID) error {
+func (s *orderTypeService) Delete(id int) error {
 	_, err := s.repo.FindById(id)
 	if err != nil {
 		return err
@@ -97,7 +96,7 @@ func (s *orderTypeService) Delete(id uuid.UUID) error {
 	return nil
 }
 
-func (s *orderTypeService) FindById(id uuid.UUID) response.OrderTypeResponse {
+func (s *orderTypeService) FindById(id int) response.OrderTypeResponse {
 	orderTypeData, err := s.repo.FindById(id)
 	helper.ErrorPanic(err)
 

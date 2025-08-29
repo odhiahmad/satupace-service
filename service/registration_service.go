@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -22,14 +23,16 @@ type RegistrationService interface {
 type registrationService struct {
 	repo        repository.RegistrationRepository
 	membership  repository.MembershipRepository
+	terminal    repository.TerminalRepository
 	validate    *validator.Validate
 	redisHelper *helper.RedisHelper
 }
 
-func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, validate *validator.Validate, redisHelper *helper.RedisHelper) RegistrationService {
+func NewRegistrationService(repo repository.RegistrationRepository, membership repository.MembershipRepository, terminal repository.TerminalRepository, validate *validator.Validate, redisHelper *helper.RedisHelper) RegistrationService {
 	return &registrationService{
 		repo:        repo,
 		membership:  membership,
+		terminal:    terminal,
 		validate:    validate,
 		redisHelper: redisHelper,
 	}
@@ -59,10 +62,11 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 	}
 
 	var name = strings.ToLower(req.Name)
+	var ownerName = strings.ToLower(req.OwnerName)
 
 	business := entity.Business{
 		Name:           name,
-		OwnerName:      req.OwnerName,
+		OwnerName:      ownerName,
 		BusinessTypeId: &req.BusinessTypeId,
 		Image:          req.Image,
 		IsActive:       true,
@@ -73,9 +77,21 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		return err
 	}
 
+	terminalSave := entity.Terminal{
+		Id:         uuid.New(),
+		BusinessId: savedBusiness.Id,
+		Name:       "Terminal 1",
+		Location:   "Lokasi Utama",
+		IsActive:   true,
+	}
+
+	if _, err := s.terminal.Create(terminalSave); err != nil {
+		return err
+	}
+
 	hashedPassword := helper.HashAndSalt([]byte(req.Password))
 	user := entity.UserBusiness{
-		Name:        &name,
+		Name:        &ownerName,
 		Email:       req.Email,
 		Password:    hashedPassword,
 		RoleId:      1,
@@ -84,18 +100,18 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		IsActive:    true,
 		IsVerified:  false,
 	}
-	savedUser, err := s.repo.CreateUser(user)
-	if err != nil {
+
+	if _, err := s.repo.CreateUser(user); err != nil {
 		return err
 	}
 
 	startedAt, expiredAt := GetMembershipPeriod("weekly")
 	membership := entity.Membership{
-		UserId:    savedUser.Id,
-		StartDate: startedAt,
-		EndDate:   expiredAt,
-		IsActive:  true,
-		Type:      "weekly",
+		BusinessId: savedBusiness.Id,
+		StartDate:  startedAt,
+		EndDate:    expiredAt,
+		IsActive:   true,
+		Type:       "weekly",
 	}
 
 	if _, err := s.membership.CreateMembership(membership); err != nil {

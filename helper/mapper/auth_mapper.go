@@ -19,6 +19,5 @@ func MapAuth(user *entity.UserBusiness, token string) *response.AuthResponse {
 		UpdatedAt:   user.UpdatedAt,
 		Role:        *MapRole(&user.Role),
 		Business:    *MapBusiness(&user.Business),
-		Memberships: MapMembership(*user.Membership),
 	}
 }

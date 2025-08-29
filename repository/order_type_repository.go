@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -15,10 +14,10 @@ type OrderTypeRepository interface {
 	Create(orderType entity.OrderType) (entity.OrderType, error)
 	Update(orderType entity.OrderType) (entity.OrderType, error)
 	Delete(orderType entity.OrderType) error
-	HasRelation(orderTypeId uuid.UUID) (bool, error)
-	SoftDelete(id uuid.UUID) error
-	HardDelete(id uuid.UUID) error
-	FindById(orderTypeId uuid.UUID) (orderTypees entity.OrderType, err error)
+	HasRelation(orderTypeId int) (bool, error)
+	SoftDelete(id int) error
+	HardDelete(id int) error
+	FindById(orderTypeId int) (orderTypees entity.OrderType, err error)
 	FindWithPagination(pagination request.Pagination) ([]entity.OrderType, int64, error)
 	FindWithPaginationCursor(pagination request.Pagination) ([]entity.OrderType, string, bool, error)
 }
@@ -60,21 +59,21 @@ func (conn *orderTypeConnection) Delete(orderType entity.OrderType) error {
 	return conn.db.Delete(&orderType).Error
 }
 
-func (conn *orderTypeConnection) HasRelation(orderTypeId uuid.UUID) (bool, error) {
+func (conn *orderTypeConnection) HasRelation(orderTypeId int) (bool, error) {
 	var count int64
 	err := conn.db.Model(&entity.Transaction{}).Where("orderType_id = ?", orderTypeId).Count(&count).Error
 	return count > 0, err
 }
 
-func (conn *orderTypeConnection) SoftDelete(id uuid.UUID) error {
+func (conn *orderTypeConnection) SoftDelete(id int) error {
 	return conn.db.Delete(&entity.OrderType{}, id).Error
 }
 
-func (conn *orderTypeConnection) HardDelete(id uuid.UUID) error {
+func (conn *orderTypeConnection) HardDelete(id int) error {
 	return conn.db.Unscoped().Delete(&entity.OrderType{}, id).Error
 }
 
-func (conn *orderTypeConnection) FindById(orderTypeId uuid.UUID) (orderTypees entity.OrderType, err error) {
+func (conn *orderTypeConnection) FindById(orderTypeId int) (orderTypees entity.OrderType, err error) {
 	var orderType entity.OrderType
 	result := conn.db.Find(&orderType, orderTypeId)
 	if result != nil {
@@ -158,7 +157,7 @@ func (conn *orderTypeConnection) FindWithPaginationCursor(pagination request.Pag
 
 	if len(orderTypes) > limit {
 		last := orderTypes[limit-1]
-		nextCursor = helper.EncodeCursorID(last.Id.String())
+		nextCursor = helper.EncodeCursor(last.Id)
 		orderTypes = orderTypes[:limit]
 		hasNext = true
 	}

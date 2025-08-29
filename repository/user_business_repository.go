@@ -54,7 +54,7 @@ func (conn *userBusinessConnection) FindById(id uuid.UUID) (userBusinesss entity
 		Preload("Role").
 		Preload("Business").
 		Preload("Business.BusinessType").
-		Preload("Membership").
+		Preload("Business.Membership").
 		Find(&userBusiness, id)
 	if result != nil {
 		return userBusiness, nil
@@ -103,7 +103,7 @@ func (conn *userBusinessConnection) FindByEmailOrPhone(identifier string) (entit
 		Preload("Role").
 		Preload("Business").
 		Preload("Business.BusinessType").
-		Preload("Membership").
+		Preload("Business.Membership").
 		Where("email = ? OR phone_number = ? or pending_email = ?", identifier, identifier, identifier).
 		First(&user).Error
 
@@ -128,10 +128,15 @@ func (r *userBusinessConnection) Update(user *entity.UserBusiness) error {
 
 func (conn *userBusinessConnection) FindByPhoneAndBusinessId(businessId uuid.UUID, phone string) (entity.UserBusiness, error) {
 	var user entity.UserBusiness
-	err := conn.db.Where("business_id = ? AND phone_number = ?", businessId, phone).First(&user).Error
+	err := conn.db.
+		Preload("Role").
+		Preload("Business").
+		Preload("Business.BusinessType").
+		Preload("Business.Membership").
+		Where("business_id = ? AND phone_number = ?", businessId, phone).
+		First(&user).Error
 	return user, err
 }
-
 func (conn *userBusinessConnection) HasRelation(id uuid.UUID) (bool, error) {
 	var count int64
 
@@ -166,6 +171,10 @@ func (conn *userBusinessConnection) FindWithPagination(businessId uuid.UUID, pag
 	var total int64
 
 	baseQuery := conn.db.Model(&entity.UserBusiness{}).
+		Preload("Role").
+		Preload("Business.Membership").
+		Preload("Business").
+		Preload("Business.BusinessType").
 		Where("business_id = ?", businessId)
 
 	if pagination.Search != "" {
@@ -191,6 +200,10 @@ func (conn *userBusinessConnection) FindWithPaginationCursor(businessId uuid.UUI
 	var userBusinesss []entity.UserBusiness
 
 	query := conn.db.Model(&entity.UserBusiness{}).
+		Preload("Role").
+		Preload("Business.Membership").
+		Preload("Business").
+		Preload("Business.BusinessType").
 		Where("business_id = ?", businessId)
 
 	if pagination.Search != "" {

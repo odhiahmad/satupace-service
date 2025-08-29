@@ -9,4 +9,5 @@ type BusinessResponse struct {
 	Image        *string               `json:"image"`
 	IsActive     bool                  `json:"is_active"`
 	BusinessType *BusinessTypeResponse `json:"business_type"` // <- ubah jadi pointer
+	Membership   *MembershipResponse   `json:"membership"`
 }

@@ -24,4 +24,5 @@ type Business struct {
 	IsActive       bool          `gorm:"not null" json:"is_active"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
+	Membership     *Membership   `gorm:"foreignKey:BusinessId;constraint:OnDelete:CASCADE" json:"membership"`
 }

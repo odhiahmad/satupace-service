@@ -67,7 +67,7 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 		return nil, helper.ErrEmailNotVerified
 	}
 
-	membership, err := service.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	membership, err := service.membershipRepository.FindActiveMembershipByBusinessID(user.BusinessId)
 	if err != nil {
 		return nil, helper.ErrMembershipInactive
 	}
@@ -92,7 +92,7 @@ func (service *authService) PinLogin(req request.PinLoginRequest) (*response.Aut
 		return nil, errors.New("pegawai tidak aktif")
 	}
 
-	membership, err := service.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	membership, err := service.membershipRepository.FindActiveMembershipByBusinessID(user.BusinessId)
 	if err != nil {
 		return nil, helper.ErrMembershipInactive
 	}
@@ -147,7 +147,7 @@ func (s *authService) VerifyOTPToken(req request.VerifyOTPRequest) (*response.Au
 		}
 	}
 
-	membership, err := s.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	membership, err := s.membershipRepository.FindActiveMembershipByBusinessID(user.BusinessId)
 	if err != nil {
 		return nil, errors.New("gagal mengambil membership")
 	}
@@ -239,7 +239,7 @@ func (s *authService) ResetPassword(req request.ResetPasswordRequest) (*response
 
 	_ = s.redisHelper.DeleteResetPasswordVerified(req.Identifier)
 
-	membership, err := s.membershipRepository.FindActiveMembershipByUserID(user.Id)
+	membership, err := s.membershipRepository.FindActiveMembershipByBusinessID(user.BusinessId)
 	if err != nil {
 		return nil, errors.New("gagal mengambil membership")
 	}

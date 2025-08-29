@@ -41,7 +41,7 @@ func (j *jwtService) GenerateToken(user entity.UserBusiness, expiredAt time.Time
 		"phone_number": user.PhoneNumber,
 		"business_id":  user.BusinessId,
 		"email":        user.Email,
-		"role":         user.Role.Name,
+		"role_id":      user.Role.Id,
 		"exp":          expiredAt.Unix(),
 		"iss":          j.issuer,
 	}

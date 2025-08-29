@@ -42,6 +42,7 @@ func (s *terminalService) Create(req request.TerminalRequest) (response.Terminal
 	terminal := entity.Terminal{
 		BusinessId: req.BusinessId,
 		Name:       strings.ToLower(req.Name),
+		Location:   strings.ToLower(req.Location),
 	}
 
 	createdTerminal, err := s.repo.Create(terminal)
@@ -60,8 +61,9 @@ func (s *terminalService) Update(id uuid.UUID, req request.TerminalRequest) (res
 	}
 
 	terminal := entity.Terminal{
-		Id:   id,
-		Name: strings.ToLower(req.Name),
+		Id:       id,
+		Name:     strings.ToLower(req.Name),
+		Location: strings.ToLower(req.Location),
 	}
 
 	updatedTerminal, err := s.repo.Update(terminal)

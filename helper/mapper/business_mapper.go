@@ -12,6 +12,12 @@ func MapBusiness(business *entity.Business) *response.BusinessResponse {
 		return nil
 	}
 
+	var membership *response.MembershipResponse
+
+	if business.Membership != nil {
+		membership = MapMembership(*business.Membership)
+	}
+
 	return &response.BusinessResponse{
 		Id:           business.Id,
 		Name:         business.Name,
@@ -19,5 +25,6 @@ func MapBusiness(business *entity.Business) *response.BusinessResponse {
 		BusinessType: MapBusinessType(business.BusinessType),
 		Image:        business.Image,
 		IsActive:     business.IsActive,
+		Membership:   membership,
 	}
 }

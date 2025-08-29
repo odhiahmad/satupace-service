@@ -8,4 +8,5 @@ type Pagination struct {
 	OrderBy    string `form:"order_by"`
 	Search     string `form:"search"`
 	CategoryID *int   `form:"category_id"`
+	Status     string `form:"status"`
 }

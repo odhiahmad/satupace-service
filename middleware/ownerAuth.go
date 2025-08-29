@@ -8,7 +8,7 @@ import (
 
 func AuthorizeOwner() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims, exists := c.Get("claims")
+		roleID, exists := c.Get("role_id")
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Unauthorized",
@@ -16,16 +16,8 @@ func AuthorizeOwner() gin.HandlerFunc {
 			return
 		}
 
-		userClaims, ok := claims.(map[string]interface{})
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid token claims",
-			})
-			return
-		}
-
-		role, ok := userClaims["role"].(string)
-		if !ok || role != "owner" {
+		// misalnya role_id = 1 untuk owner
+		if roleInt, ok := roleID.(int); !ok || roleInt != 1 {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error": "Forbidden: owner role required",
 			})

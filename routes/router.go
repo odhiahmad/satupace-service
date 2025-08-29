@@ -51,7 +51,7 @@ var (
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
 	paymentMethodService  service.PaymentMethodService  = service.NewPaymentMethodService(paymentMethodRepository, validate)
 	categoryService       service.CategoryService       = service.NewCategoryService(categoryRepository, validate, redisClient)
-	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, validate, redisHelper)
+	registrationService   service.RegistrationService   = service.NewRegistrationService(registrationRepository, membershipRepository, terminalRepository, validate, redisHelper)
 	productService        service.ProductService        = service.NewProductService(productRepository, productVariantRepository, validate, redisClient)
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
@@ -100,7 +100,7 @@ func SetupRouter() *gin.Engine {
 	authRoutes := r.Group("auth", middleware.RateLimit(redisHelper, 20, time.Minute))
 	{
 		authRoutes.POST("/business", authController.LoginBusiness)
-		authRoutes.GET("/pin-business", authController.LoginPin)
+		authRoutes.POST("/pin-business", authController.LoginPin)
 		authRoutes.POST("/verify-otp", authController.VerifyOTP)
 		authRoutes.POST("/retry-otp", authController.RetryOTP)
 		authRoutes.POST("/registration", registrationController.Register)
@@ -299,7 +299,7 @@ func SetupRouter() *gin.Engine {
 	{
 		shiftRoutes.POST("", shiftController.OpenShift)
 		shiftRoutes.PUT("/:id", shiftController.CloseShift)
-		shiftRoutes.GET("/cursor", shiftController.GetActiveShift)
+		shiftRoutes.GET("/cursor", shiftController.FindWithPaginationCursor)
 	}
 
 	return r

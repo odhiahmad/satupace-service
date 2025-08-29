@@ -16,8 +16,8 @@ import (
 )
 
 type EmployeeService interface {
-	Create(req request.EmployeeRequest) (*entity.UserBusiness, error)
-	Update(id uuid.UUID, req request.EmployeeRequest) (*entity.UserBusiness, error)
+	Create(req request.EmployeeRequest) error
+	Update(id uuid.UUID, req request.EmployeeUpdateRequest) error
 	Delete(id uuid.UUID) error
 	FindById(roleId uuid.UUID) response.UserBusinessResponse
 	FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]response.UserBusinessResponse, int64, error)
@@ -33,14 +33,14 @@ func NewEmployeeService(repo repository.UserBusinessRepository, validate *valida
 	return &employeeService{repo: repo, validate: validate}
 }
 
-func (s *employeeService) Create(req request.EmployeeRequest) (*entity.UserBusiness, error) {
+func (s *employeeService) Create(req request.EmployeeRequest) error {
 	if err := s.validate.Struct(req); err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err := s.repo.FindByPhoneAndBusinessId(req.BusinessId, *req.PhoneNumber)
 	if err == nil {
-		return nil, errors.New("nomor HP sudah terdaftar")
+		return errors.New("nomor HP sudah terdaftar")
 	}
 
 	var hashedPassword string
@@ -67,44 +67,31 @@ func (s *employeeService) Create(req request.EmployeeRequest) (*entity.UserBusin
 	}
 
 	if err := s.repo.CreateEmployee(&employee); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &employee, nil
+	return nil
 }
 
-func (s *employeeService) Update(id uuid.UUID, req request.EmployeeRequest) (*entity.UserBusiness, error) {
+func (s *employeeService) Update(id uuid.UUID, req request.EmployeeUpdateRequest) error {
 	if err := s.validate.Struct(req); err != nil {
-		return nil, err
+		return err
 	}
 
 	employee, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	employee.RoleId = req.RoleId
-	employee.BusinessId = req.BusinessId
 	employee.Name = &req.Name
-	employee.Email = req.Email
-	employee.PhoneNumber = *req.PhoneNumber
 	employee.UpdatedAt = time.Now()
 
-	if *req.Password != "" {
-		passHash, _ := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
-		employee.Password = string(passHash)
-	}
-
-	if req.PinCode != "" {
-		pinHash, _ := bcrypt.GenerateFromPassword([]byte(req.PinCode), bcrypt.DefaultCost)
-		employee.PinCode = string(pinHash)
-	}
-
 	if err := s.repo.Update(&employee); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &employee, nil
+	return nil
 }
 
 func (s *employeeService) Delete(id uuid.UUID) error {

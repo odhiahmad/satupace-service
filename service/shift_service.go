@@ -6,14 +6,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
+	"github.com/odhiahmad/kasirku-service/helper/mapper"
 	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type ShiftService interface {
-	OpenShift(req request.OpenShiftRequest) (*entity.Shift, error)
-	CloseShift(req request.CloseShiftRequest) (*entity.Shift, error)
-	GetActiveShift(terminalId string) (*entity.Shift, error)
+	OpenShift(req request.OpenShiftRequest) (response.ShiftResponse, error)
+	CloseShift(id uuid.UUID, req request.CloseShiftRequest) (response.ShiftResponse, error)
+	GetActiveShift(terminalId string) (response.ShiftResponse, error)
+	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.ShiftResponse, string, bool, error)
 }
 
 type shiftService struct {
@@ -25,10 +28,10 @@ func NewShiftService(userRepo repository.UserBusinessRepository, shiftRepo repos
 	return &shiftService{userRepo, shiftRepo}
 }
 
-func (s *shiftService) OpenShift(req request.OpenShiftRequest) (*entity.Shift, error) {
+func (s *shiftService) OpenShift(req request.OpenShiftRequest) (response.ShiftResponse, error) {
 	existingShift, _ := s.shiftRepo.FindOpenShiftByCashier(req.CashierId, req.TerminalId)
 	if existingShift != nil {
-		return nil, errors.New("shift sudah dibuka")
+		return response.ShiftResponse{}, errors.New("shift sudah dibuka")
 	}
 
 	shift := entity.Shift{
@@ -43,15 +46,17 @@ func (s *shiftService) OpenShift(req request.OpenShiftRequest) (*entity.Shift, e
 	}
 
 	if err := s.shiftRepo.Create(&shift); err != nil {
-		return nil, err
+		return response.ShiftResponse{}, err
 	}
-	return &shift, nil
+
+	shiftResponse := mapper.MapShift(&shift)
+	return *shiftResponse, nil
 }
 
-func (s *shiftService) CloseShift(req request.CloseShiftRequest) (*entity.Shift, error) {
-	shift, err := s.shiftRepo.FindOpenShiftByCashier(req.CashierId, req.TerminalId)
+func (s *shiftService) CloseShift(id uuid.UUID, req request.CloseShiftRequest) (response.ShiftResponse, error) {
+	shift, err := s.shiftRepo.FindById(id)
 	if err != nil {
-		return nil, errors.New("shift tidak ditemukan atau sudah ditutup")
+		return response.ShiftResponse{}, errors.New("shift tidak ditemukan atau sudah ditutup")
 	}
 
 	now := time.Now()
@@ -60,22 +65,39 @@ func (s *shiftService) CloseShift(req request.CloseShiftRequest) (*entity.Shift,
 	shift.Status = "closed"
 	shift.Notes = req.Notes
 
-	if err := s.shiftRepo.Update(shift); err != nil {
-		return nil, err
+	if err := s.shiftRepo.Update(&shift); err != nil {
+		return response.ShiftResponse{}, err
 	}
-	return shift, nil
+
+	shiftResponse := mapper.MapShift(&shift)
+	return *shiftResponse, nil
 }
 
-func (s *shiftService) GetActiveShift(terminalId string) (*entity.Shift, error) {
+func (s *shiftService) GetActiveShift(terminalId string) (response.ShiftResponse, error) {
 	id, err := uuid.Parse(terminalId)
 	if err != nil {
-		return nil, errors.New("invalid terminal id")
+		return response.ShiftResponse{}, errors.New("invalid terminal id")
 	}
 
 	shift, err := s.shiftRepo.GetActiveShiftByTerminal(id)
 	if err != nil {
-		return nil, errors.New("no active shift found for this terminal")
+		return response.ShiftResponse{}, errors.New("no active shift found for this terminal")
 	}
 
-	return shift, nil
+	shiftResponse := mapper.MapShift(shift)
+	return *shiftResponse, nil
+}
+
+func (s *shiftService) FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.ShiftResponse, string, bool, error) {
+	shifts, nextCursor, hasNext, err := s.shiftRepo.FindWithPaginationCursor(businessId, pagination)
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	var result []response.ShiftResponse
+	for _, shift := range shifts {
+		result = append(result, *mapper.MapShift(&shift))
+	}
+
+	return result, nextCursor, hasNext, nil
 }

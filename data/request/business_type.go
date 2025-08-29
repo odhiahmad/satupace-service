@@ -1,9 +1,13 @@
 package request
 
 type BusinessTypeCreate struct {
-	Name string `json:"name" validate:"required"`
+	Code        string `json:"code" validate:"required"`
+	Name        string `json:"name" validate:"required"`
+	Description string `json:"description" validate:"required"`
 }
 
 type BusinessTypeUpdate struct {
-	Name string `json:"name" validate:"required"`
+	Code        string `json:"code" validate:"required"`
+	Name        string `json:"name" validate:"required"`
+	Description string `json:"description" validate:"required"`
 }

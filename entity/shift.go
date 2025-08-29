@@ -7,12 +7,14 @@ import (
 )
 
 type Shift struct {
-	Id           uuid.UUID    `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	BusinessId   uuid.UUID    `gorm:"not null"`
-	TerminalId   uuid.UUID    `gorm:"not null"`
-	CashierId    uuid.UUID    `gorm:"not null"`
-	Cashier      UserBusiness `gorm:"foreignKey:CashierId"`
-	OpenedAt     time.Time    `gorm:"not null"`
+	Id           uuid.UUID     `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	BusinessId   uuid.UUID     `gorm:"not null"`
+	Business     *Business     `gorm:"foreignKey:BusinessId"`
+	TerminalId   uuid.UUID     `gorm:"not null"`
+	Terminal     *Terminal     `gorm:"foreignKey:TerminalId"`
+	CashierId    uuid.UUID     `gorm:"not null"`
+	Cashier      *UserBusiness `gorm:"foreignKey:CashierId"`
+	OpenedAt     time.Time     `gorm:"not null"`
 	ClosedAt     *time.Time
 	OpeningCash  float64 `gorm:"not null"`
 	ClosingCash  *float64

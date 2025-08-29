@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
 	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/helper"
@@ -53,7 +52,7 @@ func (c *orderTypeController) Update(ctx *gin.Context) {
 		return
 	}
 
-	id, err := uuid.Parse(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
@@ -76,7 +75,7 @@ func (c *orderTypeController) Update(ctx *gin.Context) {
 
 func (c *orderTypeController) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("ID tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
@@ -93,7 +92,7 @@ func (c *orderTypeController) Delete(ctx *gin.Context) {
 
 func (c *orderTypeController) FindById(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, err := uuid.Parse(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id tidak valid", "invalid_parameter", "id", err.Error(), nil))
 		return
@@ -178,7 +177,7 @@ func (c *orderTypeController) FindWithPaginationCursor(ctx *gin.Context) {
 		SortBy:     sortBy,
 		OrderBy:    orderBy,
 		NextCursor: nextCursor,
-		HasNext:    hasNext, // konversi bool ke string: "true"/"false"
+		HasNext:    hasNext,
 	}
 
 	ctx.JSON(http.StatusOK, helper.BuildResponseCursorPagination(

@@ -34,35 +34,31 @@ func (c *employeeController) Create(ctx *gin.Context) {
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessId, err := uuid.Parse(businessIdStr)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid business_id UUID",
+		})
 		return
 	}
+
 	var input request.EmployeeRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
+		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
+			"Input tidak valid", "BAD_REQUEST", "body", err.Error(), helper.EmptyObj{}))
 		return
 	}
-
 	input.BusinessId = businessId
 
-	res, err := c.employeeService.Create(input)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal membuat employee", "internal_error", "employee", err.Error(), nil))
+	if err := c.employeeService.Create(input); err != nil {
+		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
+			"Gagal membuat employee", "INTERNAL_ERROR", "employee", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat employee", res))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat employee", nil))
 }
 
 func (c *employeeController) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	businessIdStr := ctx.MustGet("business_id").(string)
-	businessId, err := uuid.Parse(businessIdStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
-		return
-	}
-
 	if idStr == "" {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Parameter id wajib diisi", "missing_parameter", "id", "parameter id kosong", nil))
 		return
@@ -74,21 +70,18 @@ func (c *employeeController) Update(ctx *gin.Context) {
 		return
 	}
 
-	var input request.EmployeeRequest
+	var input request.EmployeeUpdateRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Input tidak valid", "bad_request", "body", err.Error(), nil))
 		return
 	}
 
-	input.BusinessId = businessId
-
-	res, err := c.employeeService.Update(id, input)
-	if err != nil {
+	if err := c.employeeService.Update(id, input); err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah employee", res))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah employee", nil))
 }
 
 func (c *employeeController) Delete(ctx *gin.Context) {

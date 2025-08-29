@@ -1,8 +1,7 @@
 package response
 
-import "github.com/google/uuid"
-
 type OrderTypeResponse struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	Id   int    `json:"id"`
+	Code string `json:"code"`
+	Name string `json:"name"`
 }

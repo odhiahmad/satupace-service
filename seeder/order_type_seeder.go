@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"gorm.io/gorm"
 )
@@ -12,19 +11,19 @@ import (
 func SeedOrderTypes(db *gorm.DB) {
 	orderTypes := []entity.OrderType{
 		{
-			Id:        uuid.New(),
+			Code:      "DIN",
 			Name:      "dine_in",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
 		{
-			Id:        uuid.New(),
+			Code:      "TKA",
 			Name:      "take_away",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
 		{
-			Id:        uuid.New(),
+			Code:      "DLV",
 			Name:      "delivery",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -37,15 +36,15 @@ func SeedOrderTypes(db *gorm.DB) {
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				if err := db.Create(&orderType).Error; err != nil {
-					log.Printf("Gagal menambahkan order type %s: %v", orderType.Name, err)
+					log.Printf("❌ Gagal menambahkan order type %s: %v", orderType.Name, err)
 				} else {
-					log.Printf("Order type %s berhasil ditambahkan", orderType.Name)
+					log.Printf("✅ Order type %s berhasil ditambahkan", orderType.Name)
 				}
 			} else {
-				log.Printf("Gagal memeriksa order type %s: %v", orderType.Name, err)
+				log.Printf("⚠️ Gagal memeriksa order type %s: %v", orderType.Name, err)
 			}
 		} else {
-			log.Printf("Order type %s sudah ada, skip seeding", orderType.Name)
+			log.Printf("⏭️ Order type %s sudah ada, skip seeding", orderType.Name)
 		}
 	}
 }

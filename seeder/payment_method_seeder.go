@@ -10,16 +10,16 @@ import (
 
 func SeedPaymentMethods(db *gorm.DB) {
 	paymentMethods := []entity.PaymentMethod{
-		{Name: "Cash"},
-		{Name: "Debit Card"},
-		{Name: "Credit Card"},
-		{Name: "QRIS"},
-		{Name: "E-Wallet"},
+		{Name: "Cash", Code: "CASH"},
+		{Name: "Debit Card", Code: "DEBIT"},
+		{Name: "Credit Card", Code: "CREDIT"},
+		{Name: "QRIS", Code: "QRIS"},
+		{Name: "E-Wallet", Code: "EWALLET"},
 	}
 
 	for _, pm := range paymentMethods {
 		var existing entity.PaymentMethod
-		err := db.Where("name = ?", pm.Name).First(&existing).Error
+		err := db.Where("code = ?", pm.Code).First(&existing).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				pm.CreatedAt = time.Now()

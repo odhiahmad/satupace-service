@@ -14,7 +14,7 @@ import (
 type MembershipRepository interface {
 	CreateMembership(membership entity.Membership) (entity.Membership, error)
 	FindById(membershipId uuid.UUID) (membership entity.Membership, err error)
-	FindActiveMembershipByUserID(userId uuid.UUID) (*entity.Membership, error)
+	FindActiveMembershipByBusinessID(businessId uuid.UUID) (*entity.Membership, error)
 	FindAll() []entity.Membership
 }
 
@@ -43,10 +43,10 @@ func (conn *membershipConnection) FindById(membershipId uuid.UUID) (memberships 
 	}
 }
 
-func (conn *membershipConnection) FindActiveMembershipByUserID(userId uuid.UUID) (*entity.Membership, error) {
+func (conn *membershipConnection) FindActiveMembershipByBusinessID(businessId uuid.UUID) (*entity.Membership, error) {
 	var membership entity.Membership
 	err := conn.db.
-		Where("user_id = ? AND is_active = ? AND end_date > ?", userId, true, time.Now()).
+		Where("business_id = ? AND is_active = ? AND end_date > ?", businessId, true, time.Now()).
 		Order("end_date DESC").
 		First(&membership).Error
 
