@@ -86,6 +86,11 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		}
 	}
 
+	shift, err := s.shiftRepo.GetActiveShiftByCashier(req.CashierId)
+	if err != nil {
+		return nil, errors.New("tidak ada shift aktif untuk kasir ini, silakan open kasir terlebih dahulu")
+	}
+
 	transaction := &entity.Transaction{
 		BusinessId:  req.BusinessId,
 		CustomerId:  customerId,
@@ -100,6 +105,8 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		SellPrice:   res.SellPrice,
 		Discount:    res.TotalDiscount,
 		Tax:         res.TotalTax,
+		ShiftId:     shift.Id,
+		CashierId:   &req.CashierId,
 		CreatedAt:   time.Now(),
 	}
 

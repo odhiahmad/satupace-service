@@ -12,7 +12,7 @@ type Terminal struct {
 	Business   Business  `gorm:"foreignKey:BusinessId"`
 	Name       string    `gorm:"type:varchar(100);not null"`
 	Location   string    `gorm:"type:varchar(255)"`
-	IsActive   bool      `gorm:"default:true"`
+	IsActive   *bool     `gorm:"default:true"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }

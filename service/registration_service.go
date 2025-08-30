@@ -82,7 +82,7 @@ func (s *registrationService) Register(req request.RegistrationRequest) error {
 		BusinessId: savedBusiness.Id,
 		Name:       "Terminal 1",
 		Location:   "Lokasi Utama",
-		IsActive:   true,
+		IsActive:   helper.BoolPtr(true),
 	}
 
 	if _, err := s.terminal.Create(terminalSave); err != nil {

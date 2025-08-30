@@ -11,7 +11,7 @@ func MapTerminal(t *entity.Terminal) *response.TerminalResponse {
 		BusinessId: t.BusinessId,
 		Name:       t.Name,
 		Location:   t.Location,
-		IsActive:   t.IsActive,
+		IsActive:   *t.IsActive,
 		CreatedAt:  t.CreatedAt,
 		UpdatedAt:  t.UpdatedAt,
 	}

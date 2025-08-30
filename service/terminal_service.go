@@ -64,6 +64,7 @@ func (s *terminalService) Update(id uuid.UUID, req request.TerminalRequest) (res
 		Id:       id,
 		Name:     strings.ToLower(req.Name),
 		Location: strings.ToLower(req.Location),
+		IsActive: req.IsActive,
 	}
 
 	updatedTerminal, err := s.repo.Update(terminal)

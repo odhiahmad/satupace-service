@@ -46,6 +46,7 @@ type TransactionItemUpdate struct {
 
 type TransactionCreateRequest struct {
 	BusinessId   uuid.UUID               `json:"business_id" validate:"required"`
+	CashierId    uuid.UUID               `json:"cashier_id"`
 	CustomerName *string                 `json:"customer_name"`
 	OrderTypeId  uuid.UUID               `json:"service_type" validate:"required"`
 	TableId      *uuid.UUID              `json:"table"`

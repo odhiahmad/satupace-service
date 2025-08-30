@@ -35,6 +35,13 @@ func NewTransactionController(transactionService service.TransactionService, jwt
 }
 
 func (c *transactionController) Create(ctx *gin.Context) {
+	userIdStr := ctx.MustGet("user_id").(string)
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid business_id UUID"})
+		return
+	}
+
 	businessIdStr := ctx.MustGet("business_id").(string)
 	businessId, err := uuid.Parse(businessIdStr)
 	if err != nil {
@@ -49,6 +56,7 @@ func (c *transactionController) Create(ctx *gin.Context) {
 	}
 
 	input.BusinessId = businessId
+	input.CashierId = userId
 
 	transaction, err := c.transactionService.Create(input)
 	if err != nil {
