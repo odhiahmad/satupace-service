@@ -20,6 +20,7 @@ type Shift struct {
 	ClosingCash  *float64
 	TotalSales   *float64
 	TotalRefunds *float64
+	TotalCancels *int
 	Status       string `gorm:"type:varchar(10);not null"` // open / closed
 	Notes        *string
 	CreatedAt    time.Time

@@ -11,6 +11,8 @@ type Transaction struct {
 	Id              uuid.UUID         `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	BusinessId      uuid.UUID         `gorm:"not null;index:idx_business_bill,unique" json:"business_id"`
 	Business        *Business         `gorm:"foreignKey:BusinessId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
+	ShiftId         uuid.UUID         `gorm:"not null" json:"shift_id"`
+	Shift           *Shift            `gorm:"foreignKey:ShiftId"`
 	CustomerId      *uuid.UUID        `json:"customer_id"`
 	Customer        *Customer         `gorm:"foreignKey:CustomerId"`
 	PaymentMethodId *int              `json:"payment_method_id"`

@@ -29,15 +29,17 @@ type TransactionService interface {
 type transactionService struct {
 	transactionRepo repository.TransactionRepository
 	customerRepo    repository.CustomerRepository
+	shiftRepo       repository.ShiftRepository
 	validate        *validator.Validate
 	db              *gorm.DB
 }
 
-func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, customerRepo repository.CustomerRepository, validate *validator.Validate) TransactionService {
+func NewTransactionService(db *gorm.DB, repo repository.TransactionRepository, customerRepo repository.CustomerRepository, shiftRepo repository.ShiftRepository, validate *validator.Validate) TransactionService {
 	return &transactionService{
 		db:              db,
 		transactionRepo: repo,
 		customerRepo:    customerRepo,
+		shiftRepo:       shiftRepo,
 		validate:        validator.New(),
 	}
 }
@@ -152,6 +154,13 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 	transaction.PaidAt = &now
 
 	if status == "paid" {
+		shift, err := s.shiftRepo.GetActiveShiftByCashier(req.CashierId)
+		if err != nil {
+			return nil, errors.New("kasir belum membuka shift")
+		}
+
+		transaction.ShiftId = shift.Id
+
 		for _, item := range transaction.Items {
 			qty := item.Quantity
 
@@ -194,6 +203,15 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 					return nil, err
 				}
 			}
+		}
+
+		if shift.TotalSales == nil {
+			shift.TotalSales = new(float64)
+		}
+		*shift.TotalSales += transaction.FinalPrice
+
+		if err := s.shiftRepo.Update(shift); err != nil {
+			return nil, err
 		}
 	}
 
@@ -313,8 +331,23 @@ func (s *transactionService) Refund(itemReq request.TransactionRefundRequest) (*
 	transaction.Status = "refunded"
 	transaction.IsRefunded = true
 	transaction.RefundReason = itemReq.Reason
-	transaction.RefundedBy = &itemReq.UserId
+	transaction.RefundedBy = &itemReq.CashierId
 	transaction.RefundedAt = &now
+
+	shift, err := s.shiftRepo.GetActiveShiftByCashier(itemReq.CashierId)
+	if err != nil {
+		return nil, fmt.Errorf("shift tidak ditemukan")
+	}
+	if shift.Status != "open" {
+		return nil, fmt.Errorf("shift sudah ditutup, refund tidak bisa diproses")
+	}
+	if shift.TotalRefunds == nil {
+		shift.TotalRefunds = new(float64)
+	}
+	*shift.TotalRefunds += transaction.FinalPrice
+	if err := s.shiftRepo.Update(shift); err != nil {
+		return nil, err
+	}
 
 	savedTx, err := s.transactionRepo.Update(&transaction)
 	if err != nil {
@@ -343,8 +376,24 @@ func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*
 	transaction.Status = "canceled"
 	transaction.IsCanceled = true
 	transaction.CanceledReason = itemReq.Reason
-	transaction.CanceledBy = &itemReq.UserId
+	transaction.CanceledBy = &itemReq.CashierId
 	transaction.CanceledAt = &now
+
+	shift, err := s.shiftRepo.GetActiveShiftByCashier(itemReq.CashierId)
+	if err != nil {
+		return nil, fmt.Errorf("shift tidak ditemukan")
+	}
+	if shift.Status == "open" {
+		if shift.Notes == nil {
+			notes := fmt.Sprintf("1 transaksi dibatalkan pada %s", now.Format(time.RFC3339))
+			shift.Notes = &notes
+		} else {
+			*shift.Notes += fmt.Sprintf("\n1 transaksi dibatalkan pada %s", now.Format(time.RFC3339))
+		}
+		if err := s.shiftRepo.Update(shift); err != nil {
+			return nil, err
+		}
+	}
 
 	savedTx, err := s.transactionRepo.Update(&transaction)
 	if err != nil {

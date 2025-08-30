@@ -65,7 +65,7 @@ type TransactionCancelRequest struct {
 	Id         uuid.UUID  `json:"id"`
 	CustomerId *uuid.UUID `json:"customer_id"`
 	BusinessId uuid.UUID  `json:"business_id" validate:"required"`
-	UserId     uuid.UUID  `json:"user_id"`
+	CashierId  uuid.UUID  `json:"cashier_id"`
 	Reason     *string    `json:"reason"`
 }
 
@@ -73,6 +73,6 @@ type TransactionRefundRequest struct {
 	Id         uuid.UUID  `json:"id"`
 	CustomerId *uuid.UUID `json:"customer_id"`
 	BusinessId uuid.UUID  `json:"business_id" validate:"required"`
-	UserId     uuid.UUID  `json:"user_id"`
+	CashierId  uuid.UUID  `json:"cashier_id"`
 	Reason     *string    `json:"reason"`
 }

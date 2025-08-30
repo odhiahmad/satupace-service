@@ -218,7 +218,7 @@ func (c *transactionController) Refund(ctx *gin.Context) {
 	}
 
 	input.Id = id
-	input.UserId = userId
+	input.CashierId = userId
 	input.BusinessId = businessId
 
 	transaction, err := c.transactionService.Refund(input)
@@ -256,7 +256,7 @@ func (c *transactionController) Cancel(ctx *gin.Context) {
 	}
 
 	input.Id = id
-	input.UserId = userId
+	input.CashierId = userId
 	input.BusinessId = businessId
 
 	transaction, err := c.transactionService.Cancel(input)

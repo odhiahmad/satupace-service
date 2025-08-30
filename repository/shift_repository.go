@@ -16,6 +16,7 @@ type ShiftRepository interface {
 	FindOpenShiftByCashier(cashierId uuid.UUID, terminalId uuid.UUID) (*entity.Shift, error)
 	Update(shift *entity.Shift) error
 	GetActiveShiftByTerminal(terminalId uuid.UUID) (*entity.Shift, error)
+	GetActiveShiftByCashier(cashierId uuid.UUID) (*entity.Shift, error)
 	FindById(shiftId uuid.UUID) (shiftes entity.Shift, err error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]entity.Shift, string, bool, error)
 }
@@ -57,6 +58,21 @@ func (r *shiftRepository) GetActiveShiftByTerminal(terminalId uuid.UUID) (*entit
 		Preload("Terminal").
 		Where("terminal_id = ? AND status = ? AND closed_at IS NULL", terminalId, "open").
 		First(&shift).Error
+	if err != nil {
+		return nil, err
+	}
+	return &shift, nil
+}
+
+func (r *shiftRepository) GetActiveShiftByCashier(cashierId uuid.UUID) (*entity.Shift, error) {
+	var shift entity.Shift
+	err := r.db.
+		Preload("Business").
+		Preload("Cashier").
+		Preload("Terminal").
+		Where("cashier_id = ? AND status = ? AND closed_at IS NULL", cashierId, "open").
+		First(&shift).Error
+
 	if err != nil {
 		return nil, err
 	}

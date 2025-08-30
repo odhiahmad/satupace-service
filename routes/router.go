@@ -56,7 +56,7 @@ var (
 	bundleService         service.BundleService         = service.NewBundleService(bundleRepository, validate)
 	taxService            service.TaxService            = service.NewTaxService(taxRepository, validate)
 	unitService           service.UnitService           = service.NewUnitService(unitRepository)
-	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, customerRepository, validate)
+	transactionService    service.TransactionService    = service.NewTransactionService(db, transactionRepository, customerRepository, shiftRepository, validate)
 	discountService       service.DiscountService       = service.NewDiscountService(discountRepository, validate)
 	businessService       service.BusinessService       = service.NewBusinessService(businessRepository, validate)
 	productVariantService service.ProductVariantService = service.NewProductVariantService(productVariantRepository, productRepository, validate)
