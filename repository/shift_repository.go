@@ -39,7 +39,10 @@ func (r *shiftRepository) FindOpenShiftByCashier(cashierId uuid.UUID, terminalId
 		Preload("Business").
 		Preload("Cashier").
 		Preload("Terminal").
-		Where("cashier_id = ? AND terminal_id = ? AND status = ?", cashierId, terminalId, "open").First(&shift).Error
+		Joins("JOIN terminals ON terminals.id = shifts.terminal_id").
+		Where("shifts.cashier_id = ? AND shifts.terminal_id = ? AND shifts.status = ? AND terminals.is_active = ?",
+			cashierId, terminalId, "open", true).
+		First(&shift).Error
 	if err != nil {
 		return nil, err
 	}

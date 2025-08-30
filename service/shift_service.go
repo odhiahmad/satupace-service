@@ -13,8 +13,8 @@ import (
 )
 
 type ShiftService interface {
-	OpenShift(req request.OpenShiftRequest) (response.ShiftResponse, error)
-	CloseShift(id uuid.UUID, req request.CloseShiftRequest) (response.ShiftResponse, error)
+	OpenShift(req request.OpenShiftRequest) error
+	CloseShift(id uuid.UUID, req request.CloseShiftRequest) error
 	GetActiveShift(terminalId string) (response.ShiftResponse, error)
 	FindWithPaginationCursor(businessId uuid.UUID, pagination request.Pagination) ([]response.ShiftResponse, string, bool, error)
 }
@@ -28,10 +28,10 @@ func NewShiftService(userRepo repository.UserBusinessRepository, shiftRepo repos
 	return &shiftService{userRepo, shiftRepo}
 }
 
-func (s *shiftService) OpenShift(req request.OpenShiftRequest) (response.ShiftResponse, error) {
+func (s *shiftService) OpenShift(req request.OpenShiftRequest) error {
 	existingShift, _ := s.shiftRepo.FindOpenShiftByCashier(req.CashierId, req.TerminalId)
 	if existingShift != nil {
-		return response.ShiftResponse{}, errors.New("shift sudah dibuka")
+		return errors.New("shift sudah dibuka")
 	}
 
 	shift := entity.Shift{
@@ -46,17 +46,16 @@ func (s *shiftService) OpenShift(req request.OpenShiftRequest) (response.ShiftRe
 	}
 
 	if err := s.shiftRepo.Create(&shift); err != nil {
-		return response.ShiftResponse{}, err
+		return err
 	}
 
-	shiftResponse := mapper.MapShift(&shift)
-	return *shiftResponse, nil
+	return nil
 }
 
-func (s *shiftService) CloseShift(id uuid.UUID, req request.CloseShiftRequest) (response.ShiftResponse, error) {
+func (s *shiftService) CloseShift(id uuid.UUID, req request.CloseShiftRequest) error {
 	shift, err := s.shiftRepo.FindById(id)
 	if err != nil {
-		return response.ShiftResponse{}, errors.New("shift tidak ditemukan atau sudah ditutup")
+		return errors.New("shift tidak ditemukan atau sudah ditutup")
 	}
 
 	now := time.Now()
@@ -66,11 +65,9 @@ func (s *shiftService) CloseShift(id uuid.UUID, req request.CloseShiftRequest) (
 	shift.Notes = req.Notes
 
 	if err := s.shiftRepo.Update(&shift); err != nil {
-		return response.ShiftResponse{}, err
+		return err
 	}
-
-	shiftResponse := mapper.MapShift(&shift)
-	return *shiftResponse, nil
+	return nil
 }
 
 func (s *shiftService) GetActiveShift(terminalId string) (response.ShiftResponse, error) {

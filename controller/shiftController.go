@@ -52,13 +52,13 @@ func (c *shiftController) OpenShift(ctx *gin.Context) {
 	req.BusinessId = businessId
 	req.CashierId = cashierId
 
-	shift, err := c.shiftService.OpenShift(req)
+	err = c.shiftService.OpenShift(req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Gagal membuka shift", "bad_request", "shift", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Shift berhasil dibuka", shift))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Shift berhasil dibuka", nil))
 }
 
 func (c *shiftController) CloseShift(ctx *gin.Context) {
@@ -75,13 +75,13 @@ func (c *shiftController) CloseShift(ctx *gin.Context) {
 		return
 	}
 
-	shift, err := c.shiftService.CloseShift(id, req)
+	err = c.shiftService.CloseShift(id, req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse("Gagal menutup shift", "bad_request", "shift", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Shift berhasil ditutup", shift))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Shift berhasil ditutup", nil))
 }
 
 func (c *shiftController) GetActiveShift(ctx *gin.Context) {
