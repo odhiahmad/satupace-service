@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"loka-kasir/data/request"
+	"loka-kasir/data/response"
+	"loka-kasir/helper"
+	"loka-kasir/service"
+
 	"github.com/gin-gonic/gin"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/service"
 )
 
 type OrderTypeController interface {

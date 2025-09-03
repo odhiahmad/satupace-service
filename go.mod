@@ -1,4 +1,4 @@
-module github.com/odhiahmad/kasirku-service
+module loka-kasir
 
 go 1.24.1
 

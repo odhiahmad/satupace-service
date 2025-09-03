@@ -3,11 +3,12 @@ package service
 import (
 	"strings"
 
+	"loka-kasir/data/request"
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+	"loka-kasir/repository"
+
 	"github.com/go-playground/validator/v10"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type PaymentMethodService interface {

@@ -1,8 +1,9 @@
 package mapper
 
 import (
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

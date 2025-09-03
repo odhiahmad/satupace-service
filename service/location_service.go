@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/repository"
+	"loka-kasir/data/response"
+	"loka-kasir/repository"
+
 	"github.com/redis/go-redis/v9"
 )
 

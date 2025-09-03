@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	"loka-kasir/helper"
+	"loka-kasir/service"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/service"
 )
 
 func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {

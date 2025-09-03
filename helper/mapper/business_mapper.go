@@ -1,9 +1,10 @@
 package mapper
 
 import (
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
 )
 
 func MapBusiness(business *entity.Business) *response.BusinessResponse {

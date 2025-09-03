@@ -4,7 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/entity"
+
 	"gorm.io/gorm"
 )
 

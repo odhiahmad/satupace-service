@@ -3,7 +3,8 @@ package repository
 import (
 	"errors"
 
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/entity"
+
 	"gorm.io/gorm"
 )
 

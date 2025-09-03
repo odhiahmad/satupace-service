@@ -1,7 +1,8 @@
 package repository
 
 import (
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/entity"
+
 	"gorm.io/gorm"
 )
 

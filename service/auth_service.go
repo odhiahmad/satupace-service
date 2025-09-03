@@ -6,11 +6,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/helper/mapper"
-	"github.com/odhiahmad/kasirku-service/repository"
+	"loka-kasir/data/request"
+	"loka-kasir/data/response"
+	"loka-kasir/helper"
+	"loka-kasir/helper/mapper"
+	"loka-kasir/repository"
+
 	"golang.org/x/crypto/bcrypt"
 )
 

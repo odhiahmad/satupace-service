@@ -15,9 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"loka-kasir/entity"
+
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

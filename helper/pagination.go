@@ -3,7 +3,8 @@ package helper
 import (
 	"strings"
 
-	"github.com/odhiahmad/kasirku-service/data/request"
+	"loka-kasir/data/request"
+
 	"gorm.io/gorm"
 )
 

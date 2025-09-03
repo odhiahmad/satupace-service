@@ -3,10 +3,11 @@ package controller
 import (
 	"net/http"
 
+	"loka-kasir/helper"
+	"loka-kasir/service"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/service"
 )
 
 type HomeController interface {

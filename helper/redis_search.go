@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"loka-kasir/data/response"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -1,8 +1,8 @@
 package mapper
 
 import (
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/data/request"
+	"loka-kasir/entity"
 )
 
 func ToTransactionItemRequests(items []entity.TransactionItem) []request.TransactionItemUpdate {

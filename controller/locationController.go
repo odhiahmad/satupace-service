@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"loka-kasir/helper"
+	"loka-kasir/service"
+
 	"github.com/gin-gonic/gin"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/service"
 )
 
 type LocationController interface {

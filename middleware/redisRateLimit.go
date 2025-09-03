@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"loka-kasir/helper"
+
 	"github.com/gin-gonic/gin"
-	"github.com/odhiahmad/kasirku-service/helper"
 )
 
 func RateLimit(redisHelper *helper.RedisHelper, max int, period time.Duration) gin.HandlerFunc {

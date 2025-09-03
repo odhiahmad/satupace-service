@@ -3,14 +3,15 @@ package routes
 import (
 	"time"
 
+	"loka-kasir/config"
+	"loka-kasir/controller"
+	"loka-kasir/helper"
+	"loka-kasir/middleware"
+	"loka-kasir/repository"
+	"loka-kasir/service"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/odhiahmad/kasirku-service/config"
-	"github.com/odhiahmad/kasirku-service/controller"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/middleware"
-	"github.com/odhiahmad/kasirku-service/repository"
-	"github.com/odhiahmad/kasirku-service/service"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

@@ -4,12 +4,13 @@ import (
 	"errors"
 	"time"
 
+	"loka-kasir/data/request"
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+	"loka-kasir/helper/mapper"
+	"loka-kasir/repository"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper/mapper"
-	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type ShiftService interface {

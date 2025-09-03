@@ -1,9 +1,9 @@
 package mapper
 
 import (
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+	"loka-kasir/helper"
 )
 
 func MapVariants(variants []entity.ProductVariant, product *entity.Product) []response.ProductVariantResponse {

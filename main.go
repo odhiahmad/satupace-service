@@ -8,10 +8,11 @@ import (
 	"os/signal"
 	"time"
 
+	"loka-kasir/helper"
+	"loka-kasir/routes"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/routes"
 )
 
 func CORSMiddleware() gin.HandlerFunc {

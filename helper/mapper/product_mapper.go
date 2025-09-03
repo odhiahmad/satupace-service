@@ -3,9 +3,10 @@ package mapper
 import (
 	"time"
 
-	"github.com/odhiahmad/kasirku-service/data/response"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
+	"loka-kasir/data/response"
+	"loka-kasir/entity"
+	"loka-kasir/helper"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

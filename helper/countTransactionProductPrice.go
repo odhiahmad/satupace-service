@@ -4,8 +4,9 @@ import (
 	"errors"
 	"time"
 
+	"loka-kasir/entity"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/entity"
 )
 
 type TransactionPricing struct {

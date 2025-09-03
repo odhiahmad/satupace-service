@@ -1,10 +1,11 @@
 package repository
 
 import (
+	"loka-kasir/data/request"
+	"loka-kasir/entity"
+	"loka-kasir/helper"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
 )
 

@@ -6,9 +6,10 @@ import (
 	"log"
 	"os"
 
+	"loka-kasir/entity"
+	seeders "loka-kasir/seeder"
+
 	"github.com/joho/godotenv"
-	"github.com/odhiahmad/kasirku-service/entity"
-	seeders "github.com/odhiahmad/kasirku-service/seeder"
 	"github.com/vandyahmad24/golang-wilayah-indonesia/wilayah"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

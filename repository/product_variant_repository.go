@@ -3,8 +3,9 @@ package repository
 import (
 	"errors"
 
+	"loka-kasir/entity"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"gorm.io/gorm"
 )
 

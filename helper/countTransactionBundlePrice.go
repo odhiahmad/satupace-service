@@ -3,7 +3,7 @@ package helper
 import (
 	"log"
 
-	"github.com/odhiahmad/kasirku-service/entity"
+	"loka-kasir/entity"
 )
 
 type BundlePricing struct {

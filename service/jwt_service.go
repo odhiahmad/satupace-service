@@ -5,9 +5,10 @@ import (
 	"os"
 	"time"
 
+	"loka-kasir/entity"
+	"loka-kasir/helper"
+
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
 )
 
 type JWTService interface {

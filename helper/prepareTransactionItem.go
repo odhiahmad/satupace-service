@@ -5,9 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"loka-kasir/data/request"
+	"loka-kasir/entity"
+
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/entity"
 	"gorm.io/gorm"
 )
 

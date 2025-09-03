@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"loka-kasir/data/request"
+	"loka-kasir/entity"
+	"loka-kasir/helper"
+	"loka-kasir/repository"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/odhiahmad/kasirku-service/data/request"
-	"github.com/odhiahmad/kasirku-service/entity"
-	"github.com/odhiahmad/kasirku-service/helper"
-	"github.com/odhiahmad/kasirku-service/repository"
 )
 
 type RegistrationService interface {

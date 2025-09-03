@@ -1,6 +1,6 @@
 package helper
 
-import "github.com/odhiahmad/kasirku-service/data/response"
+import "loka-kasir/data/response"
 
 type DetailedError struct {
 	Code    string `json:"code"`
