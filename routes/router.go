@@ -68,6 +68,7 @@ var (
 	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
 	employeeService       service.EmployeeService       = service.NewEmployeeService(userBusinessRepository, validate)
 	customerService       service.CustomerService       = service.NewCustomerService(customerRepository, validate)
+	homeService           service.HomeService           = service.NewHomeService(transactionRepository, redisClient)
 
 	authController           controller.AuthController           = controller.NewAuthController(authService, jwtService)
 	userBusinessController   controller.UserBusinessController   = controller.NewUserBusinessController(userBusinessService, jwtService)
@@ -92,6 +93,7 @@ var (
 	terminalController       controller.TerminalController       = controller.NewTerminalController(terminalService, jwtService)
 	employeeController       controller.EmployeeController       = controller.NewEmployeeController(employeeService, jwtService)
 	customerController       controller.CustomerController       = controller.NewCustomerController(customerService, jwtService)
+	homeController           controller.HomeController           = controller.NewHomeController(homeService, jwtService)
 )
 
 func SetupRouter() *gin.Engine {
@@ -300,6 +302,11 @@ func SetupRouter() *gin.Engine {
 		shiftRoutes.POST("", shiftController.OpenShift)
 		shiftRoutes.PUT("/:id", shiftController.CloseShift)
 		shiftRoutes.GET("/cursor", shiftController.FindWithPaginationCursor)
+	}
+
+	homeRoutes := r.Group("home", middleware.AuthorizeJWT(jwtService), middleware.RateLimit(redisHelper, 20, time.Minute))
+	{
+		homeRoutes.GET("", homeController.GetHome)
 	}
 
 	return r

@@ -5,40 +5,49 @@ import (
 	"github.com/odhiahmad/kasirku-service/entity"
 )
 
-func MapTransaction(trx *entity.Transaction) *response.TransactionResponse {
-	var itemResponses []response.TransactionItemResponse
-
-	for _, item := range trx.Items {
-		var attrResponses []response.TransactionItemAttributeResponse
-		for _, attr := range item.Attributes {
-			attrResponses = append(attrResponses, response.TransactionItemAttributeResponse{
-				Id:                 attr.Id,
-				ProductAttributeId: attr.ProductAttributeId,
-				AdditionalPrice:    attr.AdditionalPrice,
-			})
-		}
-
-		var productResponses []response.ProductResponse
-		if item.Product != nil {
-			productResponses = append(productResponses, MapProduct(*item.Product))
-		}
-
-		itemResponses = append(itemResponses, response.TransactionItemResponse{
-			Id:                 item.Id,
-			ProductId:          item.ProductId,
-			Product:            productResponses,
-			BundleId:           item.BundleId,
-			ProductAttributeId: item.ProductAttributeId,
-			ProductVariantId:   item.ProductVariantId,
-			Quantity:           item.Quantity,
-			BasePrice:          item.BasePrice,
-			SellPrice:          item.SellPrice,
-			Total:              item.Total,
-			Discount:           item.Discount,
-			Tax:                item.Tax,
-			Promo:              item.Promo,
-			Attributes:         attrResponses,
+func MapTransactionItem(item entity.TransactionItem) response.TransactionItemResponse {
+	var attrResponses []response.TransactionItemAttributeResponse
+	for _, attr := range item.Attributes {
+		attrResponses = append(attrResponses, response.TransactionItemAttributeResponse{
+			Id:                 attr.Id,
+			ProductAttributeId: attr.ProductAttributeId,
+			AdditionalPrice:    attr.AdditionalPrice,
 		})
+	}
+
+	var productResponses []response.ProductResponse
+	if item.Product != nil {
+		productResponses = append(productResponses, MapProduct(*item.Product))
+	}
+
+	var bundleResponses []response.BundleResponse
+	if item.Bundle != nil {
+		bundleResponses = append(bundleResponses, MapBundle(*item.Bundle))
+	}
+
+	return response.TransactionItemResponse{
+		Id:                 item.Id,
+		ProductId:          item.ProductId,
+		Product:            productResponses,
+		BundleId:           item.BundleId,
+		Bundle:             bundleResponses,
+		ProductAttributeId: item.ProductAttributeId,
+		ProductVariantId:   item.ProductVariantId,
+		Quantity:           item.Quantity,
+		BasePrice:          item.BasePrice,
+		SellPrice:          item.SellPrice,
+		Total:              item.Total,
+		Discount:           item.Discount,
+		Tax:                item.Tax,
+		Promo:              item.Promo,
+		Attributes:         attrResponses,
+	}
+}
+
+func MapTransaction(trx entity.Transaction) *response.TransactionResponse {
+	var itemResponses []response.TransactionItemResponse
+	for _, item := range trx.Items {
+		itemResponses = append(itemResponses, MapTransactionItem(item))
 	}
 
 	var cashierRes response.UserBusinessResponse
@@ -69,6 +78,8 @@ func MapTransaction(trx *entity.Transaction) *response.TransactionResponse {
 		Discount:        trx.Discount,
 		Promo:           trx.Promo,
 		Tax:             trx.Tax,
+		OrderType:       *MapOrderType(trx.OrderType),
+		Table:           MapTable(trx.Table),
 		Status:          trx.Status,
 		Rating:          trx.Rating,
 		Notes:           trx.Notes,
@@ -86,4 +97,20 @@ func MapTransaction(trx *entity.Transaction) *response.TransactionResponse {
 		CreatedAt:       trx.CreatedAt,
 		UpdatedAt:       trx.UpdatedAt,
 	}
+}
+
+func MapTransactions(trxs []entity.Transaction) []response.TransactionResponse {
+	var result []response.TransactionResponse
+	for _, trx := range trxs {
+		result = append(result, *MapTransaction(trx))
+	}
+	return result
+}
+
+func MapTransactionItems(items []entity.TransactionItem) []response.TransactionItemResponse {
+	var result []response.TransactionItemResponse
+	for _, item := range items {
+		result = append(result, MapTransactionItem(item))
+	}
+	return result
 }
