@@ -115,7 +115,7 @@ func (s *transactionService) Create(req request.TransactionCreateRequest) (*resp
 		return nil, err
 	}
 
-	return mapper.MapTransaction(savedTx), nil
+	return mapper.MapTransaction(*savedTx), nil
 }
 
 func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymentRequest) (*response.TransactionResponse, error) {
@@ -227,7 +227,7 @@ func (s *transactionService) Payment(id uuid.UUID, req request.TransactionPaymen
 		return nil, err
 	}
 
-	return mapper.MapTransaction(savedTx), nil
+	return mapper.MapTransaction(*savedTx), nil
 }
 
 func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq request.TransactionItemCreate) (*response.TransactionResponse, error) {
@@ -297,7 +297,7 @@ func (s *transactionService) AddOrUpdateItem(transactionId uuid.UUID, itemReq re
 		return nil, err
 	}
 
-	return mapper.MapTransaction(savedTx), nil
+	return mapper.MapTransaction(*savedTx), nil
 }
 
 func (s *transactionService) FindById(id uuid.UUID) (*response.TransactionResponse, error) {
@@ -306,7 +306,7 @@ func (s *transactionService) FindById(id uuid.UUID) (*response.TransactionRespon
 		return nil, err
 	}
 
-	return mapper.MapTransaction(&transaction), nil
+	return mapper.MapTransaction(transaction), nil
 }
 
 func (s *transactionService) FindWithPagination(businessId uuid.UUID, pagination request.Pagination) ([]*response.TransactionResponse, int64, error) {
@@ -317,7 +317,7 @@ func (s *transactionService) FindWithPagination(businessId uuid.UUID, pagination
 
 	var responses []*response.TransactionResponse
 	for _, trx := range transactions {
-		responses = append(responses, mapper.MapTransaction(&trx)) // kalau trx adalah entity.Transaction
+		responses = append(responses, mapper.MapTransaction(trx)) // kalau trx adalah entity.Transaction
 	}
 
 	return responses, total, nil
@@ -361,7 +361,7 @@ func (s *transactionService) Refund(itemReq request.TransactionRefundRequest) (*
 		return nil, err
 	}
 
-	return mapper.MapTransaction(savedTx), nil
+	return mapper.MapTransaction(*savedTx), nil
 }
 
 func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*response.TransactionResponse, error) {
@@ -407,5 +407,5 @@ func (s *transactionService) Cancel(itemReq request.TransactionRefundRequest) (*
 		return nil, err
 	}
 
-	return mapper.MapTransaction(savedTx), nil
+	return mapper.MapTransaction(*savedTx), nil
 }

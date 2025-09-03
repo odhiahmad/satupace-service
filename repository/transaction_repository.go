@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/odhiahmad/kasirku-service/data/request"
+	"github.com/odhiahmad/kasirku-service/data/response"
 	"github.com/odhiahmad/kasirku-service/entity"
 	"github.com/odhiahmad/kasirku-service/helper"
 	"gorm.io/gorm"
@@ -20,6 +21,12 @@ type TransactionRepository interface {
 	FindItemsByTransactionId(transactionId uuid.UUID) ([]entity.TransactionItem, error)
 	UpdateTotals(transaction *entity.Transaction) (*entity.Transaction, error)
 	UpdateItemFields(transactionId uuid.UUID, item entity.TransactionItem) error
+	GetTodayRevenue(businessId uuid.UUID) (float64, error)
+	GetTodayOrdersCount(businessId uuid.UUID) (int64, error)
+	GetTodayItemsSold(businessId uuid.UUID) (int64, error)
+	GetLastOrders(businessId uuid.UUID, limit int) ([]entity.Transaction, error)
+	GetLastItems(businessId uuid.UUID, limit int) ([]entity.TransactionItem, error)
+	GetTopProductsToday(businessId uuid.UUID, limit int) ([]response.TopProductResponse, error)
 }
 
 type transactionConnection struct {
@@ -377,4 +384,69 @@ func (conn *transactionConnection) FindItemsByTransactionId(transactionId uuid.U
 	}
 
 	return items, nil
+}
+
+func (conn *transactionConnection) GetTodayRevenue(businessId uuid.UUID) (float64, error) {
+	var revenue float64
+	err := conn.db.Model(&entity.Transaction{}).
+		Select("COALESCE(SUM(total_amount), 0)").
+		Where("business_id = ? AND DATE(created_at) = CURRENT_DATE", businessId).
+		Scan(&revenue).Error
+	return revenue, err
+}
+
+func (conn *transactionConnection) GetTodayOrdersCount(businessId uuid.UUID) (int64, error) {
+	var count int64
+	err := conn.db.Model(&entity.Transaction{}).
+		Where("business_id = ? AND DATE(created_at) = CURRENT_DATE", businessId).
+		Count(&count).Error
+	return count, err
+}
+
+func (conn *transactionConnection) GetTodayItemsSold(businessId uuid.UUID) (int64, error) {
+	var count int64
+	err := conn.db.Model(&entity.TransactionItem{}).
+		Joins("JOIN transactions t ON t.id = transaction_items.transaction_id").
+		Where("t.business_id = ? AND DATE(transaction_items.created_at) = CURRENT_DATE", businessId).
+		Select("COALESCE(SUM(quantity),0)").
+		Scan(&count).Error
+	return count, err
+}
+
+func (conn *transactionConnection) GetLastOrders(businessId uuid.UUID, limit int) ([]entity.Transaction, error) {
+	var orders []entity.Transaction
+	err := conn.db.Where("business_id = ?", businessId).
+		Order("created_at DESC").
+		Limit(limit).
+		Preload("Customer").
+		Preload("Cashier").
+		Preload("Items").
+		Find(&orders).Error
+	return orders, err
+}
+
+func (conn *transactionConnection) GetLastItems(businessId uuid.UUID, limit int) ([]entity.TransactionItem, error) {
+	var items []entity.TransactionItem
+	err := conn.db.Table("transaction_items ti").
+		Select("ti.*").
+		Joins("JOIN transactions t ON t.id = ti.transaction_id").
+		Where("t.business_id = ?", businessId).
+		Order("ti.created_at DESC").
+		Limit(limit).
+		Scan(&items).Error
+	return items, err
+}
+
+func (conn *transactionConnection) GetTopProductsToday(businessId uuid.UUID, limit int) ([]response.TopProductResponse, error) {
+	var top []response.TopProductResponse
+	err := conn.db.Table("transaction_items ti").
+		Select("p.id as product_id, p.name as product_name, SUM(ti.quantity) as order_count").
+		Joins("JOIN products p ON p.id = ti.product_id").
+		Joins("JOIN transactions t ON t.id = ti.transaction_id").
+		Where("t.business_id = ? AND DATE(ti.created_at) = CURRENT_DATE", businessId).
+		Group("p.id, p.name").
+		Order("order_count DESC").
+		Limit(limit).
+		Scan(&top).Error
+	return top, err
 }
