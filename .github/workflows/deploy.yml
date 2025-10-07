@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to VPS via SSH
+    name: Deploy Loka Kasir Service to VPS
     runs-on: ubuntu-latest
 
     steps:
@@ -22,37 +22,55 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "===> Deploying loka-kasir-service"
+            echo "===> 🚀 Deploying Loka Kasir Service"
 
             export PATH=$PATH:/usr/local/go/bin
 
             cd /home/ubuntu/loka-kasir-service || exit 1
 
-            echo "===> Pulling latest code..."
-            git reset --hard
+            echo "===> 🔄 Pulling latest code..."
+            git fetch --all
+            git reset --hard origin/main
             git clean -fd
-            git pull origin main
 
-            echo "===> Go mod tidy..."
+            echo "===> 🧩 Running go mod tidy..."
             /usr/local/go/bin/go mod tidy
 
-            echo "===> Building binary..."
+            echo "===> ⚙️ Building binary..."
             /usr/local/go/bin/go build -o loka-kasir main.go
 
-            echo "===> Menambahkan sudoers rule (jika belum)"
-            echo 'ubuntu ALL=(ALL) NOPASSWD: /bin/systemctl restart loka-kasir' | sudo tee /etc/sudoers.d/github-actions
+            echo "===> 🔐 Updating sudoers rule for GitHub Actions..."
+            echo 'ubuntu ALL=(ALL) NOPASSWD: /bin/systemctl restart loka-kasir' | sudo tee /etc/sudoers.d/github-actions > /dev/null
 
-            echo "===> Restarting service..."
+            echo "===> 🔁 Restarting Loka Kasir service..."
+            sudo /bin/systemctl daemon-reload
             sudo /bin/systemctl restart loka-kasir
 
-            echo "✅ Deployment finished!"
+            echo "===> ⏳ Checking service status..."
+            sleep 3
+            STATUS=$(sudo systemctl is-active loka-kasir)
+            if [ "$STATUS" != "active" ]; then
+              echo "❌ Service failed to start."
+              sudo systemctl status loka-kasir --no-pager
+              exit 1
+            fi
+
+            echo "✅ Service is running successfully!"
+            sudo systemctl status loka-kasir --no-pager
 
       - name: Send Telegram Notification on Success
         if: success()
         run: |
+          SERVICE_STATUS=$(ssh -i <(echo "${{ secrets.SSH_PRIVATE_KEY }}") -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} "sudo systemctl is-active loka-kasir")
+          if [ "$SERVICE_STATUS" = "active" ]; then
+            MESSAGE="✅ *Loka Kasir Service* berhasil dideploy & service aktif di VPS.\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: \`${{ github.actor }}\`\n🔁 Branch: \`${{ github.ref_name }}\`\n🟢 Status: \`running\`"
+          else
+            MESSAGE="⚠️ *Loka Kasir Service* dideploy, tapi service *tidak aktif* setelah restart.\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: \`${{ github.actor }}\`\n🔁 Branch: \`${{ github.ref_name }}\`\n🔴 Status: \`$SERVICE_STATUS\`"
+          fi
+
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-            -d text="✅ *Loka Kasir Service* berhasil dideploy ke VPS.\n\n📦 Commit: \`${{ github.sha }}\`\n👤 By: \`${{ github.actor }}\`\n🔁 Branch: \`${{ github.ref_name }}\`" \
+            -d text="$MESSAGE" \
             -d parse_mode=Markdown
 
       - name: Send Telegram Notification on Failure
