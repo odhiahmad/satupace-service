@@ -17,7 +17,7 @@ import (
 
 type AuthService interface {
 	VerifyCredentialBusiness(identifier string, password string) (*response.AuthResponse, error)
-	PinLogin(req request.PinLoginRequest) (*response.AuthResponse, error)
+	PinLogin(req request.PinLoginRequest) (*response.EmployeeResponse, error)
 	VerifyOTPToken(req request.VerifyOTPRequest) (*response.AuthResponse, error)
 	RetryOTP(req request.RetryOTPRequest) error
 	RequestForgotPassword(req request.ForgotPasswordRequest) error
@@ -30,15 +30,17 @@ type authService struct {
 	redisHelper            *helper.RedisHelper
 	emailHelper            *helper.EmailHelper
 	membershipRepository   repository.MembershipRepository
+	employeeRepository     repository.EmployeeRepository
 }
 
-func NewAuthService(userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper, membershipRepository repository.MembershipRepository) AuthService {
+func NewAuthService(userBusinessRepository repository.UserBusinessRepository, jwtSvc JWTService, redisHelper *helper.RedisHelper, emailHelper *helper.EmailHelper, membershipRepository repository.MembershipRepository, employeeRepository repository.EmployeeRepository) AuthService {
 	return &authService{
 		userBusinessRepository: userBusinessRepository,
 		jwtService:             jwtSvc,
 		redisHelper:            redisHelper,
 		emailHelper:            emailHelper,
 		membershipRepository:   membershipRepository,
+		employeeRepository:     employeeRepository,
 	}
 }
 
@@ -79,13 +81,13 @@ func (service *authService) VerifyCredentialBusiness(identifier string, password
 	return res, nil
 }
 
-func (service *authService) PinLogin(req request.PinLoginRequest) (*response.AuthResponse, error) {
-	user, err := service.userBusinessRepository.FindByPhoneAndBusinessId(req.BusinessId, req.PhoneNumber)
+func (service *authService) PinLogin(req request.PinLoginRequest) (*response.EmployeeResponse, error) {
+	user, err := service.employeeRepository.FindById(req.EmployeeId)
 	if err != nil {
 		return nil, helper.ErrUserNotFound
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(user.PinCode), []byte(req.PinCode)) != nil {
+	if bcrypt.CompareHashAndPassword([]byte(user.Pin), []byte(req.PinCode)) != nil {
 		return nil, errors.New("PIN salah")
 	}
 
@@ -93,13 +95,7 @@ func (service *authService) PinLogin(req request.PinLoginRequest) (*response.Aut
 		return nil, errors.New("pegawai tidak aktif")
 	}
 
-	membership, err := service.membershipRepository.FindActiveMembershipByBusinessID(user.BusinessId)
-	if err != nil {
-		return nil, helper.ErrMembershipInactive
-	}
-
-	token := service.jwtService.GenerateToken(user, membership.EndDate)
-	res := mapper.MapAuth(&user, token)
+	res := mapper.MapEmployee(user)
 
 	return res, nil
 }

@@ -69,6 +69,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.TransactionItem{},
 			&entity.TransactionItemAttribute{},
 			&entity.Brand{},
+			&entity.Employee{},
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}

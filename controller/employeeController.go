@@ -49,13 +49,14 @@ func (c *employeeController) Create(ctx *gin.Context) {
 	}
 	input.BusinessId = businessId
 
-	if err := c.employeeService.Create(input); err != nil {
+	res, err := c.employeeService.Create(input)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse(
 			"Gagal membuat employee", "INTERNAL_ERROR", "employee", err.Error(), helper.EmptyObj{}))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat employee", nil))
+	ctx.JSON(http.StatusCreated, helper.BuildResponse(true, "Berhasil membuat employee", res))
 }
 
 func (c *employeeController) Update(ctx *gin.Context) {
@@ -77,12 +78,14 @@ func (c *employeeController) Update(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.employeeService.Update(id, input); err != nil {
+	res, err := c.employeeService.Update(id, input)
+
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, helper.BuildErrorResponse("Gagal mengubah employee", "internal_error", "employee", err.Error(), nil))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah employee", nil))
+	ctx.JSON(http.StatusOK, helper.BuildResponse(true, "Berhasil mengubah employee", res))
 }
 
 func (c *employeeController) Delete(ctx *gin.Context) {

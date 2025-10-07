@@ -6,13 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type EmployeePinLoginResponse struct {
-	Token      string    `json:"token"`
-	CashierId  uuid.UUID `json:"cashier_id"`
-	Name       string    `json:"name"`
-	RoleName   string    `json:"role_name"`
-	BusinessId uuid.UUID `json:"business_id"`
-	TerminalId uuid.UUID `json:"terminal_id"`
+type EmployeeResponse struct {
+	Id          uuid.UUID         `json:"id"`
+	Business    *BusinessResponse `json:"business"`
+	PhoneNumber string            `json:"phone_number"`
+	Name        string            `json:"name"`
+	Role        *RoleResponse     `json:"role"`
+	IsActive    bool              `json:"is_active"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+type EmployeeLoginResponse struct {
+	Employee EmployeeResponse `json:"employee"`
 }
 
 type ShiftResponse struct {

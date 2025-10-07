@@ -44,9 +44,10 @@ var (
 	shiftRepository          repository.ShiftRepository          = repository.NewShiftRepository(db)
 	terminalRepository       repository.TerminalRepository       = repository.NewTerminalRepository(db)
 	customerRepository       repository.CustomerRepository       = repository.NewCustomerRepository(db)
+	employeeRepository       repository.EmployeeRepository       = repository.NewEmployeeRepository(db)
 
 	jwtService            service.JWTService            = service.NewJwtService()
-	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository)
+	authService           service.AuthService           = service.NewAuthService(userBusinessRepository, jwtService, redisHelper, emailHelper, membershipRepository, employeeRepository)
 	userBusinessService   service.UserBusinessService   = service.NewUserBusinessService(userBusinessRepository, redisHelper, emailHelper)
 	roleService           service.RoleService           = service.NewRoleService(roleRepository, validate)
 	businessTypeService   service.BusinessTypeService   = service.NewBusinessTypeService(businessTypeRepository, validate)
@@ -67,7 +68,7 @@ var (
 	orderTypeService      service.OrderTypeService      = service.NewOrderTypeService(orderTypeRepository, validate)
 	shiftService          service.ShiftService          = service.NewShiftService(userBusinessRepository, shiftRepository)
 	terminalService       service.TerminalService       = service.NewTerminalService(terminalRepository, validate)
-	employeeService       service.EmployeeService       = service.NewEmployeeService(userBusinessRepository, validate)
+	employeeService       service.EmployeeService       = service.NewEmployeeService(employeeRepository, validate)
 	customerService       service.CustomerService       = service.NewCustomerService(customerRepository, validate)
 	homeService           service.HomeService           = service.NewHomeService(transactionRepository, redisClient)
 
