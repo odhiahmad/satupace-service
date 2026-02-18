@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"loka-kasir/config"
 	"loka-kasir/helper"
 	"loka-kasir/routes"
 
@@ -55,7 +56,7 @@ func main() {
 		log.Println("🚀 GIN_MODE=release")
 	}
 
-	// config.SetupWilayahDatabase()
+	config.SetupWilayahDatabase()
 
 	r := routes.SetupRouter()
 	r.Use(CORSMiddleware())
