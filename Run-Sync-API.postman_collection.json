@@ -69,6 +69,11 @@
       "key": "message_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -110,7 +115,26 @@
               "mode": "raw",
               "raw": "{\n  \"phone_number\": \"081234567890\",\n  \"otp_code\": \"123456\"\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.access_token) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.access_token);",
+                  "    }",
+                  "    if (json.data && json.data.refresh_token) {",
+                  "        pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login (Email or Phone)",
@@ -128,8 +152,27 @@
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"john@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
             },
-            "description": "Login menggunakan email ATAU nomor telepon. Field 'identifier' menerima keduanya."
-          }
+            "description": "Login menggunakan email ATAU nomor telepon. Field 'identifier' menerima keduanya. Response berisi access_token (1 jam) dan refresh_token (7 hari)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.access_token) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.access_token);",
+                  "    }",
+                  "    if (json.data && json.data.refresh_token) {",
+                  "        pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login (Phone Number)",
@@ -147,8 +190,27 @@
               "mode": "raw",
               "raw": "{\n  \"identifier\": \"081234567890\",\n  \"password\": \"SecurePass123!\"\n}"
             },
-            "description": "Login menggunakan nomor telepon via field 'identifier'."
-          }
+            "description": "Login menggunakan nomor telepon via field 'identifier'. Response berisi access_token (1 jam) dan refresh_token (7 hari)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.access_token) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.access_token);",
+                  "    }",
+                  "    if (json.data && json.data.refresh_token) {",
+                  "        pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Resend OTP",
@@ -167,6 +229,44 @@
               "raw": "{\n  \"phone_number\": \"081234567890\"\n}"
             }
           }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh-token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh-token"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "description": "Gunakan refresh token untuk mendapatkan access token dan refresh token baru. Access token berlaku 1 jam, refresh token berlaku 7 hari."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.access_token) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.access_token);",
+                  "    }",
+                  "    if (json.data && json.data.refresh_token) {",
+                  "        pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -249,8 +349,27 @@
               "mode": "raw",
               "raw": "{\n  \"credential_id\": \"unique-credential-id-from-device\",\n  \"challenge\": \"challenge-from-start-step\",\n  \"signature\": \"hex-encoded-hmac-sha256-signature\"\n}"
             },
-            "description": "Menyelesaikan login biometrik. Mengembalikan user + JWT token jika valid."
-          }
+            "description": "Menyelesaikan login biometrik. Mengembalikan user + access_token + refresh_token jika valid."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.access_token) {",
+                  "        pm.collectionVariables.set('jwt_token', json.data.access_token);",
+                  "    }",
+                  "    if (json.data && json.data.refresh_token) {",
+                  "        pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get My Biometric Credentials",

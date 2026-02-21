@@ -12,7 +12,9 @@ import (
 
 type JWTService interface {
 	GenerateToken(userId string, phoneNumber string, email *string, expiredAt time.Time) string
+	GenerateRefreshToken(userId string) string
 	ValidateToken(token string) (*jwt.Token, error)
+	ValidateRefreshToken(token string) (*jwt.Token, error)
 }
 
 type jwtCustomClaims struct {
@@ -25,14 +27,16 @@ type jwtCustomClaims struct {
 }
 
 type jwtService struct {
-	secretKey string
-	issuer    string
+	secretKey        string
+	refreshSecretKey string
+	issuer           string
 }
 
 func NewJwtService() JWTService {
 	return &jwtService{
-		issuer:    "run-sync",
-		secretKey: getSecretKey(),
+		issuer:           "run-sync",
+		secretKey:        getSecretKey(),
+		refreshSecretKey: getRefreshSecretKey(),
 	}
 }
 
@@ -44,6 +48,14 @@ func getSecretKey() string {
 	return secretKey
 }
 
+func getRefreshSecretKey() string {
+	secretKey := os.Getenv("JWT_REFRESH_SECRET")
+	if secretKey == "" {
+		secretKey = "rf_sdfnkjsdf28fmn*(&^%^%&bjsdfgsQ$@$sadjfsdfx"
+	}
+	return secretKey
+}
+
 func (j *jwtService) GenerateToken(userId string, phoneNumber string, email *string, expiredAt time.Time) string {
 	claims := jwt.MapClaims{
 		"user_id":      userId,
@@ -51,6 +63,7 @@ func (j *jwtService) GenerateToken(userId string, phoneNumber string, email *str
 		"email":        email,
 		"is_verified":  true, // Only verified users should get tokens
 		"is_active":    true, // Only active users should get tokens
+		"token_type":   "access",
 		"exp":          expiredAt.Unix(),
 		"iss":          j.issuer,
 	}
@@ -62,12 +75,38 @@ func (j *jwtService) GenerateToken(userId string, phoneNumber string, email *str
 	return signedToken
 }
 
+func (j *jwtService) GenerateRefreshToken(userId string) string {
+	claims := jwt.MapClaims{
+		"user_id":    userId,
+		"token_type": "refresh",
+		"exp":        time.Now().Add(7 * 24 * time.Hour).Unix(), // 7 days
+		"iss":        j.issuer,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(j.refreshSecretKey))
+	helper.ErrorPanic(err)
+
+	return signedToken
+}
+
 func (j *jwtService) ValidateToken(encodedToken string) (*jwt.Token, error) {
 	token, err := jwt.Parse(encodedToken, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(j.secretKey), nil
+	})
+
+	return token, err
+}
+
+func (j *jwtService) ValidateRefreshToken(encodedToken string) (*jwt.Token, error) {
+	token, err := jwt.Parse(encodedToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(j.refreshSecretKey), nil
 	})
 
 	return token, err

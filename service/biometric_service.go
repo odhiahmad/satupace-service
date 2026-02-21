@@ -25,7 +25,7 @@ type BiometricService interface {
 
 	// Authentication flow
 	LoginStart(req request.BiometricLoginStartRequest) (response.BiometricChallengeResponse, error)
-	LoginFinish(req request.BiometricLoginFinishRequest) (response.UserResponse, string, error) // returns user + JWT token
+	LoginFinish(req request.BiometricLoginFinishRequest) (response.UserResponse, string, string, error) // returns user + access token + refresh token
 
 	// Credential management
 	GetCredentials(userId uuid.UUID) ([]response.BiometricCredentialResponse, error)
@@ -191,44 +191,44 @@ func (s *biometricService) LoginStart(req request.BiometricLoginStartRequest) (r
 }
 
 // LoginFinish verifies the biometric signature and returns a JWT token
-func (s *biometricService) LoginFinish(req request.BiometricLoginFinishRequest) (response.UserResponse, string, error) {
+func (s *biometricService) LoginFinish(req request.BiometricLoginFinishRequest) (response.UserResponse, string, string, error) {
 	// Find biometric credential
 	biometric, err := s.repo.FindByCredentialId(req.CredentialId)
 	if err != nil {
-		return response.UserResponse{}, "", errors.New("credential biometrik tidak ditemukan")
+		return response.UserResponse{}, "", "", errors.New("credential biometrik tidak ditemukan")
 	}
 
 	// Get stored challenge from Redis
 	storedChallenge, err := s.redis.GetOTP("biometric_login", biometric.UserId.String())
 	if err != nil {
-		return response.UserResponse{}, "", errors.New("challenge tidak valid atau sudah kadaluarsa")
+		return response.UserResponse{}, "", "", errors.New("challenge tidak valid atau sudah kadaluarsa")
 	}
 
 	// Verify challenge matches
 	if storedChallenge != req.Challenge {
-		return response.UserResponse{}, "", errors.New("challenge tidak cocok")
+		return response.UserResponse{}, "", "", errors.New("challenge tidak cocok")
 	}
 
 	// Verify signature
 	if !verifySignature(biometric.PublicKey, req.Challenge, req.Signature) {
-		return response.UserResponse{}, "", errors.New("signature biometrik tidak valid")
+		return response.UserResponse{}, "", "", errors.New("signature biometrik tidak valid")
 	}
 
 	// Find user
 	user, err := s.userRepo.FindById(biometric.UserId)
 	if err != nil {
-		return response.UserResponse{}, "", errors.New("user tidak ditemukan")
+		return response.UserResponse{}, "", "", errors.New("user tidak ditemukan")
 	}
 
 	// Check user status
 	if !user.IsVerified {
-		return response.UserResponse{}, "", errors.New("akun belum diverifikasi")
+		return response.UserResponse{}, "", "", errors.New("akun belum diverifikasi")
 	}
 	if !user.IsActive {
-		return response.UserResponse{}, "", errors.New("akun tidak aktif")
+		return response.UserResponse{}, "", "", errors.New("akun tidak aktif")
 	}
 	if user.IsSuspended {
-		return response.UserResponse{}, "", errors.New("akun Anda telah disuspend")
+		return response.UserResponse{}, "", "", errors.New("akun Anda telah disuspend")
 	}
 
 	// Update last used
@@ -239,9 +239,10 @@ func (s *biometricService) LoginFinish(req request.BiometricLoginFinishRequest) 
 	// Delete challenge from Redis
 	s.redis.DeleteOTP("biometric_login", biometric.UserId.String())
 
-	// Generate JWT token
-	expiryTime := time.Now().Add(24 * time.Hour)
-	token := s.jwtService.GenerateToken(user.Id.String(), user.PhoneNumber, user.Email, expiryTime)
+	// Generate JWT tokens
+	expiryTime := time.Now().Add(1 * time.Hour)
+	accessToken := s.jwtService.GenerateToken(user.Id.String(), user.PhoneNumber, user.Email, expiryTime)
+	refreshToken := s.jwtService.GenerateRefreshToken(user.Id.String())
 
 	userRes := response.UserResponse{
 		Id:          user.Id.String(),
@@ -255,7 +256,7 @@ func (s *biometricService) LoginFinish(req request.BiometricLoginFinishRequest) 
 		UpdatedAt:   user.UpdatedAt,
 	}
 
-	return userRes, token, nil
+	return userRes, accessToken, refreshToken, nil
 }
 
 // GetCredentials returns all biometric credentials for a user

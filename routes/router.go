@@ -93,6 +93,7 @@ func SetupRouter() *gin.Engine {
 		auth.POST("/verify", authController.VerifyOTP)
 		auth.POST("/login", authController.Login)
 		auth.POST("/resend-otp", authController.ResendOTP)
+		auth.POST("/refresh-token", authController.RefreshToken)
 
 		// Biometric login (public - no JWT required)
 		auth.POST("/biometric/login/start", biometricController.LoginStart)

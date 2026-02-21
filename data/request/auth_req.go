@@ -13,3 +13,7 @@ type LoginRequest struct {
 type ResendOTPRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required"`
 }
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

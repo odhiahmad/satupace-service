@@ -46,6 +46,14 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 
 		claims := token.Claims.(jwt.MapClaims)
 
+		// Ensure this is an access token, not a refresh token
+		if tokenType, ok := claims["token_type"].(string); !ok || tokenType != "access" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(
+				"Unauthorized", "INVALID_TOKEN_TYPE", "Authorization", "Gunakan access token, bukan refresh token", nil,
+			))
+			return
+		}
+
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(

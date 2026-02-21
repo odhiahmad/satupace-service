@@ -11,6 +11,8 @@ import (
 	"run-sync/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type AuthController interface {
@@ -18,6 +20,7 @@ type AuthController interface {
 	VerifyOTP(ctx *gin.Context)
 	Login(ctx *gin.Context)
 	ResendOTP(ctx *gin.Context)
+	RefreshToken(ctx *gin.Context)
 }
 
 type authController struct {
@@ -126,13 +129,15 @@ func (c *authController) VerifyOTP(ctx *gin.Context) {
 	// Delete OTP from Redis
 	c.otpHelper.DeleteOTP("register", req.PhoneNumber)
 
-	// Generate JWT token
-	expiryTime := time.Now().Add(24 * time.Hour)
-	token := c.jwtService.GenerateToken(user.Id, user.PhoneNumber, user.Email, expiryTime)
+	// Generate JWT tokens
+	expiryTime := time.Now().Add(1 * time.Hour)
+	accessToken := c.jwtService.GenerateToken(user.Id, user.PhoneNumber, user.Email, expiryTime)
+	refreshToken := c.jwtService.GenerateRefreshToken(user.Id)
 
 	response := helper.BuildResponse(true, "Akun berhasil diverifikasi dan diaktifkan", map[string]interface{}{
-		"user":  user,
-		"token": token,
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	})
 
 	ctx.JSON(http.StatusOK, response)
@@ -169,13 +174,15 @@ func (c *authController) Login(ctx *gin.Context) {
 		return
 	}
 
-	// Generate JWT token
-	expiryTime := time.Now().Add(24 * time.Hour)
-	token := c.jwtService.GenerateToken(user.Id, user.PhoneNumber, user.Email, expiryTime)
+	// Generate JWT tokens
+	expiryTime := time.Now().Add(1 * time.Hour)
+	accessToken := c.jwtService.GenerateToken(user.Id, user.PhoneNumber, user.Email, expiryTime)
+	refreshToken := c.jwtService.GenerateRefreshToken(user.Id)
 
 	response := helper.BuildResponse(true, "Login berhasil", map[string]interface{}{
-		"user":  user,
-		"token": token,
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	})
 
 	ctx.JSON(http.StatusOK, response)
@@ -229,6 +236,88 @@ func (c *authController) ResendOTP(ctx *gin.Context) {
 	}
 
 	response := helper.BuildResponse(true, "Kode OTP baru telah dikirim ke WhatsApp", nil)
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+// RefreshToken - Generate new access token using refresh token
+func (c *authController) RefreshToken(ctx *gin.Context) {
+	var req request.RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	// Validate refresh token
+	token, err := c.jwtService.ValidateRefreshToken(req.RefreshToken)
+	if err != nil || !token.Valid {
+		res := helper.BuildErrorResponse("Refresh token tidak valid atau sudah kadaluarsa", "INVALID_REFRESH_TOKEN", "body", "token tidak valid", nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Extract claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		res := helper.BuildErrorResponse("Token tidak valid", "INVALID_TOKEN", "body", "gagal membaca claims", nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Validate token type
+	tokenType, _ := claims["token_type"].(string)
+	if tokenType != "refresh" {
+		res := helper.BuildErrorResponse("Token type tidak valid", "INVALID_TOKEN_TYPE", "body", "bukan refresh token", nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Get user ID
+	userIdStr, _ := claims["user_id"].(string)
+	if userIdStr == "" {
+		res := helper.BuildErrorResponse("Token tidak valid", "INVALID_TOKEN", "body", "user_id tidak ditemukan", nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Parse user ID
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		res := helper.BuildErrorResponse("Token tidak valid", "INVALID_TOKEN", "body", "user_id tidak valid", nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Find user to get latest data
+	user, err := c.userService.FindById(userId)
+	if err != nil {
+		res := helper.BuildErrorResponse("User tidak ditemukan", "USER_NOT_FOUND", "body", err.Error(), nil)
+		ctx.JSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	// Check user status
+	if !user.IsVerified {
+		res := helper.BuildErrorResponse("Akun belum diverifikasi", "NOT_VERIFIED", "body", "Silakan verifikasi akun Anda terlebih dahulu", nil)
+		ctx.JSON(http.StatusForbidden, res)
+		return
+	}
+	if !user.IsActive {
+		res := helper.BuildErrorResponse("Akun tidak aktif", "ACCOUNT_INACTIVE", "body", "Akun Anda telah dinonaktifkan", nil)
+		ctx.JSON(http.StatusForbidden, res)
+		return
+	}
+
+	// Generate new tokens
+	expiryTime := time.Now().Add(1 * time.Hour)
+	newAccessToken := c.jwtService.GenerateToken(user.Id, user.PhoneNumber, user.Email, expiryTime)
+	newRefreshToken := c.jwtService.GenerateRefreshToken(user.Id)
+
+	response := helper.BuildResponse(true, "Token berhasil diperbarui", map[string]interface{}{
+		"access_token":  newAccessToken,
+		"refresh_token": newRefreshToken,
+	})
 
 	ctx.JSON(http.StatusOK, response)
 }

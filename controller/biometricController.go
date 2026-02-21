@@ -95,7 +95,7 @@ func (c *biometricController) LoginFinish(ctx *gin.Context) {
 		return
 	}
 
-	user, token, err := c.service.LoginFinish(req)
+	user, accessToken, refreshToken, err := c.service.LoginFinish(req)
 	if err != nil {
 		res := helper.BuildErrorResponse("Login biometrik gagal", "BIOMETRIC_LOGIN_FAILED", "body", err.Error(), nil)
 		ctx.JSON(http.StatusUnauthorized, res)
@@ -103,8 +103,9 @@ func (c *biometricController) LoginFinish(ctx *gin.Context) {
 	}
 
 	response := helper.BuildResponse(true, "Login biometrik berhasil", map[string]interface{}{
-		"user":  user,
-		"token": token,
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	})
 	ctx.JSON(http.StatusOK, response)
 }
