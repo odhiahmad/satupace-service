@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Run-Sync API",
-    "description": "Complete API collection for Run-Sync running social app",
+    "description": "Complete API collection for Run-Sync running social app. Includes authentication (OTP + biometric), user management, runner profiles, run groups, activities, matching, chat, photos (Cloudinary), safety, smartwatch sync, and WhatsApp verification.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -19,22 +19,69 @@
       "key": "user_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "group_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "member_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "activity_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "match_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "profile_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "photo_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "safety_log_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "device_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "credential_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "message_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
       "name": "🔐 Authentication",
-      "description": "Register → Verify OTP → Login flow. All users must verify before accessing protected endpoints.",
+      "description": "Register → Verify OTP → Login flow. Supports login via email OR phone number. Biometric (passkey) login also available.",
       "item": [
         {
           "name": "Register (Sign Up)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/auth/register",
@@ -52,10 +99,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/auth/verify",
@@ -69,14 +113,11 @@
           }
         },
         {
-          "name": "Login",
+          "name": "Login (Email or Phone)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -85,8 +126,28 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"081234567890\",\n  \"password\": \"SecurePass123!\"\n}"
-            }
+              "raw": "{\n  \"identifier\": \"john@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "description": "Login menggunakan email ATAU nomor telepon. Field 'identifier' menerima keduanya."
+          }
+        },
+        {
+          "name": "Login (Phone Number)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"081234567890\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "description": "Login menggunakan nomor telepon via field 'identifier'."
           }
         },
         {
@@ -94,10 +155,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/auth/resend-otp",
@@ -113,17 +171,129 @@
       ]
     },
     {
-      "name": "Users",
+      "name": "🔑 Biometric Authentication",
+      "description": "Passkey/biometric login flow. Register requires JWT (user must be logged in first). Login is public (no JWT needed). Uses challenge-response with HMAC-SHA256 signature verification.",
+      "item": [
+        {
+          "name": "Register Biometric - Start",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/biometric/register/start",
+              "host": ["{{base_url}}"],
+              "path": ["biometric", "register", "start"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_name\": \"iPhone 15 Pro\"\n}"
+            },
+            "description": "Memulai registrasi biometrik. Server mengembalikan challenge yang harus ditandatangani oleh client."
+          }
+        },
+        {
+          "name": "Register Biometric - Finish",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/biometric/register/finish",
+              "host": ["{{base_url}}"],
+              "path": ["biometric", "register", "finish"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential_id\": \"unique-credential-id-from-device\",\n  \"public_key\": \"hex-encoded-public-key\",\n  \"device_name\": \"iPhone 15 Pro\",\n  \"challenge\": \"challenge-from-start-step\",\n  \"signature\": \"hex-encoded-hmac-sha256-signature\"\n}"
+            },
+            "description": "Menyelesaikan registrasi biometrik dengan mengirim credential_id, public_key, dan signature dari challenge."
+          }
+        },
+        {
+          "name": "Login Biometric - Start",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/biometric/login/start",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "biometric", "login", "start"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"john@example.com\"\n}"
+            },
+            "description": "Memulai login biometrik. Identifier bisa email atau nomor telepon. Server mengembalikan challenge."
+          }
+        },
+        {
+          "name": "Login Biometric - Finish",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/biometric/login/finish",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "biometric", "login", "finish"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential_id\": \"unique-credential-id-from-device\",\n  \"challenge\": \"challenge-from-start-step\",\n  \"signature\": \"hex-encoded-hmac-sha256-signature\"\n}"
+            },
+            "description": "Menyelesaikan login biometrik. Mengembalikan user + JWT token jika valid."
+          }
+        },
+        {
+          "name": "Get My Biometric Credentials",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/biometric/credentials",
+              "host": ["{{base_url}}"],
+              "path": ["biometric", "credentials"]
+            },
+            "description": "Mengambil semua credential biometrik yang terdaftar untuk user ini."
+          }
+        },
+        {
+          "name": "Delete Biometric Credential",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/biometric/credentials/{{credential_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["biometric", "credentials", "{{credential_id}}"]
+            },
+            "description": "Menghapus credential biometrik tertentu."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "description": "CRUD user management.",
       "item": [
         {
           "name": "Create User",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/users",
@@ -165,10 +335,7 @@
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/users/{{user_id}}",
@@ -196,21 +363,118 @@
       ]
     },
     {
-      "name": "Run Groups",
+      "name": "🏃 Runner Profiles",
+      "description": "Runner profile management. CreateOrUpdate enforces one profile per user. JWT required.",
+      "item": [
+        {
+          "name": "Create or Update Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles",
+              "host": ["{{base_url}}"],
+              "path": ["profiles"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avg_pace\": 5.5,\n  \"preferred_distance\": 10,\n  \"preferred_time\": \"morning\",\n  \"latitude\": -6.2088,\n  \"longitude\": 106.8456,\n  \"women_only_mode\": false,\n  \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...\"\n}"
+            },
+            "description": "Membuat atau memperbarui profil runner. Field 'image' menerima base64 string yang akan diupload ke Cloudinary. Satu user hanya bisa punya satu profil."
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles/me",
+              "host": ["{{base_url}}"],
+              "path": ["profiles", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles/{{profile_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["profiles", "{{profile_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles/{{profile_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["profiles", "{{profile_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avg_pace\": 6.0,\n  \"preferred_distance\": 15,\n  \"preferred_time\": \"evening\",\n  \"image\": \"data:image/png;base64,iVBORw0KGgo...\"\n}"
+            },
+            "description": "Update partial profil runner. Field 'image' base64 akan diupload ke Cloudinary."
+          }
+        },
+        {
+          "name": "Get All Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles",
+              "host": ["{{base_url}}"],
+              "path": ["profiles"]
+            }
+          }
+        },
+        {
+          "name": "Delete Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profiles/{{profile_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["profiles", "{{profile_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Run Groups",
+      "description": "Run group management including join, members, and member management.",
       "item": [
         {
           "name": "Create Run Group",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/runs/groups",
@@ -252,14 +516,8 @@
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/runs/groups/{{group_id}}",
@@ -277,10 +535,7 @@
           "request": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/runs/groups/{{group_id}}",
@@ -294,14 +549,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/runs/groups/{{group_id}}/join",
@@ -311,7 +560,8 @@
             "body": {
               "mode": "raw",
               "raw": "{}"
-            }
+            },
+            "description": "Join a run group. Enforces women-only check and max member limit. Uses database transaction."
           }
         },
         {
@@ -325,25 +575,53 @@
               "path": ["runs", "groups", "{{group_id}}", "members"]
             }
           }
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/members/{{member_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "members", "{{member_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"pacer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/members/{{member_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "members", "{{member_id}}"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "Run Activities",
+      "name": "🏅 Run Activities",
+      "description": "Track running activities with auto pace calculation and profile update.",
       "item": [
         {
           "name": "Create Run Activity",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/runs/activities",
@@ -352,8 +630,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"distance\": 10.5,\n  \"duration\": 3600,\n  \"avg_pace\": 5.7,\n  \"calories\": 650,\n  \"route_data\": \"{\\\"coordinates\\\": [...]}\",\n  \"started_at\": \"2026-02-21T06:00:00Z\",\n  \"ended_at\": \"2026-02-21T07:00:00Z\"\n}"
-            }
+              "raw": "{\n  \"distance\": 10.5,\n  \"duration\": 3600,\n  \"calories\": 650,\n  \"route_data\": \"{\\\"coordinates\\\": [...]}\",\n  \"started_at\": \"2026-02-21T06:00:00Z\",\n  \"ended_at\": \"2026-02-21T07:00:00Z\"\n}"
+            },
+            "description": "avg_pace dihitung otomatis dari distance/duration. Profil runner diupdate dengan pace terbaru."
           }
         },
         {
@@ -383,21 +662,67 @@
       ]
     },
     {
-      "name": "Direct Matching",
+      "name": "🔍 Explore / Discover",
+      "description": "Find nearby runners and groups. Requires JWT + runner profile.",
       "item": [
         {
-          "name": "Create Match Request",
+          "name": "Find Nearby Runners",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/explore/runners",
+              "host": ["{{base_url}}"],
+              "path": ["explore", "runners"]
+            },
+            "description": "Mencari runner terdekat berdasarkan lokasi profil."
+          }
+        },
+        {
+          "name": "Find Nearby Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/explore/groups",
+              "host": ["{{base_url}}"],
+              "path": ["explore", "groups"]
+            },
+            "description": "Mencari grup lari terdekat berdasarkan lokasi profil."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💘 Direct Matching",
+      "description": "Match with other runners. Uses matching engine with compatibility scoring. Supports reverse-match detection and auto-accept.",
+      "item": [
+        {
+          "name": "Get Match Candidates",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match/candidates",
+              "host": ["{{base_url}}"],
+              "path": ["match", "candidates"]
+            },
+            "description": "Mendapatkan daftar kandidat match yang direkomendasikan oleh matching engine."
+          }
+        },
+        {
+          "name": "Send Match Request",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/match",
@@ -407,32 +732,38 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"user_id_2\": \"TARGET_USER_UUID\",\n  \"message\": \"Hey! Would you like to run together?\"\n}"
-            }
+            },
+            "description": "Mengirim permintaan match. Jika reverse match terdeteksi (target sudah kirim ke kita), otomatis accepted."
           }
         },
         {
-          "name": "Update Match Status",
+          "name": "Accept Match",
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/match/{{match_id}}",
+              "raw": "{{base_url}}/match/{{match_id}}/accept",
               "host": ["{{base_url}}"],
-              "path": ["match", "{{match_id}}"]
+              "path": ["match", "{{match_id}}", "accept"]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"accepted\"\n}"
-            }
+            "description": "Menerima permintaan match."
+          }
+        },
+        {
+          "name": "Reject Match",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match/{{match_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["match", "{{match_id}}", "reject"]
+            },
+            "description": "Menolak permintaan match."
           }
         },
         {
@@ -440,10 +771,7 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/match/{{match_id}}",
@@ -457,10 +785,7 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/match/me",
@@ -472,42 +797,15 @@
       ]
     },
     {
-      "name": "Chat Messages",
+      "name": "💬 Chat (REST + WebSocket)",
+      "description": "REST endpoints for chat history. WebSocket endpoints: ws://host/ws/direct/:matchId and ws://host/ws/group/:groupId",
       "item": [
-        {
-          "name": "Send Direct Message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/chats/direct",
-              "host": ["{{base_url}}"],
-              "path": ["chats", "direct"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"match_id\": \"{{match_id}}\",\n  \"content\": \"Hello! Ready for tomorrow run?\"\n}"
-            }
-          }
-        },
         {
           "name": "Get Direct Chat History",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/chats/direct/{{match_id}}",
@@ -517,39 +815,11 @@
           }
         },
         {
-          "name": "Send Group Message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/chats/group",
-              "host": ["{{base_url}}"],
-              "path": ["chats", "group"]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group_id\": \"{{group_id}}\",\n  \"content\": \"See you all at 6 AM!\"\n}"
-            }
-          }
-        },
-        {
           "name": "Get Group Chat History",
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/chats/group/{{group_id}}",
@@ -557,25 +827,60 @@
               "path": ["chats", "group", "{{group_id}}"]
             }
           }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chats/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chats", "messages", "{{message_id}}"]
+            }
+          }
+        },
+        {
+          "name": "WebSocket - Direct Chat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ws/direct/{{match_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["ws", "direct", "{{match_id}}"]
+            },
+            "description": "WebSocket endpoint. Connect via: ws://localhost:8080/ws/direct/:matchId"
+          }
+        },
+        {
+          "name": "WebSocket - Group Chat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ws/group/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["ws", "group", "{{group_id}}"]
+            },
+            "description": "WebSocket endpoint. Connect via: ws://localhost:8080/ws/group/:groupId"
+          }
         }
       ]
     },
     {
-      "name": "Media & Photos",
+      "name": "📸 Media & Photos (Cloudinary)",
+      "description": "Photo upload via Cloudinary. Kirim gambar sebagai base64 string di field 'image'. Server upload ke Cloudinary dan simpan URL.",
       "item": [
         {
-          "name": "Upload Photo",
+          "name": "Upload Photo (Base64 → Cloudinary)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/media/photos",
@@ -584,8 +889,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"url\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n  \"type\": \"profile\",\n  \"is_primary\": true\n}"
-            }
+              "raw": "{\n  \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...\",\n  \"type\": \"profile\",\n  \"is_primary\": true\n}"
+            },
+            "description": "Upload foto melalui Cloudinary. Field 'image' menerima base64 string. Type: profile | run | verification."
           }
         },
         {
@@ -615,21 +921,16 @@
       ]
     },
     {
-      "name": "Safety Logs",
+      "name": "🛡️ Safety & Reports",
+      "description": "Safety logs and user reporting. Report counter auto-increments, user auto-suspended after threshold.",
       "item": [
         {
-          "name": "Create Safety Log",
+          "name": "Report User (Safety Log)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/media/safety",
@@ -638,8 +939,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"run_group_id\": \"{{group_id}}\",\n  \"latitude\": -6.2088,\n  \"longitude\": 106.8456,\n  \"notes\": \"Starting the run, all good!\",\n  \"emergency_contact\": \"081234567890\"\n}"
-            }
+              "raw": "{\n  \"reported_user_id\": \"TARGET_USER_UUID\",\n  \"reason\": \"harassment\",\n  \"description\": \"Inappropriate behavior during run\"\n}"
+            },
+            "description": "Melaporkan user. Report counter bertambah otomatis. User otomatis disuspend setelah mencapai threshold."
           }
         },
         {
@@ -657,17 +959,134 @@
       ]
     },
     {
-      "name": "WhatsApp Verification",
+      "name": "⌚ SmartWatch Sync",
+      "description": "Smartwatch device management and activity sync. Requires JWT + runner profile.",
+      "item": [
+        {
+          "name": "Connect Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/devices",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "devices"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_name\": \"Apple Watch Series 9\",\n  \"device_type\": \"apple_watch\",\n  \"device_id\": \"DEVICE-UUID-FROM-WATCH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Devices",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/devices",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "devices"]
+            }
+          }
+        },
+        {
+          "name": "Disconnect Device",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/devices/{{device_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "devices", "{{device_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Device Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/devices/{{device_id}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "devices", "{{device_id}}", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Sync Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/sync",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "sync"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"distance\": 5.2,\n  \"duration\": 1800,\n  \"heart_rate_avg\": 145,\n  \"heart_rate_max\": 172,\n  \"calories\": 380,\n  \"steps\": 6200,\n  \"synced_at\": \"2026-02-21T07:30:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Batch Sync Activities",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/sync/batch",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "sync", "batch"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"activities\": [\n    {\n      \"distance\": 3.1,\n      \"duration\": 1200,\n      \"heart_rate_avg\": 138,\n      \"calories\": 220,\n      \"synced_at\": \"2026-02-20T06:00:00Z\"\n    },\n    {\n      \"distance\": 7.5,\n      \"duration\": 2700,\n      \"heart_rate_avg\": 152,\n      \"calories\": 540,\n      \"synced_at\": \"2026-02-21T06:00:00Z\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Sync History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/smartwatch/sync/history",
+              "host": ["{{base_url}}"],
+              "path": ["smartwatch", "sync", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📱 WhatsApp Verification",
+      "description": "Phone number verification via WhatsApp OTP.",
       "item": [
         {
           "name": "Register Phone Number",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/whatsapp/register",
@@ -685,10 +1104,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "url": {
               "raw": "{{base_url}}/whatsapp/verify",

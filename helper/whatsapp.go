@@ -51,11 +51,19 @@ func InitWhatsApp() {
 	client.AddEventHandler(func(evt interface{}) {
 		switch v := evt.(type) {
 		case *events.Connected:
-			log.Println("✅ Terhubung ke WhatsApp sebagai:", client.Store.ID.User)
+			if client.Store.ID != nil {
+				log.Println("✅ Terhubung ke WhatsApp sebagai:", client.Store.ID.User)
+			} else {
+				log.Println("✅ Terhubung ke WhatsApp (menunggu pairing)")
+			}
 		case *events.Disconnected:
 			log.Println("❌ Terputus dari WhatsApp")
 		case *events.LoggedOut:
 			log.Println("🔓 Session logout, kamu harus scan ulang QR")
+			// Clear device store agar bisa pairing ulang
+			if client.Store.ID != nil {
+				_ = client.Store.Delete(context.Background())
+			}
 		case *events.PairSuccess:
 			log.Println("✅ Pairing sukses:", v.ID.User)
 		}

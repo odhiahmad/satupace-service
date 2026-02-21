@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -75,12 +77,15 @@ func (c *authController) Register(ctx *gin.Context) {
 		return
 	}
 
-	// Send OTP via email or WhatsApp
-	// For now, we'll return it in response (in production, send via email/SMS)
+	// Send OTP via WhatsApp
+	waMessage := fmt.Sprintf("🏃 Run-Sync\n\nKode verifikasi Anda: *%s*\n\nKode ini berlaku selama 15 menit.\nJangan bagikan kode ini kepada siapapun.", otp)
+	if err := helper.SendOTPViaWhatsApp(identifier, waMessage); err != nil {
+		log.Printf("⚠️ Gagal kirim OTP via WhatsApp ke %s: %v", identifier, err)
+	}
+
 	response := helper.BuildResponse(true, "User berhasil dibuat. Silakan verifikasi dengan kode OTP.", map[string]interface{}{
 		"user":    result,
-		"otp":     otp, // Remove this in production!
-		"message": "Kode OTP telah dikirim ke nomor telepon Anda",
+		"message": "Kode OTP telah dikirim ke WhatsApp Anda",
 	})
 
 	ctx.JSON(http.StatusCreated, response)
@@ -217,9 +222,13 @@ func (c *authController) ResendOTP(ctx *gin.Context) {
 		return
 	}
 
-	response := helper.BuildResponse(true, "Kode OTP baru telah dikirim", map[string]interface{}{
-		"otp": otp, // Remove this in production!
-	})
+	// Send OTP via WhatsApp
+	waMessage := fmt.Sprintf("🏃 Run-Sync\n\nKode verifikasi baru Anda: *%s*\n\nKode ini berlaku selama 15 menit.\nJangan bagikan kode ini kepada siapapun.", otp)
+	if err := helper.SendOTPViaWhatsApp(req.PhoneNumber, waMessage); err != nil {
+		log.Printf("⚠️ Gagal kirim OTP via WhatsApp ke %s: %v", req.PhoneNumber, err)
+	}
+
+	response := helper.BuildResponse(true, "Kode OTP baru telah dikirim ke WhatsApp", nil)
 
 	ctx.JSON(http.StatusOK, response)
 }
