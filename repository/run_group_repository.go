@@ -18,6 +18,7 @@ type RunGroupRepository interface {
 	FindByStatus(status string) ([]entity.RunGroup, error)
 	Delete(id uuid.UUID) error
 	FindByCreatedBy(userId uuid.UUID) ([]entity.RunGroup, error)
+	FindByMembership(userId uuid.UUID) ([]entity.RunGroup, []string, error)
 	GetMemberCount(groupId uuid.UUID) (int64, error)
 }
 
@@ -118,6 +119,31 @@ func (r *runGroupRepository) FindByCreatedBy(userId uuid.UUID) ([]entity.RunGrou
 	var groups []entity.RunGroup
 	err := r.db.Where("created_by = ?", userId).Find(&groups).Error
 	return groups, err
+}
+
+func (r *runGroupRepository) FindByMembership(userId uuid.UUID) ([]entity.RunGroup, []string, error) {
+	type result struct {
+		entity.RunGroup
+		MemberRole string
+	}
+	var results []result
+	err := r.db.Table("run_groups").
+		Select("run_groups.*, run_group_members.role as member_role").
+		Joins("INNER JOIN run_group_members ON run_group_members.group_id = run_groups.id").
+		Where("run_group_members.user_id = ? AND run_group_members.status = ?", userId, "joined").
+		Order("run_groups.created_at DESC").
+		Find(&results).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	groups := make([]entity.RunGroup, len(results))
+	roles := make([]string, len(results))
+	for i, r := range results {
+		groups[i] = r.RunGroup
+		roles[i] = r.MemberRole
+	}
+	return groups, roles, nil
 }
 
 func (r *runGroupRepository) GetMemberCount(groupId uuid.UUID) (int64, error) {

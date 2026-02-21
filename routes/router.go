@@ -70,7 +70,7 @@ var (
 
 	// WebSocket chat hub & controller
 	chatHub          *ws.Hub                     = ws.NewHub()
-	chatWSController controller.ChatWSController = controller.NewChatWSController(chatHub, directChatRepo, groupChatRepo, userRepository, jwtService)
+	chatWSController controller.ChatWSController = controller.NewChatWSController(chatHub, directChatRepo, groupChatRepo, userRepository, runGroupMemberRepo, jwtService)
 
 	// WhatsApp controller
 	whatsappController controller.WhatsAppController = controller.NewWhatsAppController(emailHelper, redisClient)
@@ -139,7 +139,7 @@ func SetupRouter() *gin.Engine {
 		// Groups
 		runs.POST("/groups", jwt, runGroupController.Create)
 		runs.GET("/groups", runGroupController.FindAll)
-		runs.GET("/groups/me", jwt, runGroupController.FindByCreatedBy)
+		runs.GET("/groups/me", jwt, runGroupController.FindMyGroups)
 		runs.GET("/groups/:id", runGroupController.FindById)
 		runs.PUT("/groups/:id", jwt, runGroupController.Update)
 		runs.DELETE("/groups/:id", jwt, runGroupController.Delete)

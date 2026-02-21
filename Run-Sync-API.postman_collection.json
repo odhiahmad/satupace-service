@@ -569,7 +569,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["runs", "groups", "me"]
 						},
-						"description": "Get all run groups created by the currently logged-in user."
+						"description": "Get all run groups where the logged-in user is a member (owner, admin, or member). Response includes my_role field indicating the user's role in each group."
 					}
 				},
 				{

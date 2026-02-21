@@ -16,6 +16,7 @@ type RunGroupResponse struct {
 	IsWomenOnly       bool      `json:"is_women_only"`
 	Status            string    `json:"status"`
 	CreatedBy         string    `json:"created_by"`
+	MyRole            string    `json:"my_role,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 }
 

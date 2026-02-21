@@ -19,6 +19,7 @@ type RunGroupController interface {
 	FindByStatus(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	FindByCreatedBy(ctx *gin.Context)
+	FindMyGroups(ctx *gin.Context)
 }
 
 type runGroupController struct {
@@ -137,5 +138,17 @@ func (c *runGroupController) FindByCreatedBy(ctx *gin.Context) {
 	}
 
 	response := helper.BuildResponse(true, "Berhasil mengambil data grup lari", groups)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *runGroupController) FindMyGroups(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	groups, err := c.service.FindMyGroups(userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := helper.BuildResponse(true, "Berhasil mengambil grup saya", groups)
 	ctx.JSON(http.StatusOK, response)
 }

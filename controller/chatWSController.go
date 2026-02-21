@@ -70,6 +70,7 @@ type chatWSController struct {
 	directChatRepo repository.DirectChatMessageRepository
 	groupChatRepo  repository.GroupChatMessageRepository
 	userRepo       repository.UserRepository
+	memberRepo     repository.RunGroupMemberRepository
 	jwtService     service.JWTService
 }
 
@@ -78,6 +79,7 @@ func NewChatWSController(
 	directChatRepo repository.DirectChatMessageRepository,
 	groupChatRepo repository.GroupChatMessageRepository,
 	userRepo repository.UserRepository,
+	memberRepo repository.RunGroupMemberRepository,
 	jwtService service.JWTService,
 ) ChatWSController {
 	return &chatWSController{
@@ -85,6 +87,7 @@ func NewChatWSController(
 		directChatRepo: directChatRepo,
 		groupChatRepo:  groupChatRepo,
 		userRepo:       userRepo,
+		memberRepo:     memberRepo,
 		jwtService:     jwtService,
 	}
 }
@@ -158,6 +161,17 @@ func (c *chatWSController) HandleGroupChat(ctx *gin.Context) {
 		return
 	}
 
+	// Verify user is a member of this group
+	userUUID, _ := uuid.Parse(userID)
+	groupUUID, _ := uuid.Parse(groupID)
+	member, err := c.memberRepo.FindByGroupAndUser(groupUUID, userUUID)
+	if err != nil || member == nil || member.Status != "joined" {
+		ctx.JSON(http.StatusForbidden, helper.BuildErrorResponse(
+			"Anda bukan anggota grup ini", "FORBIDDEN", "groupId", "harus bergabung terlebih dahulu", nil,
+		))
+		return
+	}
+
 	roomID := "group:" + groupID
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
@@ -225,6 +239,16 @@ func (c *chatWSController) GetGroupHistory(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, helper.BuildErrorResponse(
 			"Invalid group ID", "INVALID_REQUEST", "groupId", err.Error(), nil,
+		))
+		return
+	}
+
+	// Verify user is a member of this group
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	member, mErr := c.memberRepo.FindByGroupAndUser(groupID, userId)
+	if mErr != nil || member == nil || member.Status != "joined" {
+		ctx.JSON(http.StatusForbidden, helper.BuildErrorResponse(
+			"Anda bukan anggota grup ini", "FORBIDDEN", "groupId", "harus bergabung terlebih dahulu", nil,
 		))
 		return
 	}

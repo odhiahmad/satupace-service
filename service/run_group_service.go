@@ -21,6 +21,7 @@ type RunGroupService interface {
 	FindByStatus(status string) ([]response.RunGroupResponse, error)
 	Delete(id uuid.UUID) error
 	FindByCreatedBy(userId uuid.UUID) ([]response.RunGroupResponse, error)
+	FindMyGroups(userId uuid.UUID) ([]response.RunGroupResponse, error)
 }
 
 type runGroupService struct {
@@ -329,6 +330,35 @@ func (s *runGroupService) FindByCreatedBy(userId uuid.UUID) ([]response.RunGroup
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
+			CreatedAt:         group.CreatedAt,
+		})
+	}
+
+	return responses, nil
+}
+
+func (s *runGroupService) FindMyGroups(userId uuid.UUID) ([]response.RunGroupResponse, error) {
+	groups, roles, err := s.repo.FindByMembership(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []response.RunGroupResponse
+	for i, group := range groups {
+		responses = append(responses, response.RunGroupResponse{
+			Id:                group.Id.String(),
+			Name:              group.Name,
+			MinPace:           group.MinPace,
+			MaxPace:           group.MaxPace,
+			PreferredDistance: group.PreferredDistance,
+			Latitude:          group.Latitude,
+			Longitude:         group.Longitude,
+			ScheduledAt:       group.ScheduledAt,
+			MaxMember:         group.MaxMember,
+			IsWomenOnly:       group.IsWomenOnly,
+			Status:            group.Status,
+			CreatedBy:         group.CreatedBy.String(),
+			MyRole:            roles[i],
 			CreatedAt:         group.CreatedAt,
 		})
 	}
