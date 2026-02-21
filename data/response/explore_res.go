@@ -17,7 +17,8 @@ type ExploreRunnerResponse struct {
 type ExploreGroupResponse struct {
 	GroupId           string    `json:"group_id"`
 	Name              *string   `json:"name"`
-	AvgPace           float64   `json:"avg_pace"`
+	MinPace           float64   `json:"min_pace"`
+	MaxPace           float64   `json:"max_pace"`
 	PreferredDistance int       `json:"preferred_distance"`
 	ScheduledAt       time.Time `json:"scheduled_at"`
 	MaxMember         int       `json:"max_member"`

@@ -202,7 +202,9 @@ func (e *matchingEngine) CalculateCompatibility(a, b entity.RunnerProfile) float
 }
 
 func calculateGroupCompatibility(profile entity.RunnerProfile, group entity.RunGroup) float64 {
-	paceDiff := math.Abs(profile.AvgPace - group.AvgPace)
+	// Compare profile pace against group's pace range midpoint
+	groupMidPace := (group.MinPace + group.MaxPace) / 2.0
+	paceDiff := math.Abs(profile.AvgPace - groupMidPace)
 	paceScore := 1.0 - (paceDiff / DefaultPaceTolerance)
 	if paceScore < 0 {
 		paceScore = 0

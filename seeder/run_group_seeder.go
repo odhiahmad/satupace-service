@@ -17,7 +17,8 @@ func SeedRunGroups(db *gorm.DB) {
 		{
 			Id:                uuid.New(),
 			Name:              helper.StringPtr("Morning Running Group"),
-			AvgPace:           5.50,
+			MinPace:           5.00,
+			MaxPace:           6.00,
 			PreferredDistance: 5,
 			Latitude:          -6.2088,
 			Longitude:         106.8456,
@@ -31,7 +32,8 @@ func SeedRunGroups(db *gorm.DB) {
 		{
 			Id:                uuid.New(),
 			Name:              helper.StringPtr("Evening Running Group"),
-			AvgPace:           6.00,
+			MinPace:           5.30,
+			MaxPace:           6.30,
 			PreferredDistance: 10,
 			Latitude:          -6.2088,
 			Longitude:         106.8456,
@@ -45,7 +47,8 @@ func SeedRunGroups(db *gorm.DB) {
 		{
 			Id:                uuid.New(),
 			Name:              helper.StringPtr("Women Only Running Group"),
-			AvgPace:           5.75,
+			MinPace:           5.30,
+			MaxPace:           6.00,
 			PreferredDistance: 5,
 			Latitude:          -6.2088,
 			Longitude:         106.8456,
@@ -59,7 +62,8 @@ func SeedRunGroups(db *gorm.DB) {
 		{
 			Id:                uuid.New(),
 			Name:              helper.StringPtr("Half Marathon Training"),
-			AvgPace:           6.50,
+			MinPace:           6.00,
+			MaxPace:           7.00,
 			PreferredDistance: 21,
 			Latitude:          -6.2088,
 			Longitude:         106.8456,

@@ -15,7 +15,8 @@ func MapRunGroup(g *entity.RunGroup) *response.RunGroupResponse {
 	return &response.RunGroupResponse{
 		Id:                g.Id.String(),
 		Name:              name,
-		AvgPace:           g.AvgPace,
+		MinPace:           g.MinPace,
+		MaxPace:           g.MaxPace,
 		PreferredDistance: g.PreferredDistance,
 		Latitude:          g.Latitude,
 		Longitude:         g.Longitude,
@@ -38,7 +39,8 @@ func MapRunGroupDetail(g *entity.RunGroup, creator *entity.User, memberCount int
 	return &response.RunGroupDetailResponse{
 		Id:                g.Id.String(),
 		Name:              name,
-		AvgPace:           g.AvgPace,
+		MinPace:           g.MinPace,
+		MaxPace:           g.MaxPace,
 		PreferredDistance: g.PreferredDistance,
 		Latitude:          g.Latitude,
 		Longitude:         g.Longitude,

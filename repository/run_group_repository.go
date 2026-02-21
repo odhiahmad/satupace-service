@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"math"
+	"run-sync/data/request"
 	"run-sync/entity"
+	"strconv"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -11,7 +14,7 @@ type RunGroupRepository interface {
 	Create(group *entity.RunGroup) error
 	Update(group *entity.RunGroup) error
 	FindById(id uuid.UUID) (*entity.RunGroup, error)
-	FindAll() ([]entity.RunGroup, error)
+	FindAll(filter request.RunGroupFilterRequest) ([]entity.RunGroup, error)
 	FindByStatus(status string) ([]entity.RunGroup, error)
 	Delete(id uuid.UUID) error
 	FindByCreatedBy(userId uuid.UUID) ([]entity.RunGroup, error)
@@ -43,9 +46,61 @@ func (r *runGroupRepository) FindById(id uuid.UUID) (*entity.RunGroup, error) {
 	return &group, nil
 }
 
-func (r *runGroupRepository) FindAll() ([]entity.RunGroup, error) {
+func (r *runGroupRepository) FindAll(filter request.RunGroupFilterRequest) ([]entity.RunGroup, error) {
 	var groups []entity.RunGroup
-	err := r.db.Find(&groups).Error
+	query := r.db.Model(&entity.RunGroup{})
+
+	// Filter by status
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	// Filter by women only
+	if filter.WomenOnly == "true" {
+		query = query.Where("is_women_only = ?", true)
+	}
+
+	// Filter by pace range (overlap: group's pace range intersects with filter's pace range)
+	if filter.MinPace != "" {
+		if minPace, err := strconv.ParseFloat(filter.MinPace, 64); err == nil {
+			query = query.Where("max_pace >= ?", minPace)
+		}
+	}
+	if filter.MaxPace != "" {
+		if maxPace, err := strconv.ParseFloat(filter.MaxPace, 64); err == nil {
+			query = query.Where("min_pace <= ?", maxPace)
+		}
+	}
+
+	// Filter by max preferred distance
+	if filter.MaxDistance != "" {
+		if maxDist, err := strconv.Atoi(filter.MaxDistance); err == nil {
+			query = query.Where("preferred_distance <= ?", maxDist)
+		}
+	}
+
+	// Filter by location radius (Haversine)
+	if filter.Latitude != "" && filter.Longitude != "" && filter.RadiusKm != "" {
+		lat, errLat := strconv.ParseFloat(filter.Latitude, 64)
+		lng, errLng := strconv.ParseFloat(filter.Longitude, 64)
+		radiusKm, errR := strconv.ParseFloat(filter.RadiusKm, 64)
+		if errLat == nil && errLng == nil && errR == nil {
+			// Approximate bounding box for performance
+			latDelta := radiusKm / 111.0
+			lngDelta := radiusKm / (111.0 * math.Cos(lat*math.Pi/180.0))
+
+			query = query.Where("latitude BETWEEN ? AND ?", lat-latDelta, lat+latDelta)
+			query = query.Where("longitude BETWEEN ? AND ?", lng-lngDelta, lng+lngDelta)
+
+			// Precise Haversine filter
+			query = query.Where(
+				"( 6371 * acos( cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)) ) ) <= ?",
+				lat, lng, lat, radiusKm,
+			)
+		}
+	}
+
+	err := query.Order("created_at DESC").Find(&groups).Error
 	return groups, err
 }
 

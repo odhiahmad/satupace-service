@@ -151,10 +151,10 @@ func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]r
 			continue
 		}
 
-		if req.MinPace > 0 && g.AvgPace < req.MinPace {
+		if req.MinPace > 0 && g.MaxPace < req.MinPace {
 			continue
 		}
-		if req.MaxPace > 0 && g.AvgPace > req.MaxPace {
+		if req.MaxPace > 0 && g.MinPace > req.MaxPace {
 			continue
 		}
 
@@ -167,7 +167,8 @@ func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]r
 		results = append(results, response.ExploreGroupResponse{
 			GroupId:           g.Id.String(),
 			Name:              g.Name,
-			AvgPace:           g.AvgPace,
+			MinPace:           g.MinPace,
+			MaxPace:           g.MaxPace,
 			PreferredDistance: g.PreferredDistance,
 			ScheduledAt:       g.ScheduledAt,
 			MaxMember:         g.MaxMember,

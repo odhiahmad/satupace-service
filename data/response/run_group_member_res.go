@@ -6,6 +6,7 @@ type RunGroupMemberResponse struct {
 	Id       string    `json:"id"`
 	GroupId  string    `json:"group_id"`
 	UserId   string    `json:"user_id"`
+	Role     string    `json:"role"`
 	Status   string    `json:"status"`
 	JoinedAt time.Time `json:"joined_at"`
 }
@@ -15,6 +16,7 @@ type RunGroupMemberDetailResponse struct {
 	GroupId  string        `json:"group_id"`
 	UserId   string        `json:"user_id"`
 	User     *UserResponse `json:"user,omitempty"`
+	Role     string        `json:"role"`
 	Status   string        `json:"status"`
 	JoinedAt time.Time     `json:"joined_at"`
 }

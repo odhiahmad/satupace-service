@@ -5,8 +5,10 @@ import "time"
 type RunGroupResponse struct {
 	Id                string    `json:"id"`
 	Name              *string   `json:"name"`
-	AvgPace           float64   `json:"avg_pace"`
+	MinPace           float64   `json:"min_pace"`
+	MaxPace           float64   `json:"max_pace"`
 	PreferredDistance int       `json:"preferred_distance"`
+	DistanceKm        *float64  `json:"distance_km,omitempty"`
 	Latitude          float64   `json:"latitude"`
 	Longitude         float64   `json:"longitude"`
 	ScheduledAt       time.Time `json:"scheduled_at"`
@@ -20,7 +22,8 @@ type RunGroupResponse struct {
 type RunGroupDetailResponse struct {
 	Id                string        `json:"id"`
 	Name              *string       `json:"name"`
-	AvgPace           float64       `json:"avg_pace"`
+	MinPace           float64       `json:"min_pace"`
+	MaxPace           float64       `json:"max_pace"`
 	PreferredDistance int           `json:"preferred_distance"`
 	Latitude          float64       `json:"latitude"`
 	Longitude         float64       `json:"longitude"`

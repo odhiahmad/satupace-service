@@ -82,7 +82,18 @@ func (c *runGroupController) FindById(ctx *gin.Context) {
 }
 
 func (c *runGroupController) FindAll(ctx *gin.Context) {
-	groups, err := c.service.FindAll()
+	filter := request.RunGroupFilterRequest{
+		Status:      ctx.Query("status"),
+		WomenOnly:   ctx.Query("women_only"),
+		MinPace:     ctx.Query("min_pace"),
+		MaxPace:     ctx.Query("max_pace"),
+		MaxDistance: ctx.Query("max_distance"),
+		Latitude:    ctx.Query("latitude"),
+		Longitude:   ctx.Query("longitude"),
+		RadiusKm:    ctx.Query("radius_km"),
+	}
+
+	groups, err := c.service.FindAll(filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,7 +129,7 @@ func (c *runGroupController) Delete(ctx *gin.Context) {
 }
 
 func (c *runGroupController) FindByCreatedBy(ctx *gin.Context) {
-	userId, _ := uuid.Parse(ctx.Param("userId"))
+	userId := ctx.MustGet("user_id").(uuid.UUID)
 	groups, err := c.service.FindByCreatedBy(userId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

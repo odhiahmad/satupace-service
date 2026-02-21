@@ -45,7 +45,7 @@ var (
 	// Services
 	userService          service.UserService           = service.NewUserService(userRepository)
 	runnerProfileService service.RunnerProfileService  = service.NewRunnerProfileService(runnerProfileRepo, userRepository)
-	runGroupService      service.RunGroupService       = service.NewRunGroupService(runGroupRepo, userRepository)
+	runGroupService      service.RunGroupService       = service.NewRunGroupService(runGroupRepo, userRepository, runGroupMemberRepo)
 	runGroupMemberSvc    service.RunGroupMemberService = service.NewRunGroupMemberService(runGroupMemberRepo, userRepository, runGroupRepo, db)
 	runActivitySvc       service.RunActivityService    = service.NewRunActivityService(runActivityRepo, userRepository, runnerProfileRepo)
 	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db)
@@ -139,6 +139,7 @@ func SetupRouter() *gin.Engine {
 		// Groups
 		runs.POST("/groups", jwt, runGroupController.Create)
 		runs.GET("/groups", runGroupController.FindAll)
+		runs.GET("/groups/me", jwt, runGroupController.FindByCreatedBy)
 		runs.GET("/groups/:id", runGroupController.FindById)
 		runs.PUT("/groups/:id", jwt, runGroupController.Update)
 		runs.DELETE("/groups/:id", jwt, runGroupController.Delete)
@@ -150,6 +151,9 @@ func SetupRouter() *gin.Engine {
 		// Member management
 		runs.PUT("/members/:id", jwt, runGroupMemberController.Update)
 		runs.DELETE("/members/:id", jwt, runGroupMemberController.Delete)
+		runs.PATCH("/members/:id/role", jwt, runGroupMemberController.UpdateRole)
+		runs.DELETE("/members/:id/kick", jwt, runGroupMemberController.KickMember)
+		runs.DELETE("/groups/:id/leave", jwt, runGroupMemberController.LeaveGroup)
 
 		// Activities
 		runs.POST("/activities", jwt, profileReq, runActivityController.Create)

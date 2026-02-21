@@ -10,7 +10,8 @@ type RunGroup struct {
 	Id uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 
 	Name              *string `gorm:"type:varchar(255)"` // optional auto-generated
-	AvgPace           float64 `gorm:"type:decimal(4,2)"`
+	MinPace           float64 `gorm:"type:decimal(4,2)"`
+	MaxPace           float64 `gorm:"type:decimal(4,2)"`
 	PreferredDistance int
 	Latitude          float64
 	Longitude         float64

@@ -1,0 +1,1250 @@
+{
+	"info": {
+		"_postman_id": "run-sync-api-v2",
+		"name": "Run Sync API",
+		"description": "Complete API collection for Run Sync — a running social app with Strava integration, real-time chat, matching engine, biometric auth, and more.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:8080" },
+		{ "key": "access_token", "value": "" },
+		{ "key": "refresh_token", "value": "" },
+		{ "key": "user_id", "value": "" },
+		{ "key": "profile_id", "value": "" },
+		{ "key": "group_id", "value": "" },
+		{ "key": "member_id", "value": "" },
+		{ "key": "activity_id", "value": "" },
+		{ "key": "match_id", "value": "" },
+		{ "key": "photo_id", "value": "" },
+		{ "key": "safety_id", "value": "" },
+		{ "key": "biometric_credential_id", "value": "" },
+		{ "key": "message_id", "value": "" }
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{ "key": "token", "value": "{{access_token}}", "type": "string" }
+		]
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) {",
+									"        pm.collectionVariables.set('user_id', json.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"phone_number\": \"+6281234567890\",\n    \"gender\": \"male\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Verify OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    if (json.data) {",
+									"        if (json.data.access_token) pm.collectionVariables.set('access_token', json.data.access_token);",
+									"        if (json.data.token) pm.collectionVariables.set('access_token', json.data.token);",
+									"        if (json.data.refresh_token) pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone_number\": \"+6281234567890\",\n    \"otp_code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/verify",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "verify"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    if (json.data) {",
+									"        if (json.data.access_token) pm.collectionVariables.set('access_token', json.data.access_token);",
+									"        if (json.data.refresh_token) pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"        if (json.data.user && json.data.user.id) pm.collectionVariables.set('user_id', json.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"identifier\": \"+6281234567890\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login with email or phone number as identifier."
+					}
+				},
+				{
+					"name": "Resend OTP",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone_number\": \"+6281234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/resend-otp",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "resend-otp"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    if (json.data) {",
+									"        if (json.data.access_token) pm.collectionVariables.set('access_token', json.data.access_token);",
+									"        if (json.data.refresh_token) pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/refresh-token",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "refresh-token"]
+						}
+					}
+				},
+				{
+					"name": "Biometric Login Start",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/biometric/login/start",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "biometric", "login", "start"]
+						}
+					}
+				},
+				{
+					"name": "Biometric Login Finish",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    if (json.data) {",
+									"        if (json.data.access_token) pm.collectionVariables.set('access_token', json.data.access_token);",
+									"        if (json.data.refresh_token) pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"credential_id\": \"\",\n    \"authenticator_data\": \"\",\n    \"client_data_json\": \"\",\n    \"signature\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/biometric/login/finish",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "biometric", "login", "finish"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Biometric",
+			"item": [
+				{
+					"name": "Register Start",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/biometric/register/start",
+							"host": ["{{base_url}}"],
+							"path": ["biometric", "register", "start"]
+						}
+					}
+				},
+				{
+					"name": "Register Finish",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"credential_id\": \"\",\n    \"public_key\": \"\",\n    \"attestation_object\": \"\",\n    \"client_data_json\": \"\",\n    \"device_name\": \"Chrome on Windows\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/biometric/register/finish",
+							"host": ["{{base_url}}"],
+							"path": ["biometric", "register", "finish"]
+						}
+					}
+				},
+				{
+					"name": "Get Credentials",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/biometric/credentials",
+							"host": ["{{base_url}}"],
+							"path": ["biometric", "credentials"]
+						}
+					}
+				},
+				{
+					"name": "Delete Credential",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/biometric/credentials/{{biometric_credential_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["biometric", "credentials", "{{biometric_credential_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('user_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Jane Doe\",\n    \"email\": \"jane@example.com\",\n    \"phone_number\": \"+6289876543210\",\n    \"gender\": \"female\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Updated\",\n    \"gender\": \"male\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Runner Profiles",
+			"item": [
+				{
+					"name": "Create / Update Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('profile_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"avg_pace\": 5.30,\n    \"preferred_distance\": 10,\n    \"preferred_time\": \"morning\",\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"women_only_mode\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profiles",
+							"host": ["{{base_url}}"],
+							"path": ["profiles"]
+						}
+					}
+				},
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/profiles/me",
+							"host": ["{{base_url}}"],
+							"path": ["profiles", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/profiles/{{profile_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["profiles", "{{profile_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get All Profiles",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/profiles",
+							"host": ["{{base_url}}"],
+							"path": ["profiles"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"avg_pace\": 5.00,\n    \"preferred_distance\": 15,\n    \"preferred_time\": \"evening\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/profiles/{{profile_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["profiles", "{{profile_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Profile",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/profiles/{{profile_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["profiles", "{{profile_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Run Groups",
+			"item": [
+				{
+					"name": "Create Group",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('group_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Morning Runners Jakarta\",\n    \"min_pace\": 5.00,\n    \"max_pace\": 6.00,\n    \"preferred_distance\": 10,\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"scheduled_at\": \"2026-03-01T06:00:00Z\",\n    \"max_member\": 10,\n    \"is_women_only\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/runs/groups",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups"]
+						}
+					}
+				},
+				{
+					"name": "Get All Groups",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/groups?status=open",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups"],
+							"query": [
+								{ "key": "status", "value": "open", "description": "Filter by status: open | full | completed" },
+								{ "key": "women_only", "value": "false", "disabled": true, "description": "Show women-only groups" },
+								{ "key": "min_pace", "value": "", "disabled": true, "description": "Filter groups whose pace range includes at least this pace (min/km)" },
+								{ "key": "max_pace", "value": "", "disabled": true, "description": "Filter groups whose pace range includes at most this pace (min/km)" },
+								{ "key": "max_distance", "value": "", "disabled": true, "description": "Max preferred distance (km)" },
+								{ "key": "latitude", "value": "-6.2088", "disabled": true, "description": "Latitude for location filter" },
+								{ "key": "longitude", "value": "106.8456", "disabled": true, "description": "Longitude for location filter" },
+								{ "key": "radius_km", "value": "10", "disabled": true, "description": "Radius in km for location filter" }
+							]
+						},
+						"description": "Get all run groups with optional filters: status, pace range, distance, location radius, women-only."
+					}
+				},
+				{
+					"name": "Get My Groups",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/me",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "me"]
+						},
+						"description": "Get all run groups created by the currently logged-in user."
+					}
+				},
+				{
+					"name": "Get Group by ID",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Group",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Evening Runners Jakarta\",\n    \"min_pace\": 5.30,\n    \"max_pace\": 6.30,\n    \"max_member\": 15,\n    \"status\": \"open\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Group",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Join Group",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('member_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}/join",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}", "join"]
+						}
+					}
+				},
+				{
+					"name": "Get Group Members",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}/members",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}", "members"]
+						}
+					}
+				},
+				{
+					"name": "Update Member",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/runs/members/{{member_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "members", "{{member_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Remove Member",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/runs/members/{{member_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "members", "{{member_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Member Role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/runs/members/{{member_id}}/role",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "members", "{{member_id}}", "role"]
+						},
+						"description": "Update the role of a group member. Only the group owner can change roles. Valid roles: admin, member."
+					}
+				},
+				{
+					"name": "Leave Group",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/runs/groups/{{group_id}}/leave",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "groups", "{{group_id}}", "leave"]
+						},
+						"description": "Leave a run group. The group owner cannot leave (must delete the group instead)."
+					}
+				},
+				{
+					"name": "Kick Member",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/runs/members/{{member_id}}/kick",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "members", "{{member_id}}", "kick"]
+						},
+						"description": "Kick a member from a group. Owner can kick anyone. Admin can kick regular members only (not other admins or the owner)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Run Activities",
+			"item": [
+				{
+					"name": "Create Activity",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('activity_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"distance\": 5.0,\n    \"duration\": 1800,\n    \"avg_pace\": 6.0,\n    \"calories\": 350,\n    \"source\": \"manual\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/runs/activities",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "activities"]
+						}
+					}
+				},
+				{
+					"name": "Get Activity by ID",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/activities/{{activity_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "activities", "{{activity_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get User Activities",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/runs/users/{{user_id}}/activities",
+							"host": ["{{base_url}}"],
+							"path": ["runs", "users", "{{user_id}}", "activities"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Explore",
+			"item": [
+				{
+					"name": "Find Nearby Runners",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/explore/runners?latitude=-6.2088&longitude=106.8456&radius_km=10&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["explore", "runners"],
+							"query": [
+								{ "key": "latitude", "value": "-6.2088" },
+								{ "key": "longitude", "value": "106.8456" },
+								{ "key": "radius_km", "value": "10" },
+								{ "key": "min_pace", "value": "", "disabled": true },
+								{ "key": "max_pace", "value": "", "disabled": true },
+								{ "key": "preferred_time", "value": "", "disabled": true },
+								{ "key": "gender", "value": "", "disabled": true },
+								{ "key": "women_only", "value": "false", "disabled": true },
+								{ "key": "exclude_matched", "value": "true", "disabled": true },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Find Nearby Groups",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/explore/groups?latitude=-6.2088&longitude=106.8456&radius_km=10&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["explore", "groups"],
+							"query": [
+								{ "key": "latitude", "value": "-6.2088" },
+								{ "key": "longitude", "value": "106.8456" },
+								{ "key": "radius_km", "value": "10" },
+								{ "key": "min_pace", "value": "", "disabled": true },
+								{ "key": "max_pace", "value": "", "disabled": true },
+								{ "key": "women_only", "value": "false", "disabled": true },
+								{ "key": "status", "value": "open", "disabled": true },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Match",
+			"item": [
+				{
+					"name": "Get Candidates",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/match/candidates",
+							"host": ["{{base_url}}"],
+							"path": ["match", "candidates"]
+						}
+					}
+				},
+				{
+					"name": "Send Match Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('match_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_2_id\": \"<target_user_uuid>\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/match",
+							"host": ["{{base_url}}"],
+							"path": ["match"]
+						}
+					}
+				},
+				{
+					"name": "Accept Match",
+					"request": {
+						"method": "PATCH",
+						"url": {
+							"raw": "{{base_url}}/match/{{match_id}}/accept",
+							"host": ["{{base_url}}"],
+							"path": ["match", "{{match_id}}", "accept"]
+						}
+					}
+				},
+				{
+					"name": "Reject Match",
+					"request": {
+						"method": "PATCH",
+						"url": {
+							"raw": "{{base_url}}/match/{{match_id}}/reject",
+							"host": ["{{base_url}}"],
+							"path": ["match", "{{match_id}}", "reject"]
+						}
+					}
+				},
+				{
+					"name": "Get Match by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/match/{{match_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["match", "{{match_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get My Matches",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/match/me",
+							"host": ["{{base_url}}"],
+							"path": ["match", "me"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "WebSocket - Direct Chat",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/ws/direct/{{match_id}}?token={{access_token}}",
+							"host": ["{{base_url}}"],
+							"path": ["ws", "direct", "{{match_id}}"],
+							"query": [
+								{ "key": "token", "value": "{{access_token}}" }
+							]
+						},
+						"description": "WebSocket upgrade endpoint for direct chat.\nConnect using ws://localhost:8080/ws/direct/:matchId?token=<jwt>\n\nSend message JSON:\n{\n  \"content\": \"Hello!\"\n}"
+					}
+				},
+				{
+					"name": "WebSocket - Group Chat",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/ws/group/{{group_id}}?token={{access_token}}",
+							"host": ["{{base_url}}"],
+							"path": ["ws", "group", "{{group_id}}"],
+							"query": [
+								{ "key": "token", "value": "{{access_token}}" }
+							]
+						},
+						"description": "WebSocket upgrade endpoint for group chat.\nConnect using ws://localhost:8080/ws/group/:groupId?token=<jwt>\n\nSend message JSON:\n{\n  \"content\": \"Hello group!\"\n}"
+					}
+				},
+				{
+					"name": "Get Direct Chat History",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/chats/direct/{{match_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["chats", "direct", "{{match_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Group Chat History",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/chats/group/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["chats", "group", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Message",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/chats/messages/{{message_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["chats", "messages", "{{message_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Photos",
+			"item": [
+				{
+					"name": "Upload Photo",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('photo_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image\": \"data:image/png;base64,iVBORw0KGgo...\",\n    \"type\": \"profile\",\n    \"is_primary\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/media/photos",
+							"host": ["{{base_url}}"],
+							"path": ["media", "photos"]
+						},
+						"description": "Upload a base64-encoded photo.\nType: profile | run | verification"
+					}
+				},
+				{
+					"name": "Get Photo by ID",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/media/photos/{{photo_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["media", "photos", "{{photo_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get User Photos",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/media/users/{{user_id}}/photos",
+							"host": ["{{base_url}}"],
+							"path": ["media", "users", "{{user_id}}", "photos"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Safety",
+			"item": [
+				{
+					"name": "Report User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.id) pm.collectionVariables.set('safety_id', json.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"match_id\": \"{{match_id}}\",\n    \"status\": \"reported\",\n    \"reason\": \"Inappropriate behavior during run\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/media/safety",
+							"host": ["{{base_url}}"],
+							"path": ["media", "safety"]
+						},
+						"description": "Status: reported | blocked"
+					}
+				},
+				{
+					"name": "Get Safety Log by ID",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/media/safety/{{safety_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["media", "safety", "{{safety_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Strava",
+			"item": [
+				{
+					"name": "Get Auth URL",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/strava/auth-url",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "auth-url"]
+						},
+						"description": "Returns the Strava OAuth authorization URL. Open it in a browser to authorize."
+					}
+				},
+				{
+					"name": "OAuth Callback",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"<authorization_code_from_strava>\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/strava/callback",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "callback"]
+						},
+						"description": "Exchange Strava authorization code for access token and connect account."
+					}
+				},
+				{
+					"name": "Get Connection",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/strava/connection",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "connection"]
+						}
+					}
+				},
+				{
+					"name": "Sync Activities",
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{base_url}}/strava/sync",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "sync"]
+						},
+						"description": "Syncs running activities from Strava (last 30 days, max 50). Creates linked RunActivity records."
+					}
+				},
+				{
+					"name": "Get Sync History",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/strava/activities?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "activities"],
+							"query": [
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Stats",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/strava/stats",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Disconnect",
+					"request": {
+						"method": "DELETE",
+						"url": {
+							"raw": "{{base_url}}/strava/disconnect",
+							"host": ["{{base_url}}"],
+							"path": ["strava", "disconnect"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "WhatsApp",
+			"item": [
+				{
+					"name": "Register (Send OTP)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"+6281234567890\",\n    \"email\": \"john@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/whatsapp/register",
+							"host": ["{{base_url}}"],
+							"path": ["whatsapp", "register"]
+						}
+					}
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"+6281234567890\",\n    \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/whatsapp/verify",
+							"host": ["{{base_url}}"],
+							"path": ["whatsapp", "verify"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

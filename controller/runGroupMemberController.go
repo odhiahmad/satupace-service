@@ -14,11 +14,14 @@ import (
 type RunGroupMemberController interface {
 	Create(ctx *gin.Context)
 	Update(ctx *gin.Context)
+	UpdateRole(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindByGroupId(ctx *gin.Context)
 	FindByUserId(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 	JoinGroup(ctx *gin.Context)
+	LeaveGroup(ctx *gin.Context)
+	KickMember(ctx *gin.Context)
 }
 
 type runGroupMemberController struct {
@@ -119,14 +122,13 @@ func (c *runGroupMemberController) Delete(ctx *gin.Context) {
 
 func (c *runGroupMemberController) JoinGroup(ctx *gin.Context) {
 	userId := ctx.MustGet("user_id").(uuid.UUID)
-	var req request.JoinRunGroupRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
+	groupId, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		res := helper.BuildErrorResponse("ID grup tidak valid", "INVALID_REQUEST", "id", "format UUID tidak valid", nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	groupId, _ := uuid.Parse(req.GroupId)
 	result, err := c.service.JoinGroup(userId, groupId)
 	if err != nil {
 		res := helper.BuildErrorResponse("Gagal bergabung dengan grup", "JOIN_FAILED", "body", err.Error(), nil)
@@ -136,4 +138,71 @@ func (c *runGroupMemberController) JoinGroup(ctx *gin.Context) {
 
 	response := helper.BuildResponse(true, "Berhasil bergabung dengan grup", result)
 	ctx.JSON(http.StatusCreated, response)
+}
+
+func (c *runGroupMemberController) UpdateRole(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	memberId, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		res := helper.BuildErrorResponse("ID member tidak valid", "INVALID_REQUEST", "id", "format UUID tidak valid", nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	var req request.UpdateMemberRoleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	result, err := c.service.UpdateRole(userId, memberId, req)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal mengubah role anggota", "UPDATE_ROLE_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Role anggota berhasil diubah", result)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *runGroupMemberController) LeaveGroup(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	groupId, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		res := helper.BuildErrorResponse("ID grup tidak valid", "INVALID_REQUEST", "id", "format UUID tidak valid", nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	err = c.service.LeaveGroup(userId, groupId)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal keluar dari grup", "LEAVE_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Berhasil keluar dari grup", nil)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *runGroupMemberController) KickMember(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	memberId, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		res := helper.BuildErrorResponse("ID member tidak valid", "INVALID_REQUEST", "id", "format UUID tidak valid", nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	err = c.service.KickMember(userId, memberId)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal mengeluarkan anggota", "KICK_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Anggota berhasil dikeluarkan dari grup", nil)
+	ctx.JSON(http.StatusOK, response)
 }
