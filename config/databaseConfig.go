@@ -54,8 +54,8 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.GroupChatMessage{},
 			&entity.UserPhoto{},
 			&entity.SafetyLog{},
-			&entity.SmartWatchDevice{},
-			&entity.SmartWatchSync{},
+			&entity.StravaConnection{},
+			&entity.StravaActivity{},
 			&entity.UserBiometric{},
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)

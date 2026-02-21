@@ -17,7 +17,7 @@ type User struct {
 	PinCode      string    `gorm:"type:varchar(255)" json:"-"`
 	Token        string    `gorm:"-" json:"token"`
 	HasProfile   bool      `gorm:"default:false" json:"has_profile"`
-	IsVerified   bool      `gorm:"not null; column:is_verified"`
+	IsVerified   bool      `gorm:"not null;column:is_verified" json:"is_verified"`
 	IsActive     bool      `gorm:"default:false" json:"is_active"`
 	IsSuspended  bool      `gorm:"default:false" json:"is_suspended"`
 	ReportCount  int       `gorm:"default:0" json:"report_count"`

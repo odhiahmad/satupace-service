@@ -1,11 +1,11 @@
 package request
 
 type CreateRunActivityRequest struct {
-	Distance float64 `json:"distance" validate:"required"`
-	Duration int     `json:"duration" validate:"required"`
-	AvgPace  float64 `json:"avg_pace" validate:"required"`
+	Distance float64 `json:"distance" binding:"required"`
+	Duration int     `json:"duration" binding:"required"`
+	AvgPace  float64 `json:"avg_pace" binding:"required"`
 	Calories int     `json:"calories"`
-	Source   string  `json:"source" validate:"required"`
+	Source   string  `json:"source" binding:"required"`
 }
 
 type UpdateRunActivityRequest struct {

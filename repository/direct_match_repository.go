@@ -46,7 +46,7 @@ func (r *directMatchRepository) FindById(id uuid.UUID) (*entity.DirectMatch, err
 func (r *directMatchRepository) FindByUsers(user1Id, user2Id uuid.UUID) (*entity.DirectMatch, error) {
 	var match entity.DirectMatch
 	err := r.db.Where(
-		"(user_1_id = ? AND user_2_id = ?) OR (user_1_id = ? AND user_2_id = ?)",
+		"(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
 		user1Id, user2Id, user2Id, user1Id,
 	).First(&match).Error
 	if err != nil {
@@ -57,14 +57,14 @@ func (r *directMatchRepository) FindByUsers(user1Id, user2Id uuid.UUID) (*entity
 
 func (r *directMatchRepository) FindUserMatches(userId uuid.UUID) ([]entity.DirectMatch, error) {
 	var matches []entity.DirectMatch
-	err := r.db.Where("user_1_id = ? OR user_2_id = ?", userId, userId).Order("created_at DESC").Find(&matches).Error
+	err := r.db.Where("user1_id = ? OR user2_id = ?", userId, userId).Order("created_at DESC").Find(&matches).Error
 	return matches, err
 }
 
 func (r *directMatchRepository) FindMatchesByStatus(userId uuid.UUID, status string) ([]entity.DirectMatch, error) {
 	var matches []entity.DirectMatch
 	err := r.db.Where(
-		"(user_1_id = ? OR user_2_id = ?) AND status = ?",
+		"(user1_id = ? OR user2_id = ?) AND status = ?",
 		userId, userId, status,
 	).Order("created_at DESC").Find(&matches).Error
 	return matches, err

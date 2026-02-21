@@ -1,6 +1,6 @@
 package request
 
 type SendGroupChatMessageRequest struct {
-	GroupId string `json:"group_id" validate:"required"`
-	Message string `json:"message" validate:"required"`
+	GroupId string `json:"group_id" binding:"required"`
+	Message string `json:"message" binding:"required"`
 }

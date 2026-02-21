@@ -36,7 +36,7 @@ var (
 	groupChatRepo      repository.GroupChatMessageRepository  = repository.NewGroupChatMessageRepository(db)
 	userPhotoRepo      repository.UserPhotoRepository         = repository.NewUserPhotoRepository(db)
 	safetyLogRepo      repository.SafetyLogRepository         = repository.NewSafetyLogRepository(db)
-	smartWatchRepo     repository.SmartWatchRepository        = repository.NewSmartWatchRepository(db)
+	stravaRepo         repository.StravaRepository            = repository.NewStravaRepository(db)
 	biometricRepo      repository.BiometricRepository         = repository.NewBiometricRepository(db)
 
 	// Matching Engine
@@ -51,7 +51,7 @@ var (
 	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db)
 	safetyLogSvc         service.SafetyLogService      = service.NewSafetyLogService(safetyLogRepo, userRepository, db)
 	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo)
-	smartWatchSvc        service.SmartWatchService     = service.NewSmartWatchService(smartWatchRepo, runActivityRepo)
+	stravaSvc            service.StravaService         = service.NewStravaService(stravaRepo, runActivityRepo)
 	biometricSvc         service.BiometricService      = service.NewBiometricService(biometricRepo, userRepository, jwtService, redisHelper)
 
 	// Controllers
@@ -64,7 +64,7 @@ var (
 	directMatchController    controller.DirectMatchController    = controller.NewDirectMatchController(directMatchSvc)
 	userPhotoController      controller.UserPhotoController      = controller.NewUserPhotoController(service.NewUserPhotoService(userPhotoRepo))
 	safetyLogController      controller.SafetyLogController      = controller.NewSafetyLogController(safetyLogSvc)
-	smartWatchController     controller.SmartWatchController     = controller.NewSmartWatchController(smartWatchSvc)
+	stravaController         controller.StravaController         = controller.NewStravaController(stravaSvc)
 	exploreController        controller.ExploreController        = controller.NewExploreController(exploreSvc)
 	biometricController      controller.BiometricController      = controller.NewBiometricController(biometricSvc)
 
@@ -78,6 +78,9 @@ var (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+
+	// CORS middleware — must be registered before routes
+	r.Use(middleware.CORSMiddleware())
 
 	// Start WebSocket hub in background
 	go chatHub.Run()
@@ -109,8 +112,8 @@ func SetupRouter() *gin.Engine {
 		biometric.DELETE("/credentials/:id", biometricController.DeleteCredential)
 	}
 
-	// Public user routes
-	users := r.Group("users", middleware.RateLimit(redisHelper, 20, time.Minute))
+	// User management (JWT required)
+	users := r.Group("users", jwt)
 	{
 		users.POST("", userController.Create)
 		users.GET("", userController.FindAll)
@@ -198,17 +201,16 @@ func SetupRouter() *gin.Engine {
 		media.GET("/safety/:id", safetyLogController.FindById)
 	}
 
-	// SmartWatch sync (requires auth + profile)
-	watch := r.Group("smartwatch", jwt, profileReq)
+	// Strava integration (requires auth + profile)
+	strava := r.Group("strava", jwt, profileReq)
 	{
-		watch.POST("/devices", smartWatchController.ConnectDevice)
-		watch.GET("/devices", smartWatchController.GetDevices)
-		watch.DELETE("/devices/:device_id", smartWatchController.DisconnectDevice)
-		watch.GET("/devices/:device_id/stats", smartWatchController.GetDeviceStats)
-
-		watch.POST("/sync", smartWatchController.SyncActivity)
-		watch.POST("/sync/batch", smartWatchController.BatchSync)
-		watch.GET("/sync/history", smartWatchController.GetSyncHistory)
+		strava.GET("/auth-url", stravaController.GetAuthURL)
+		strava.POST("/callback", stravaController.Callback)
+		strava.DELETE("/disconnect", stravaController.Disconnect)
+		strava.GET("/connection", stravaController.GetConnection)
+		strava.POST("/sync", stravaController.SyncActivities)
+		strava.GET("/activities", stravaController.GetSyncHistory)
+		strava.GET("/stats", stravaController.GetStats)
 	}
 
 	// WhatsApp

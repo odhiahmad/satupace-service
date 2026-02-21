@@ -63,6 +63,7 @@ func (s *runGroupService) Create(createdBy uuid.UUID, req request.CreateRunGroup
 		Email:       user.Email,
 		PhoneNumber: user.PhoneNumber,
 		Gender:      user.Gender,
+		HasProfile:  user.HasProfile,
 		IsVerified:  user.IsVerified,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt,
@@ -127,16 +128,20 @@ func (s *runGroupService) Update(id uuid.UUID, req request.UpdateRunGroupRequest
 	}
 
 	user, _ := s.userRepo.FindById(group.CreatedBy)
-	creatorRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+	var creatorRes *response.UserResponse
+	if user != nil {
+		creatorRes = &response.UserResponse{
+			Id:          user.Id.String(),
+			Name:        user.Name,
+			Email:       user.Email,
+			PhoneNumber: user.PhoneNumber,
+			Gender:      user.Gender,
+			HasProfile:  user.HasProfile,
+			IsVerified:  user.IsVerified,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		}
 	}
 
 	memberCount, _ := s.repo.GetMemberCount(group.Id)
@@ -166,16 +171,20 @@ func (s *runGroupService) FindById(id uuid.UUID) (response.RunGroupDetailRespons
 	}
 
 	user, _ := s.userRepo.FindById(group.CreatedBy)
-	creatorRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+	var creatorRes *response.UserResponse
+	if user != nil {
+		creatorRes = &response.UserResponse{
+			Id:          user.Id.String(),
+			Name:        user.Name,
+			Email:       user.Email,
+			PhoneNumber: user.PhoneNumber,
+			Gender:      user.Gender,
+			HasProfile:  user.HasProfile,
+			IsVerified:  user.IsVerified,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		}
 	}
 
 	memberCount, _ := s.repo.GetMemberCount(group.Id)

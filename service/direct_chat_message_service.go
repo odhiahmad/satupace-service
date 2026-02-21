@@ -42,16 +42,20 @@ func (s *directChatMessageService) Create(userId uuid.UUID, req request.SendDire
 	}
 
 	user, _ := s.userRepo.FindById(userId)
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+	var userRes *response.UserResponse
+	if user != nil {
+		userRes = &response.UserResponse{
+			Id:          user.Id.String(),
+			Name:        user.Name,
+			Email:       user.Email,
+			PhoneNumber: user.PhoneNumber,
+			Gender:      user.Gender,
+			HasProfile:  user.HasProfile,
+			IsVerified:  user.IsVerified,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		}
 	}
 
 	return response.DirectChatMessageDetailResponse{
@@ -73,16 +77,20 @@ func (s *directChatMessageService) FindByMatchId(matchId uuid.UUID) ([]response.
 	var responses []response.DirectChatMessageDetailResponse
 	for _, msg := range messages {
 		user, _ := s.userRepo.FindById(msg.SenderId)
-		userRes := &response.UserResponse{
-			Id:          user.Id.String(),
-			Name:        user.Name,
-			Email:       user.Email,
-			PhoneNumber: user.PhoneNumber,
-			Gender:      user.Gender,
-			IsVerified:  user.IsVerified,
-			IsActive:    user.IsActive,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+		var userRes *response.UserResponse
+		if user != nil {
+			userRes = &response.UserResponse{
+				Id:          user.Id.String(),
+				Name:        user.Name,
+				Email:       user.Email,
+				PhoneNumber: user.PhoneNumber,
+				Gender:      user.Gender,
+				HasProfile:  user.HasProfile,
+				IsVerified:  user.IsVerified,
+				IsActive:    user.IsActive,
+				CreatedAt:   user.CreatedAt,
+				UpdatedAt:   user.UpdatedAt,
+			}
 		}
 
 		responses = append(responses, response.DirectChatMessageDetailResponse{
@@ -105,16 +113,20 @@ func (s *directChatMessageService) FindBySenderId(userId uuid.UUID) ([]response.
 	}
 
 	user, _ := s.userRepo.FindById(userId)
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+	var userRes *response.UserResponse
+	if user != nil {
+		userRes = &response.UserResponse{
+			Id:          user.Id.String(),
+			Name:        user.Name,
+			Email:       user.Email,
+			PhoneNumber: user.PhoneNumber,
+			Gender:      user.Gender,
+			HasProfile:  user.HasProfile,
+			IsVerified:  user.IsVerified,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		}
 	}
 
 	var responses []response.DirectChatMessageDetailResponse

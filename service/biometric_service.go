@@ -250,6 +250,7 @@ func (s *biometricService) LoginFinish(req request.BiometricLoginFinishRequest) 
 		Email:       user.Email,
 		PhoneNumber: user.PhoneNumber,
 		Gender:      user.Gender,
+		HasProfile:  user.HasProfile,
 		IsVerified:  user.IsVerified,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt,

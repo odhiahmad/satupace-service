@@ -447,6 +447,7 @@ func (c *chatWSController) getUserResponse(userID uuid.UUID) *response.UserRespo
 		Email:       user.Email,
 		PhoneNumber: user.PhoneNumber,
 		Gender:      user.Gender,
+		HasProfile:  user.HasProfile,
 		IsVerified:  user.IsVerified,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt,

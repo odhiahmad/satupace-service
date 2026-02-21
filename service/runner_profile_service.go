@@ -215,6 +215,7 @@ func (s *runnerProfileService) buildDetailResponse(profile *entity.RunnerProfile
 			Email:       user.Email,
 			PhoneNumber: user.PhoneNumber,
 			Gender:      user.Gender,
+			HasProfile:  user.HasProfile,
 			IsVerified:  user.IsVerified,
 			IsActive:    user.IsActive,
 			CreatedAt:   user.CreatedAt,

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"run-sync/helper"
-	"run-sync/middleware"
 	"run-sync/routes"
 
 	"github.com/gin-gonic/gin"
@@ -40,7 +39,6 @@ func main() {
 	}
 
 	r := routes.SetupRouter()
-	r.Use(middleware.CORSMiddleware())
 
 	server := &http.Server{
 		Addr:    ":" + port,

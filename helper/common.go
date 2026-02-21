@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -24,7 +23,6 @@ var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
 
 // GenerateOTPCode generates a random OTP code of specified length
 func GenerateOTPCode(length int) string {
-	rand.Seed(time.Now().UnixNano())
 	digits := "0123456789"
 	code := make([]byte, length)
 	for i := range code {
@@ -64,9 +62,9 @@ func ExtractPublicIDFromURL(rawURL string) (string, error) {
 // DeleteFromCloudinary deletes an asset from Cloudinary by public ID
 func DeleteFromCloudinary(publicID string) error {
 	cld, err := cloudinary.NewFromParams(
-		os.Getenv("CLOUDINARY_CLOUD_NAME"),
-		os.Getenv("CLOUDINARY_API_KEY"),
-		os.Getenv("CLOUDINARY_API_SECRET"),
+		os.Getenv("CLD_NAME"),
+		os.Getenv("CLD_API_KEY"),
+		os.Getenv("CLD_API_SECRET"),
 	)
 	if err != nil {
 		return err

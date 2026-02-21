@@ -1,7 +1,7 @@
 package request
 
 type CreateSafetyLogRequest struct {
-	MatchId string `json:"match_id" validate:"required"`
-	Status  string `json:"status" validate:"required,oneof=reported blocked"`
-	Reason  string `json:"reason" validate:"required"`
+	MatchId string `json:"match_id" binding:"required"`
+	Status  string `json:"status" binding:"required,oneof=reported blocked"`
+	Reason  string `json:"reason" binding:"required"`
 }

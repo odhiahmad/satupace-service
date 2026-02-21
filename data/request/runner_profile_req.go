@@ -1,9 +1,9 @@
 package request
 
 type CreateRunnerProfileRequest struct {
-	AvgPace           float64 `json:"avg_pace" validate:"required"`
-	PreferredDistance int     `json:"preferred_distance" validate:"required"`
-	PreferredTime     string  `json:"preferred_time" validate:"required"`
+	AvgPace           float64 `json:"avg_pace" binding:"required"`
+	PreferredDistance int     `json:"preferred_distance" binding:"required"`
+	PreferredTime     string  `json:"preferred_time" binding:"required"`
 	Latitude          float64 `json:"latitude"`
 	Longitude         float64 `json:"longitude"`
 	WomenOnlyMode     bool    `json:"women_only_mode"`

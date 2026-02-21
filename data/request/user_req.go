@@ -2,10 +2,10 @@ package request
 
 type CreateUserRequest struct {
 	Name        *string `json:"name"`
-	Email       *string `json:"email" validate:"required,email"`
-	PhoneNumber string  `json:"phone_number" validate:"required"`
+	Email       *string `json:"email" binding:"required,email"`
+	PhoneNumber string  `json:"phone_number" binding:"required"`
 	Gender      *string `json:"gender"`
-	Password    string  `json:"password" validate:"required,min=6"`
+	Password    string  `json:"password" binding:"required,min=6"`
 }
 
 type UpdateUserRequest struct {
@@ -15,14 +15,14 @@ type UpdateUserRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" validate:"required"`
-	NewPassword string `json:"new_password" validate:"required,min=6"`
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
 type VerifyEmailRequest struct {
-	Token string `json:"token" validate:"required"`
+	Token string `json:"token" binding:"required"`
 }
 
 type VerifyPhoneRequest struct {
-	Token string `json:"token" validate:"required"`
+	Token string `json:"token" binding:"required"`
 }
