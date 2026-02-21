@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"loka-kasir/helper"
-	"loka-kasir/service"
+	"run-sync/helper"
+	"run-sync/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

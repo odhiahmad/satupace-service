@@ -8,31 +8,15 @@ import (
 	"os/signal"
 	"time"
 
-	"loka-kasir/helper"
-	"loka-kasir/routes"
+	"run-sync/helper"
+	"run-sync/middleware"
+	"run-sync/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
-	}
-}
-
 func main() {
-
 	_ = godotenv.Load(".env")
 
 	helper.InitWhatsApp()
@@ -55,10 +39,8 @@ func main() {
 		log.Println("🚀 GIN_MODE=release")
 	}
 
-	//config.SetupWilayahDatabase()
-
 	r := routes.SetupRouter()
-	r.Use(CORSMiddleware())
+	r.Use(middleware.CORSMiddleware())
 
 	server := &http.Server{
 		Addr:    ":" + port,

@@ -15,38 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"loka-kasir/entity"
-
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
 
-func DeterminePromoType(amount float64) bool {
-	return amount <= 1.0
-}
-
-func GenerateSKU(name string) string {
-	prefix := strings.ToUpper(name)
-	if len(prefix) > 2 {
-		prefix = prefix[:2]
-	}
-
-	timestamp := time.Now().Format("0601021504")
-	randomPart := rand.Intn(100)
-
-	return fmt.Sprintf("%s%s%02d", prefix, timestamp, randomPart)
-}
-
-func GenerateRandomToken(n int) string {
-	b := make([]byte, n)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
+// GenerateOTPCode generates a random OTP code of specified length
 func GenerateOTPCode(length int) string {
 	rand.Seed(time.Now().UnixNano())
 	digits := "0123456789"
@@ -57,11 +33,13 @@ func GenerateOTPCode(length int) string {
 	return string(code)
 }
 
+// HashOTP creates a SHA256 hash of the OTP for secure storage
 func HashOTP(otp string) string {
 	hash := sha256.Sum256([]byte(otp))
 	return hex.EncodeToString(hash[:])
 }
 
+// ExtractPublicIDFromURL extracts Cloudinary public ID from a URL
 func ExtractPublicIDFromURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -79,12 +57,17 @@ func ExtractPublicIDFromURL(rawURL string) (string, error) {
 	}
 
 	publicID := strings.Join(parts[index+1:], "/")
-	publicID = strings.TrimSuffix(publicID, filepath.Ext(publicID)) // hapus ekstensi
+	publicID = strings.TrimSuffix(publicID, filepath.Ext(publicID))
 	return publicID, nil
 }
 
+// DeleteFromCloudinary deletes an asset from Cloudinary by public ID
 func DeleteFromCloudinary(publicID string) error {
-	cld, err := cloudinary.NewFromParams(os.Getenv("CLOUDINARY_CLOUD_NAME"), os.Getenv("CLOUDINARY_API_KEY"), os.Getenv("CLOUDINARY_API_SECRET"))
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
 	if err != nil {
 		return err
 	}
@@ -95,6 +78,7 @@ func DeleteFromCloudinary(publicID string) error {
 	return err
 }
 
+// LowerStringPtr converts a string pointer to lowercase
 func LowerStringPtr(s *string) *string {
 	if s == nil {
 		return nil
@@ -103,6 +87,7 @@ func LowerStringPtr(s *string) *string {
 	return &lowered
 }
 
+// StringValue safely extracts value from string pointer
 func StringValue(s *string) string {
 	if s != nil {
 		return *s
@@ -110,22 +95,12 @@ func StringValue(s *string) string {
 	return ""
 }
 
-func GenerateBillNumber(db *gorm.DB) (string, error) {
-	today := time.Now().Format("20060102") // 20250625
-	prefix := "TRX-" + today + "-"
-
-	var count int64
-	err := db.Model(&entity.Transaction{}).
-		Where("DATE(created_at) = ?", time.Now().Format("2006-01-02")).
-		Count(&count).Error
-	if err != nil {
-		return "", err
-	}
-
-	billNumber := fmt.Sprintf("%s%04d", prefix, count+1)
-	return billNumber, nil
+// StringPtr creates a pointer to a string value
+func StringPtr(s string) *string {
+	return &s
 }
 
+// HashAndSalt securely hashes a password with bcrypt
 func HashAndSalt(pwd []byte) string {
 	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
 	if err != nil {
@@ -135,11 +110,18 @@ func HashAndSalt(pwd []byte) string {
 	return string(hash)
 }
 
+// ComparePassword verifies a password against its hash
 func ComparePassword(hashedPassword, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
 
+// HashPassword hashes a password string
+func HashPassword(password string) string {
+	return HashAndSalt([]byte(password))
+}
+
+// IsEmail validates if a string is a valid email format
 func IsEmail(input string) bool {
 	return emailRegex.MatchString(input)
 }

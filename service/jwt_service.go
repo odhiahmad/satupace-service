@@ -5,14 +5,13 @@ import (
 	"os"
 	"time"
 
-	"loka-kasir/entity"
-	"loka-kasir/helper"
+	"run-sync/helper"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type JWTService interface {
-	GenerateToken(user entity.UserBusiness, expiredAt time.Time) string
+	GenerateToken(userId string, phoneNumber string, email *string, expiredAt time.Time) string
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
@@ -23,7 +22,7 @@ type jwtService struct {
 
 func NewJwtService() JWTService {
 	return &jwtService{
-		issuer:    "loka",
+		issuer:    "run-sync",
 		secretKey: getSecretKey(),
 	}
 }
@@ -36,13 +35,11 @@ func getSecretKey() string {
 	return secretKey
 }
 
-func (j *jwtService) GenerateToken(user entity.UserBusiness, expiredAt time.Time) string {
+func (j *jwtService) GenerateToken(userId string, phoneNumber string, email *string, expiredAt time.Time) string {
 	claims := jwt.MapClaims{
-		"user_id":      user.Id,
-		"phone_number": user.PhoneNumber,
-		"business_id":  user.BusinessId,
-		"email":        user.Email,
-		"role_id":      user.Role.Id,
+		"user_id":      userId,
+		"phone_number": phoneNumber,
+		"email":        email,
 		"exp":          expiredAt.Unix(),
 		"iss":          j.issuer,
 	}

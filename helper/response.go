@@ -1,6 +1,6 @@
 package helper
 
-import "loka-kasir/data/response"
+import "run-sync/data/response"
 
 type DetailedError struct {
 	Code    string `json:"code"`

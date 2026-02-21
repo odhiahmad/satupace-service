@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"loka-kasir/helper"
+	"run-sync/helper"
 
 	"github.com/gin-gonic/gin"
 )

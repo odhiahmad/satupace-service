@@ -1,0 +1,153 @@
+package service
+
+import (
+	"run-sync/data/request"
+	"run-sync/data/response"
+	"run-sync/entity"
+	"run-sync/repository"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type UserPhotoService interface {
+	Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error)
+	Update(id uuid.UUID, req request.UpdateUserPhotoRequest) (response.UserPhotoResponse, error)
+	FindById(id uuid.UUID) (response.UserPhotoResponse, error)
+	FindByUserId(userId uuid.UUID) ([]response.UserPhotoResponse, error)
+	FindPrimaryPhoto(userId uuid.UUID) (response.UserPhotoResponse, error)
+	Delete(id uuid.UUID) error
+}
+
+type userPhotoService struct {
+	repo repository.UserPhotoRepository
+}
+
+func NewUserPhotoService(repo repository.UserPhotoRepository) UserPhotoService {
+	return &userPhotoService{repo: repo}
+}
+
+func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error) {
+	// If this is primary, set other photos to non-primary
+	if req.IsPrimary {
+		photos, _ := s.repo.FindByUserId(userId)
+		for _, photo := range photos {
+			photo.IsPrimary = false
+			s.repo.Update(&photo)
+		}
+	}
+
+	photo := entity.UserPhoto{
+		Id:        uuid.New(),
+		UserId:    userId,
+		Url:       req.Url,
+		Type:      req.Type,
+		IsPrimary: req.IsPrimary,
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.repo.Create(&photo); err != nil {
+		return response.UserPhotoResponse{}, err
+	}
+
+	return response.UserPhotoResponse{
+		Id:        photo.Id.String(),
+		UserId:    photo.UserId.String(),
+		Url:       photo.Url,
+		Type:      photo.Type,
+		IsPrimary: photo.IsPrimary,
+		CreatedAt: photo.CreatedAt,
+	}, nil
+}
+
+func (s *userPhotoService) Update(id uuid.UUID, req request.UpdateUserPhotoRequest) (response.UserPhotoResponse, error) {
+	photo, err := s.repo.FindById(id)
+	if err != nil {
+		return response.UserPhotoResponse{}, err
+	}
+
+	if req.Type != nil {
+		photo.Type = *req.Type
+	}
+	if req.IsPrimary != nil {
+		// If setting as primary, set others to non-primary
+		if *req.IsPrimary {
+			photos, _ := s.repo.FindByUserId(photo.UserId)
+			for _, p := range photos {
+				p.IsPrimary = false
+				s.repo.Update(&p)
+			}
+		}
+		photo.IsPrimary = *req.IsPrimary
+	}
+
+	if err := s.repo.Update(photo); err != nil {
+		return response.UserPhotoResponse{}, err
+	}
+
+	return response.UserPhotoResponse{
+		Id:        photo.Id.String(),
+		UserId:    photo.UserId.String(),
+		Url:       photo.Url,
+		Type:      photo.Type,
+		IsPrimary: photo.IsPrimary,
+		CreatedAt: photo.CreatedAt,
+	}, nil
+}
+
+func (s *userPhotoService) FindById(id uuid.UUID) (response.UserPhotoResponse, error) {
+	photo, err := s.repo.FindById(id)
+	if err != nil {
+		return response.UserPhotoResponse{}, err
+	}
+
+	return response.UserPhotoResponse{
+		Id:        photo.Id.String(),
+		UserId:    photo.UserId.String(),
+		Url:       photo.Url,
+		Type:      photo.Type,
+		IsPrimary: photo.IsPrimary,
+		CreatedAt: photo.CreatedAt,
+	}, nil
+}
+
+func (s *userPhotoService) FindByUserId(userId uuid.UUID) ([]response.UserPhotoResponse, error) {
+	photos, err := s.repo.FindByUserId(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []response.UserPhotoResponse
+	for _, photo := range photos {
+		responses = append(responses, response.UserPhotoResponse{
+			Id:        photo.Id.String(),
+			UserId:    photo.UserId.String(),
+			Url:       photo.Url,
+			Type:      photo.Type,
+			IsPrimary: photo.IsPrimary,
+			CreatedAt: photo.CreatedAt,
+		})
+	}
+
+	return responses, nil
+}
+
+func (s *userPhotoService) FindPrimaryPhoto(userId uuid.UUID) (response.UserPhotoResponse, error) {
+	photo, err := s.repo.FindPrimaryPhoto(userId)
+	if err != nil {
+		return response.UserPhotoResponse{}, err
+	}
+
+	return response.UserPhotoResponse{
+		Id:        photo.Id.String(),
+		UserId:    photo.UserId.String(),
+		Url:       photo.Url,
+		Type:      photo.Type,
+		IsPrimary: photo.IsPrimary,
+		CreatedAt: photo.CreatedAt,
+	}, nil
+}
+
+func (s *userPhotoService) Delete(id uuid.UUID) error {
+	return s.repo.Delete(id)
+}

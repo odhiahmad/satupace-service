@@ -122,12 +122,12 @@ func (r *RedisHelper) DeleteOTP(prefix, identifier string) error {
 
 func (r *RedisHelper) SetResetPasswordVerified(identifier string, ttl time.Duration) error {
 	key := fmt.Sprintf("reset_password_verified:%s", identifier)
-	return r.Client.Set(ctx, key, "true", ttl).Err()
+	return r.Client.Set(r.Ctx, key, "true", ttl).Err()
 }
 
 func (r *RedisHelper) IsResetPasswordVerified(identifier string) (bool, error) {
 	key := fmt.Sprintf("reset_password_verified:%s", identifier)
-	val, err := r.Client.Get(ctx, key).Result()
+	val, err := r.Client.Get(r.Ctx, key).Result()
 	if err == redis.Nil {
 		return false, nil
 	}
@@ -139,5 +139,5 @@ func (r *RedisHelper) IsResetPasswordVerified(identifier string) (bool, error) {
 
 func (r *RedisHelper) DeleteResetPasswordVerified(identifier string) error {
 	key := fmt.Sprintf("reset_password_verified:%s", identifier)
-	return r.Client.Del(ctx, key).Err()
+	return r.Client.Del(r.Ctx, key).Err()
 }

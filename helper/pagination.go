@@ -3,7 +3,7 @@ package helper
 import (
 	"strings"
 
-	"loka-kasir/data/request"
+	"run-sync/data/request"
 
 	"gorm.io/gorm"
 )
