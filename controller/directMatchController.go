@@ -12,8 +12,10 @@ import (
 )
 
 type DirectMatchController interface {
-	Create(ctx *gin.Context)
-	Update(ctx *gin.Context)
+	GetCandidates(ctx *gin.Context)
+	SendMatchRequest(ctx *gin.Context)
+	AcceptMatch(ctx *gin.Context)
+	RejectMatch(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindUserMatches(ctx *gin.Context)
 	FindMatchesByStatus(ctx *gin.Context)
@@ -28,8 +30,21 @@ func NewDirectMatchController(s service.DirectMatchService) DirectMatchControlle
 	return &directMatchController{service: s}
 }
 
-func (c *directMatchController) Create(ctx *gin.Context) {
-	user1Id := ctx.MustGet("user_id").(uuid.UUID)
+func (c *directMatchController) GetCandidates(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	candidates, err := c.service.GetCandidates(userId)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal mengambil kandidat match", "CANDIDATES_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Berhasil mengambil kandidat match", candidates)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *directMatchController) SendMatchRequest(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
 	var req request.CreateDirectMatchRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
@@ -37,34 +52,44 @@ func (c *directMatchController) Create(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.service.Create(user1Id, req)
+	result, err := c.service.SendMatchRequest(userId, req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat match", "CREATE_FAILED", "body", err.Error(), nil)
+		res := helper.BuildErrorResponse("Gagal mengirim match request", "MATCH_REQUEST_FAILED", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	response := helper.BuildResponse(true, "Match berhasil dibuat", result)
+	response := helper.BuildResponse(true, "Match request berhasil dikirim", result)
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (c *directMatchController) Update(ctx *gin.Context) {
+func (c *directMatchController) AcceptMatch(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
 	matchId, _ := uuid.Parse(ctx.Param("id"))
-	var req request.UpdateDirectMatchStatusRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
 
-	result, err := c.service.Update(matchId, req)
+	result, err := c.service.AcceptMatch(matchId, userId)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal mengubah match", "UPDATE_FAILED", "body", err.Error(), nil)
+		res := helper.BuildErrorResponse("Gagal menerima match", "ACCEPT_FAILED", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	response := helper.BuildResponse(true, "Match berhasil diubah", result)
+	response := helper.BuildResponse(true, "Match berhasil diterima", result)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *directMatchController) RejectMatch(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	matchId, _ := uuid.Parse(ctx.Param("id"))
+
+	result, err := c.service.RejectMatch(matchId, userId)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal menolak match", "REJECT_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Match berhasil ditolak", result)
 	ctx.JSON(http.StatusOK, response)
 }
 

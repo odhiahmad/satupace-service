@@ -16,6 +16,7 @@ type RunGroupMemberRepository interface {
 	FindByUserId(userId uuid.UUID) ([]entity.RunGroupMember, error)
 	Delete(id uuid.UUID) error
 	GetMembers(groupId uuid.UUID, status string) ([]entity.RunGroupMember, error)
+	DB() *gorm.DB
 }
 
 type runGroupMemberRepository struct {
@@ -72,4 +73,8 @@ func (r *runGroupMemberRepository) GetMembers(groupId uuid.UUID, status string) 
 	var members []entity.RunGroupMember
 	err := r.db.Where("group_id = ? AND status = ?", groupId, status).Find(&members).Error
 	return members, err
+}
+
+func (r *runGroupMemberRepository) DB() *gorm.DB {
+	return r.db
 }

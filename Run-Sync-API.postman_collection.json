@@ -1,0 +1,707 @@
+{
+  "info": {
+    "name": "Run-Sync API",
+    "description": "Complete API collection for Run-Sync running social app",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "Register → Verify OTP → Login flow. All users must verify before accessing protected endpoints.",
+      "item": [
+        {
+          "name": "Register (Sign Up)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone_number\": \"081234567890\",\n  \"gender\": \"male\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"081234567890\",\n  \"otp_code\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"081234567890\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/resend-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "resend-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"081234567890\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone_number\": \"081234567890\",\n  \"gender\": \"male\",\n  \"password\": \"SecurePass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"gender\": \"male\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Run Groups",
+      "item": [
+        {
+          "name": "Create Run Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/groups",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Weekend Morning Run\",\n  \"avg_pace\": 5.5,\n  \"preferred_distance\": 10,\n  \"latitude\": -6.2088,\n  \"longitude\": 106.8456,\n  \"scheduled_at\": \"2026-02-22T06:00:00Z\",\n  \"max_member\": 15,\n  \"is_women_only\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Run Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runs/groups",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups"]
+            }
+          }
+        },
+        {
+          "name": "Get Run Group by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runs/groups/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups", "{{group_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Run Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/groups/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups", "{{group_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Group Name\",\n  \"max_member\": 20,\n  \"status\": \"open\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Run Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/groups/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups", "{{group_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Join Run Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/groups/{{group_id}}/join",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups", "{{group_id}}", "join"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runs/groups/{{group_id}}/members",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "groups", "{{group_id}}", "members"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Run Activities",
+      "item": [
+        {
+          "name": "Create Run Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/runs/activities",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "activities"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"distance\": 10.5,\n  \"duration\": 3600,\n  \"avg_pace\": 5.7,\n  \"calories\": 650,\n  \"route_data\": \"{\\\"coordinates\\\": [...]}\",\n  \"started_at\": \"2026-02-21T06:00:00Z\",\n  \"ended_at\": \"2026-02-21T07:00:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Activity by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runs/activities/{{activity_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "activities", "{{activity_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User Activities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/runs/users/{{user_id}}/activities",
+              "host": ["{{base_url}}"],
+              "path": ["runs", "users", "{{user_id}}", "activities"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct Matching",
+      "item": [
+        {
+          "name": "Create Match Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match",
+              "host": ["{{base_url}}"],
+              "path": ["match"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id_2\": \"TARGET_USER_UUID\",\n  \"message\": \"Hey! Would you like to run together?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Match Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match/{{match_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["match", "{{match_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Match Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match/{{match_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["match", "{{match_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get My Matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/match/me",
+              "host": ["{{base_url}}"],
+              "path": ["match", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat Messages",
+      "item": [
+        {
+          "name": "Send Direct Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chats/direct",
+              "host": ["{{base_url}}"],
+              "path": ["chats", "direct"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"match_id\": \"{{match_id}}\",\n  \"content\": \"Hello! Ready for tomorrow run?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Direct Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chats/direct/{{match_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chats", "direct", "{{match_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Send Group Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chats/group",
+              "host": ["{{base_url}}"],
+              "path": ["chats", "group"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group_id\": \"{{group_id}}\",\n  \"content\": \"See you all at 6 AM!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Group Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chats/group/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chats", "group", "{{group_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media & Photos",
+      "item": [
+        {
+          "name": "Upload Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/media/photos",
+              "host": ["{{base_url}}"],
+              "path": ["media", "photos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n  \"type\": \"profile\",\n  \"is_primary\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Photo by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/media/photos/{{photo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["media", "photos", "{{photo_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User Photos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/media/users/{{user_id}}/photos",
+              "host": ["{{base_url}}"],
+              "path": ["media", "users", "{{user_id}}", "photos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Safety Logs",
+      "item": [
+        {
+          "name": "Create Safety Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/media/safety",
+              "host": ["{{base_url}}"],
+              "path": ["media", "safety"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"run_group_id\": \"{{group_id}}\",\n  \"latitude\": -6.2088,\n  \"longitude\": 106.8456,\n  \"notes\": \"Starting the run, all good!\",\n  \"emergency_contact\": \"081234567890\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Safety Log by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/media/safety/{{safety_log_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["media", "safety", "{{safety_log_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp Verification",
+      "item": [
+        {
+          "name": "Register Phone Number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/whatsapp/register",
+              "host": ["{{base_url}}"],
+              "path": ["whatsapp", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"phone_number\": \"6281234567890\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/whatsapp/verify",
+              "host": ["{{base_url}}"],
+              "path": ["whatsapp", "verify"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

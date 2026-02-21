@@ -15,6 +15,8 @@ type SafetyLogRepository interface {
 	FindByStatus(status string) ([]entity.SafetyLog, error)
 	Delete(id uuid.UUID) error
 	GetUserSafetyLogs(userId uuid.UUID) ([]entity.SafetyLog, error)
+	CountReportsByTarget(targetUserId uuid.UUID) (int64, error)
+	DB() *gorm.DB
 }
 
 type safetyLogRepository struct {
@@ -64,4 +66,14 @@ func (r *safetyLogRepository) GetUserSafetyLogs(userId uuid.UUID) ([]entity.Safe
 	var logs []entity.SafetyLog
 	err := r.db.Where("user_id = ?", userId).Order("created_at DESC").Find(&logs).Error
 	return logs, err
+}
+
+func (r *safetyLogRepository) CountReportsByTarget(targetUserId uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.Model(&entity.SafetyLog{}).Where("match_id = ? AND status = ?", targetUserId, "reported").Count(&count).Error
+	return count, err
+}
+
+func (r *safetyLogRepository) DB() *gorm.DB {
+	return r.db
 }

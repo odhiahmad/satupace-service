@@ -8,6 +8,7 @@ type UserResponse struct {
 	Email       *string   `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
 	Gender      *string   `json:"gender"`
+	HasProfile  bool      `json:"has_profile"`
 	IsVerified  bool      `json:"is_verified"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -20,6 +21,7 @@ type UserDetailResponse struct {
 	Email       *string   `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
 	Gender      *string   `json:"gender"`
+	HasProfile  bool      `json:"has_profile"`
 	IsVerified  bool      `json:"is_verified"`
 	IsActive    bool      `json:"is_active"`
 	Token       string    `json:"token,omitempty"`

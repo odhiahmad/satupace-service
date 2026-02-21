@@ -12,7 +12,7 @@ import (
 )
 
 type SafetyLogController interface {
-	Create(ctx *gin.Context)
+	ReportUser(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindByUserId(ctx *gin.Context)
 	FindByMatchId(ctx *gin.Context)
@@ -28,7 +28,7 @@ func NewSafetyLogController(s service.SafetyLogService) SafetyLogController {
 	return &safetyLogController{service: s}
 }
 
-func (c *safetyLogController) Create(ctx *gin.Context) {
+func (c *safetyLogController) ReportUser(ctx *gin.Context) {
 	userId := ctx.MustGet("user_id").(uuid.UUID)
 	var req request.CreateSafetyLogRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -37,9 +37,9 @@ func (c *safetyLogController) Create(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.service.Create(userId, req)
+	result, err := c.service.ReportUser(userId, req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat laporan keamanan", "CREATE_FAILED", "body", err.Error(), nil)
+		res := helper.BuildErrorResponse("Gagal membuat laporan keamanan", "REPORT_FAILED", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}

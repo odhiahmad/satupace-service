@@ -149,7 +149,7 @@ DB_NAME_WHATSAPP=whatsapp_sessions
 - `PUT /runs/groups/:id` - Update group (auth required)
 - `DELETE /runs/groups/:id` - Delete group (auth required)
 - `POST /runs/groups/:id/join` - Join group (auth required)
-- `GET /runs/groups/:groupId/members` - List group members
+- `GET /runs/groups/:id/members` - List group members
 
 ### Run Activities
 - `POST /runs/activities` - Create activity (auth required)

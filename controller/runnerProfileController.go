@@ -12,7 +12,7 @@ import (
 )
 
 type RunnerProfileController interface {
-	Create(ctx *gin.Context)
+	CreateOrUpdate(ctx *gin.Context)
 	Update(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindByUserId(ctx *gin.Context)
@@ -28,7 +28,7 @@ func NewRunnerProfileController(s service.RunnerProfileService) RunnerProfileCon
 	return &runnerProfileController{service: s}
 }
 
-func (c *runnerProfileController) Create(ctx *gin.Context) {
+func (c *runnerProfileController) CreateOrUpdate(ctx *gin.Context) {
 	userId := ctx.MustGet("user_id").(uuid.UUID)
 	var req request.CreateRunnerProfileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -37,15 +37,15 @@ func (c *runnerProfileController) Create(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.service.Create(userId, req)
+	result, err := c.service.CreateOrUpdate(userId, req)
 	if err != nil {
-		res := helper.BuildErrorResponse("Gagal membuat profil runner", "CREATE_FAILED", "body", err.Error(), nil)
+		res := helper.BuildErrorResponse("Gagal membuat/memperbarui profil runner", "CREATE_UPDATE_FAILED", "body", err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	response := helper.BuildResponse(true, "Profil runner berhasil dibuat", result)
-	ctx.JSON(http.StatusCreated, response)
+	response := helper.BuildResponse(true, "Profil runner berhasil disimpan", result)
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *runnerProfileController) Update(ctx *gin.Context) {
@@ -81,7 +81,7 @@ func (c *runnerProfileController) FindById(ctx *gin.Context) {
 }
 
 func (c *runnerProfileController) FindByUserId(ctx *gin.Context) {
-	userId, _ := uuid.Parse(ctx.Param("userId"))
+	userId := ctx.MustGet("user_id").(uuid.UUID)
 	profile, err := c.service.FindByUserId(userId)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

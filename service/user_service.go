@@ -21,6 +21,8 @@ type UserService interface {
 	FindAll() ([]response.UserResponse, error)
 	Delete(id uuid.UUID) error
 	ChangePassword(id uuid.UUID, req request.ChangePasswordRequest) error
+	Login(req request.LoginRequest) (response.UserResponse, error)
+	VerifyAndActivate(phoneNumber string) (response.UserResponse, error)
 }
 
 type userService struct {
@@ -207,4 +209,63 @@ func (s *userService) ChangePassword(id uuid.UUID, req request.ChangePasswordReq
 	user.UpdatedAt = time.Now()
 
 	return s.repo.Update(user)
+}
+
+func (s *userService) Login(req request.LoginRequest) (response.UserResponse, error) {
+	// Find user by email or phone number
+	user, err := s.repo.FindByEmailOrPhone(req.Identifier)
+	if err != nil {
+		return response.UserResponse{}, errors.New("email/nomor telepon atau password salah")
+	}
+
+	// Check if account is suspended
+	if user.IsSuspended {
+		return response.UserResponse{}, errors.New("akun Anda telah disuspend")
+	}
+
+	// Check password
+	if !helper.ComparePassword(user.Password, req.Password) {
+		return response.UserResponse{}, errors.New("email/nomor telepon atau password salah")
+	}
+
+	return response.UserResponse{
+		Id:          user.Id.String(),
+		Name:        user.Name,
+		Email:       user.Email,
+		PhoneNumber: user.PhoneNumber,
+		Gender:      user.Gender,
+		IsVerified:  user.IsVerified,
+		IsActive:    user.IsActive,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}, nil
+}
+
+func (s *userService) VerifyAndActivate(phoneNumber string) (response.UserResponse, error) {
+	// Find user by phone
+	user, err := s.repo.FindByPhone(phoneNumber)
+	if err != nil {
+		return response.UserResponse{}, errors.New("user tidak ditemukan")
+	}
+
+	// Update verification status
+	user.IsVerified = true
+	user.IsActive = true
+	user.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(user); err != nil {
+		return response.UserResponse{}, err
+	}
+
+	return response.UserResponse{
+		Id:          user.Id.String(),
+		Name:        user.Name,
+		Email:       user.Email,
+		PhoneNumber: user.PhoneNumber,
+		Gender:      user.Gender,
+		IsVerified:  user.IsVerified,
+		IsActive:    user.IsActive,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}, nil
 }

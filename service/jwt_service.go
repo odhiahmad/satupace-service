@@ -15,6 +15,15 @@ type JWTService interface {
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
+type jwtCustomClaims struct {
+	UserId      string  `json:"user_id"`
+	PhoneNumber string  `json:"phone_number"`
+	Email       *string `json:"email"`
+	IsVerified  bool    `json:"is_verified"`
+	IsActive    bool    `json:"is_active"`
+	jwt.RegisteredClaims
+}
+
 type jwtService struct {
 	secretKey string
 	issuer    string
@@ -40,6 +49,8 @@ func (j *jwtService) GenerateToken(userId string, phoneNumber string, email *str
 		"user_id":      userId,
 		"phone_number": phoneNumber,
 		"email":        email,
+		"is_verified":  true, // Only verified users should get tokens
+		"is_active":    true, // Only active users should get tokens
 		"exp":          expiredAt.Unix(),
 		"iss":          j.issuer,
 	}

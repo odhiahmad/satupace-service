@@ -1,9 +1,11 @@
 package service
 
 import (
+	"errors"
 	"run-sync/data/request"
 	"run-sync/data/response"
 	"run-sync/entity"
+	"run-sync/helper"
 	"run-sync/repository"
 	"time"
 
@@ -28,6 +30,15 @@ func NewUserPhotoService(repo repository.UserPhotoRepository) UserPhotoService {
 }
 
 func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error) {
+	// Upload image to Cloudinary
+	imageUrl, err := helper.UploadBase64ToCloudinary(req.Image, "run-sync/photos")
+	if err != nil {
+		return response.UserPhotoResponse{}, errors.New("gagal upload gambar ke Cloudinary: " + err.Error())
+	}
+	if imageUrl == "" {
+		return response.UserPhotoResponse{}, errors.New("gambar tidak boleh kosong")
+	}
+
 	// If this is primary, set other photos to non-primary
 	if req.IsPrimary {
 		photos, _ := s.repo.FindByUserId(userId)
@@ -40,7 +51,7 @@ func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoR
 	photo := entity.UserPhoto{
 		Id:        uuid.New(),
 		UserId:    userId,
-		Url:       req.Url,
+		Url:       imageUrl,
 		Type:      req.Type,
 		IsPrimary: req.IsPrimary,
 		CreatedAt: time.Now(),

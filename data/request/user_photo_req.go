@@ -1,8 +1,8 @@
 package request
 
 type UploadUserPhotoRequest struct {
-	Url       string `json:"url" validate:"required"`
-	Type      string `json:"type" validate:"required,oneof=profile run verification"`
+	Image     string `json:"image" binding:"required"`
+	Type      string `json:"type" binding:"required,oneof=profile run verification"`
 	IsPrimary bool   `json:"is_primary"`
 }
 

@@ -5,6 +5,7 @@ import (
 	"run-sync/data/request"
 	"run-sync/data/response"
 	"run-sync/entity"
+	"run-sync/helper"
 	"run-sync/repository"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 )
 
 type RunnerProfileService interface {
-	Create(userId uuid.UUID, req request.CreateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error)
+	// CreateOrUpdate enforces single-profile: creates if none exists, updates if it does
+	CreateOrUpdate(userId uuid.UUID, req request.CreateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error)
 	Update(id uuid.UUID, req request.UpdateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error)
 	FindById(id uuid.UUID) (response.RunnerProfileDetailResponse, error)
 	FindByUserId(userId uuid.UUID) (response.RunnerProfileDetailResponse, error)
@@ -29,12 +31,57 @@ func NewRunnerProfileService(repo repository.RunnerProfileRepository, userRepo r
 	return &runnerProfileService{repo: repo, userRepo: userRepo}
 }
 
-func (s *runnerProfileService) Create(userId uuid.UUID, req request.CreateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error) {
+// CreateOrUpdate enforces one profile per user.
+// If user already has a profile, it updates it. Otherwise creates a new one.
+func (s *runnerProfileService) CreateOrUpdate(userId uuid.UUID, req request.CreateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error) {
 	user, err := s.userRepo.FindById(userId)
 	if err != nil {
 		return response.RunnerProfileDetailResponse{}, errors.New("user tidak ditemukan")
 	}
 
+	// Validate pace range (3.0 - 12.0 min/km)
+	if req.AvgPace < 3.0 || req.AvgPace > 12.0 {
+		return response.RunnerProfileDetailResponse{}, errors.New("avg_pace harus antara 3.0 - 12.0 min/km")
+	}
+
+	// Check if profile already exists for this user
+	existing, _ := s.repo.FindByUserId(userId)
+	if existing != nil {
+		// Update existing profile
+		existing.AvgPace = req.AvgPace
+		existing.PreferredDistance = req.PreferredDistance
+		existing.PreferredTime = req.PreferredTime
+		existing.Latitude = req.Latitude
+		existing.Longitude = req.Longitude
+		existing.WomenOnlyMode = req.WomenOnlyMode
+		if req.Image != nil && *req.Image != "" {
+			// Upload to Cloudinary if base64 image provided
+			imageUrl, err := helper.UploadBase64ToCloudinary(*req.Image, "run-sync/profiles")
+			if err != nil {
+				return response.RunnerProfileDetailResponse{}, errors.New("gagal upload gambar profil: " + err.Error())
+			}
+			existing.Image = &imageUrl
+		}
+		existing.UpdatedAt = time.Now()
+
+		if err := s.repo.Update(existing); err != nil {
+			return response.RunnerProfileDetailResponse{}, err
+		}
+
+		return s.buildDetailResponse(existing, user), nil
+	}
+
+	// Upload image to Cloudinary if provided
+	var imagePtr *string
+	if req.Image != nil && *req.Image != "" {
+		imageUrl, err := helper.UploadBase64ToCloudinary(*req.Image, "run-sync/profiles")
+		if err != nil {
+			return response.RunnerProfileDetailResponse{}, errors.New("gagal upload gambar profil: " + err.Error())
+		}
+		imagePtr = &imageUrl
+	}
+
+	// Create new profile
 	profile := entity.RunnerProfile{
 		Id:                uuid.New(),
 		UserId:            userId,
@@ -44,7 +91,7 @@ func (s *runnerProfileService) Create(userId uuid.UUID, req request.CreateRunner
 		Latitude:          req.Latitude,
 		Longitude:         req.Longitude,
 		WomenOnlyMode:     req.WomenOnlyMode,
-		Image:             req.Image,
+		Image:             imagePtr,
 		IsActive:          true,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
@@ -54,33 +101,11 @@ func (s *runnerProfileService) Create(userId uuid.UUID, req request.CreateRunner
 		return response.RunnerProfileDetailResponse{}, err
 	}
 
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
+	// Mark user as having a profile
+	user.HasProfile = true
+	_ = s.userRepo.Update(user)
 
-	return response.RunnerProfileDetailResponse{
-		Id:                profile.Id.String(),
-		UserId:            profile.UserId.String(),
-		User:              userRes,
-		AvgPace:           profile.AvgPace,
-		PreferredDistance: profile.PreferredDistance,
-		PreferredTime:     profile.PreferredTime,
-		Latitude:          profile.Latitude,
-		Longitude:         profile.Longitude,
-		WomenOnlyMode:     profile.WomenOnlyMode,
-		Image:             profile.Image,
-		IsActive:          profile.IsActive,
-		CreatedAt:         profile.CreatedAt,
-		UpdatedAt:         profile.UpdatedAt,
-	}, nil
+	return s.buildDetailResponse(&profile, user), nil
 }
 
 func (s *runnerProfileService) Update(id uuid.UUID, req request.UpdateRunnerProfileRequest) (response.RunnerProfileDetailResponse, error) {
@@ -90,6 +115,9 @@ func (s *runnerProfileService) Update(id uuid.UUID, req request.UpdateRunnerProf
 	}
 
 	if req.AvgPace != nil {
+		if *req.AvgPace < 3.0 || *req.AvgPace > 12.0 {
+			return response.RunnerProfileDetailResponse{}, errors.New("avg_pace harus antara 3.0 - 12.0 min/km")
+		}
 		profile.AvgPace = *req.AvgPace
 	}
 	if req.PreferredDistance != nil {
@@ -107,8 +135,13 @@ func (s *runnerProfileService) Update(id uuid.UUID, req request.UpdateRunnerProf
 	if req.WomenOnlyMode != nil {
 		profile.WomenOnlyMode = *req.WomenOnlyMode
 	}
-	if req.Image != nil {
-		profile.Image = req.Image
+	if req.Image != nil && *req.Image != "" {
+		// Upload to Cloudinary if base64 image provided
+		imageUrl, err := helper.UploadBase64ToCloudinary(*req.Image, "run-sync/profiles")
+		if err != nil {
+			return response.RunnerProfileDetailResponse{}, errors.New("gagal upload gambar profil: " + err.Error())
+		}
+		profile.Image = &imageUrl
 	}
 	profile.UpdatedAt = time.Now()
 
@@ -117,33 +150,7 @@ func (s *runnerProfileService) Update(id uuid.UUID, req request.UpdateRunnerProf
 	}
 
 	user, _ := s.userRepo.FindById(profile.UserId)
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
-	return response.RunnerProfileDetailResponse{
-		Id:                profile.Id.String(),
-		UserId:            profile.UserId.String(),
-		User:              userRes,
-		AvgPace:           profile.AvgPace,
-		PreferredDistance: profile.PreferredDistance,
-		PreferredTime:     profile.PreferredTime,
-		Latitude:          profile.Latitude,
-		Longitude:         profile.Longitude,
-		WomenOnlyMode:     profile.WomenOnlyMode,
-		Image:             profile.Image,
-		IsActive:          profile.IsActive,
-		CreatedAt:         profile.CreatedAt,
-		UpdatedAt:         profile.UpdatedAt,
-	}, nil
+	return s.buildDetailResponse(profile, user), nil
 }
 
 func (s *runnerProfileService) FindById(id uuid.UUID) (response.RunnerProfileDetailResponse, error) {
@@ -153,33 +160,7 @@ func (s *runnerProfileService) FindById(id uuid.UUID) (response.RunnerProfileDet
 	}
 
 	user, _ := s.userRepo.FindById(profile.UserId)
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
-	return response.RunnerProfileDetailResponse{
-		Id:                profile.Id.String(),
-		UserId:            profile.UserId.String(),
-		User:              userRes,
-		AvgPace:           profile.AvgPace,
-		PreferredDistance: profile.PreferredDistance,
-		PreferredTime:     profile.PreferredTime,
-		Latitude:          profile.Latitude,
-		Longitude:         profile.Longitude,
-		WomenOnlyMode:     profile.WomenOnlyMode,
-		Image:             profile.Image,
-		IsActive:          profile.IsActive,
-		CreatedAt:         profile.CreatedAt,
-		UpdatedAt:         profile.UpdatedAt,
-	}, nil
+	return s.buildDetailResponse(profile, user), nil
 }
 
 func (s *runnerProfileService) FindByUserId(userId uuid.UUID) (response.RunnerProfileDetailResponse, error) {
@@ -189,33 +170,7 @@ func (s *runnerProfileService) FindByUserId(userId uuid.UUID) (response.RunnerPr
 	}
 
 	user, _ := s.userRepo.FindById(profile.UserId)
-	userRes := &response.UserResponse{
-		Id:          user.Id.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		PhoneNumber: user.PhoneNumber,
-		Gender:      user.Gender,
-		IsVerified:  user.IsVerified,
-		IsActive:    user.IsActive,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
-	return response.RunnerProfileDetailResponse{
-		Id:                profile.Id.String(),
-		UserId:            profile.UserId.String(),
-		User:              userRes,
-		AvgPace:           profile.AvgPace,
-		PreferredDistance: profile.PreferredDistance,
-		PreferredTime:     profile.PreferredTime,
-		Latitude:          profile.Latitude,
-		Longitude:         profile.Longitude,
-		WomenOnlyMode:     profile.WomenOnlyMode,
-		Image:             profile.Image,
-		IsActive:          profile.IsActive,
-		CreatedAt:         profile.CreatedAt,
-		UpdatedAt:         profile.UpdatedAt,
-	}, nil
+	return s.buildDetailResponse(profile, user), nil
 }
 
 func (s *runnerProfileService) FindAll() ([]response.RunnerProfileResponse, error) {
@@ -247,4 +202,39 @@ func (s *runnerProfileService) FindAll() ([]response.RunnerProfileResponse, erro
 
 func (s *runnerProfileService) Delete(id uuid.UUID) error {
 	return s.repo.Delete(id)
+}
+
+// -- Response builder --
+
+func (s *runnerProfileService) buildDetailResponse(profile *entity.RunnerProfile, user *entity.User) response.RunnerProfileDetailResponse {
+	var userRes *response.UserResponse
+	if user != nil {
+		userRes = &response.UserResponse{
+			Id:          user.Id.String(),
+			Name:        user.Name,
+			Email:       user.Email,
+			PhoneNumber: user.PhoneNumber,
+			Gender:      user.Gender,
+			IsVerified:  user.IsVerified,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		}
+	}
+
+	return response.RunnerProfileDetailResponse{
+		Id:                profile.Id.String(),
+		UserId:            profile.UserId.String(),
+		User:              userRes,
+		AvgPace:           profile.AvgPace,
+		PreferredDistance: profile.PreferredDistance,
+		PreferredTime:     profile.PreferredTime,
+		Latitude:          profile.Latitude,
+		Longitude:         profile.Longitude,
+		WomenOnlyMode:     profile.WomenOnlyMode,
+		Image:             profile.Image,
+		IsActive:          profile.IsActive,
+		CreatedAt:         profile.CreatedAt,
+		UpdatedAt:         profile.UpdatedAt,
+	}
 }

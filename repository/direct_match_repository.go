@@ -15,6 +15,7 @@ type DirectMatchRepository interface {
 	FindUserMatches(userId uuid.UUID) ([]entity.DirectMatch, error)
 	FindMatchesByStatus(userId uuid.UUID, status string) ([]entity.DirectMatch, error)
 	Delete(id uuid.UUID) error
+	DB() *gorm.DB
 }
 
 type directMatchRepository struct {
@@ -71,4 +72,8 @@ func (r *directMatchRepository) FindMatchesByStatus(userId uuid.UUID, status str
 
 func (r *directMatchRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&entity.DirectMatch{}, "id = ?", id).Error
+}
+
+func (r *directMatchRepository) DB() *gorm.DB {
+	return r.db
 }

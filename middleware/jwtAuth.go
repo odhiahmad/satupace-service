@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
@@ -45,33 +46,51 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 
 		claims := token.Claims.(jwt.MapClaims)
 
-		if userID, ok := claims["user_id"].(string); ok {
-			c.Set("user_id", userID)
-		} else {
+		userIDStr, ok := claims["user_id"].(string)
+		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(
 				"Unauthorized", "INVALID_TOKEN", "user_id", "user_id is not string (UUID)", nil,
 			))
 			return
 		}
 
-		if businessID, ok := claims["business_id"].(string); ok {
-			c.Set("business_id", businessID)
-		} else {
+		userUUID, err := uuid.Parse(userIDStr)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, helper.BuildErrorResponse(
-				"Unauthorized", "INVALID_TOKEN", "business_id", "business_id is not string (UUID)", nil,
+				"Unauthorized", "INVALID_TOKEN", "user_id", "user_id is not a valid UUID", nil,
 			))
 			return
 		}
 
-		if claims["role_id"] != nil {
-			if roleID, ok := claims["role_id"].(float64); ok {
-				c.Set("role_id", int(roleID))
-			}
+		// Store both string and UUID versions
+		c.Set("user_id", userUUID)
+		c.Set("user_id_str", userIDStr)
+
+		// Check if user is verified
+		if isVerified, ok := claims["is_verified"].(bool); !ok || !isVerified {
+			c.AbortWithStatusJSON(http.StatusForbidden, helper.BuildErrorResponse(
+				"Forbidden", "NOT_VERIFIED", "user", "Akun belum diverifikasi", nil,
+			))
+			return
+		}
+
+		// Check if user is active
+		if isActive, ok := claims["is_active"].(bool); !ok || !isActive {
+			c.AbortWithStatusJSON(http.StatusForbidden, helper.BuildErrorResponse(
+				"Forbidden", "ACCOUNT_INACTIVE", "user", "Akun tidak aktif", nil,
+			))
+			return
 		}
 
 		if claims["email"] != nil {
 			if email, ok := claims["email"].(string); ok {
 				c.Set("email", email)
+			}
+		}
+
+		if claims["phone_number"] != nil {
+			if phoneNumber, ok := claims["phone_number"].(string); ok {
+				c.Set("phone_number", phoneNumber)
 			}
 		}
 
