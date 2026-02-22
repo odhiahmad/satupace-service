@@ -67,12 +67,14 @@ type ChatWSController interface {
 }
 
 type chatWSController struct {
-	hub            *ws.Hub
-	directChatRepo repository.DirectChatMessageRepository
-	groupChatRepo  repository.GroupChatMessageRepository
-	userRepo       repository.UserRepository
-	memberRepo     repository.RunGroupMemberRepository
-	jwtService     service.JWTService
+	hub             *ws.Hub
+	directChatRepo  repository.DirectChatMessageRepository
+	groupChatRepo   repository.GroupChatMessageRepository
+	userRepo        repository.UserRepository
+	memberRepo      repository.RunGroupMemberRepository
+	directMatchRepo repository.DirectMatchRepository
+	jwtService      service.JWTService
+	notifSvc        service.NotificationService
 }
 
 func NewChatWSController(
@@ -81,15 +83,19 @@ func NewChatWSController(
 	groupChatRepo repository.GroupChatMessageRepository,
 	userRepo repository.UserRepository,
 	memberRepo repository.RunGroupMemberRepository,
+	directMatchRepo repository.DirectMatchRepository,
 	jwtService service.JWTService,
+	notifSvc service.NotificationService,
 ) ChatWSController {
 	return &chatWSController{
-		hub:            hub,
-		directChatRepo: directChatRepo,
-		groupChatRepo:  groupChatRepo,
-		userRepo:       userRepo,
-		memberRepo:     memberRepo,
-		jwtService:     jwtService,
+		hub:             hub,
+		directChatRepo:  directChatRepo,
+		groupChatRepo:   groupChatRepo,
+		userRepo:        userRepo,
+		memberRepo:      memberRepo,
+		directMatchRepo: directMatchRepo,
+		jwtService:      jwtService,
+		notifSvc:        notifSvc,
 	}
 }
 
@@ -385,11 +391,37 @@ func (c *chatWSController) handleDirectMessage(client *ws.Client, raw []byte, ma
 			CreatedAt: time.Now(),
 		}
 
-		// Save to database asynchronously
+		// Save to database and send push notification asynchronously
 		go func() {
 			if err := c.directChatRepo.Create(&msg); err != nil {
 				log.Printf("WS: Failed to save direct message: %v", err)
 			}
+
+			// Kirim FCM push ke penerima (user lain dalam match)
+			match, err := c.directMatchRepo.FindById(matchUUID)
+			if err != nil {
+				log.Printf("WS: Failed to find match %s: %v", matchID, err)
+				return
+			}
+			recipientId := match.User1Id
+			if match.User1Id == senderUUID {
+				recipientId = match.User2Id
+			}
+			senderName := client.UserName
+			if senderName == "" {
+				senderName = "Seseorang"
+			}
+			refId := matchID
+			refType := "direct_chat"
+			_ = c.notifSvc.Send(
+				recipientId,
+				"direct_message",
+				senderName,
+				incoming.Message,
+				&senderUUID,
+				&refId,
+				&refType,
+			)
 		}()
 
 		sender := c.getUserResponse(senderUUID)
@@ -451,10 +483,37 @@ func (c *chatWSController) handleGroupMessage(client *ws.Client, raw []byte, gro
 			CreatedAt: time.Now(),
 		}
 
-		// Save to database asynchronously
+		// Save to database and send push notifications asynchronously
 		go func() {
 			if err := c.groupChatRepo.Create(&msg); err != nil {
 				log.Printf("WS: Failed to save group message: %v", err)
+			}
+
+			// Kirim FCM push ke semua member yang joined kecuali sender
+			members, err := c.memberRepo.GetMembers(groupUUID, "joined")
+			if err != nil {
+				log.Printf("WS: Failed to get group members for %s: %v", groupID, err)
+				return
+			}
+			senderName := client.UserName
+			if senderName == "" {
+				senderName = "Seseorang"
+			}
+			refId := groupID
+			refType := "group_chat"
+			for _, m := range members {
+				if m.UserId == senderUUID {
+					continue
+				}
+				_ = c.notifSvc.Send(
+					m.UserId,
+					"group_message",
+					senderName,
+					incoming.Message,
+					&senderUUID,
+					&refId,
+					&refType,
+				)
 			}
 		}()
 

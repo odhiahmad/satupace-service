@@ -73,7 +73,7 @@ var (
 
 	// WebSocket chat hub & controller (Redis Pub/Sub for cross-instance messaging)
 	chatHub          *ws.Hub                     = ws.NewHub(redisClient)
-	chatWSController controller.ChatWSController = controller.NewChatWSController(chatHub, directChatRepo, groupChatRepo, userRepository, runGroupMemberRepo, jwtService)
+	chatWSController controller.ChatWSController = controller.NewChatWSController(chatHub, directChatRepo, groupChatRepo, userRepository, runGroupMemberRepo, directMatchRepo, jwtService, notifSvc)
 
 	// WhatsApp controller
 	whatsappController controller.WhatsAppController = controller.NewWhatsAppController(emailHelper, redisClient)
