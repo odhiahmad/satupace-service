@@ -38,6 +38,8 @@ var (
 	safetyLogRepo      repository.SafetyLogRepository         = repository.NewSafetyLogRepository(db)
 	stravaRepo         repository.StravaRepository            = repository.NewStravaRepository(db)
 	biometricRepo      repository.BiometricRepository         = repository.NewBiometricRepository(db)
+	notifRepo          repository.NotificationRepository      = repository.NewNotificationRepository(db)
+	deviceTokenRepo    repository.UserDeviceTokenRepository   = repository.NewUserDeviceTokenRepository(db)
 
 	// Matching Engine
 	matchingEngine service.MatchingEngine = service.NewMatchingEngine(runnerProfileRepo, directMatchRepo, runGroupRepo, safetyLogRepo)
@@ -53,6 +55,7 @@ var (
 	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo, runGroupMemberRepo)
 	stravaSvc            service.StravaService         = service.NewStravaService(stravaRepo, runActivityRepo)
 	biometricSvc         service.BiometricService      = service.NewBiometricService(biometricRepo, userRepository, jwtService, redisHelper)
+	notifSvc             service.NotificationService   = service.NewNotificationService(notifRepo, deviceTokenRepo)
 
 	// Controllers
 	authController           controller.AuthController           = controller.NewAuthController(userService, jwtService, redisHelper, emailHelper)
@@ -74,6 +77,9 @@ var (
 
 	// WhatsApp controller
 	whatsappController controller.WhatsAppController = controller.NewWhatsAppController(emailHelper, redisClient)
+
+	// Notification controller
+	notifController controller.NotificationController = controller.NewNotificationController(notifSvc)
 )
 
 func SetupRouter() *gin.Engine {
@@ -222,6 +228,16 @@ func SetupRouter() *gin.Engine {
 	{
 		wa.POST("/register", whatsappController.Register)
 		wa.POST("/verify", whatsappController.Verify)
+	}
+
+	// Notifications (JWT required)
+	notif := r.Group("notifications", jwt)
+	{
+		notif.GET("", notifController.GetMyNotifications)             // GET  /notifications?page=1&limit=20
+		notif.PATCH("/read", notifController.MarkAsRead)              // PATCH /notifications/read
+		notif.PATCH("/read-all", notifController.MarkAllAsRead)       // PATCH /notifications/read-all
+		notif.POST("/device-token", notifController.RegisterDeviceToken)  // POST  /notifications/device-token
+		notif.DELETE("/device-token", notifController.RemoveDeviceToken)  // DELETE /notifications/device-token
 	}
 
 	return r

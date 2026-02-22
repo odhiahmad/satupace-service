@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"time"
 
+	"run-sync/config"
 	"run-sync/helper"
 	"run-sync/routes"
 
@@ -19,6 +20,7 @@ func main() {
 	_ = godotenv.Load(".env")
 
 	helper.InitWhatsApp()
+	config.SetupFirebase()
 
 	mode := os.Getenv("GIN_MODE")
 	if mode == "" {

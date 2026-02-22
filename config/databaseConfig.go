@@ -57,6 +57,8 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.StravaConnection{},
 			&entity.StravaActivity{},
 			&entity.UserBiometric{},
+			&entity.Notification{},
+			&entity.UserDeviceToken{},
 		); err != nil {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}
