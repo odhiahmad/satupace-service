@@ -1,6 +1,8 @@
 package request
 
 type CreateRunnerProfileRequest struct {
+	Name              *string `json:"name"`
+	Gender            *string `json:"gender"`
 	AvgPace           float64 `json:"avg_pace" binding:"required"`
 	PreferredDistance int     `json:"preferred_distance" binding:"required"`
 	PreferredTime     string  `json:"preferred_time" binding:"required"`
@@ -11,6 +13,8 @@ type CreateRunnerProfileRequest struct {
 }
 
 type UpdateRunnerProfileRequest struct {
+	Name              *string  `json:"name"`
+	Gender            *string  `json:"gender"`
 	AvgPace           *float64 `json:"avg_pace"`
 	PreferredDistance *int     `json:"preferred_distance"`
 	PreferredTime     *string  `json:"preferred_time"`

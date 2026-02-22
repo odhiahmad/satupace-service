@@ -129,7 +129,7 @@ func (r *runGroupRepository) FindByMembership(userId uuid.UUID) ([]entity.RunGro
 	var results []result
 	err := r.db.Table("run_groups").
 		Select("run_groups.*, run_group_members.role as member_role").
-		Joins("INNER JOIN run_group_members ON run_group_members.group_id = run_groups.id").
+		Joins("INNER JOIN run_group_members ON run_group_members.group_id::uuid = run_groups.id").
 		Where("run_group_members.user_id = ? AND run_group_members.status = ?", userId, "joined").
 		Order("run_groups.created_at DESC").
 		Find(&results).Error

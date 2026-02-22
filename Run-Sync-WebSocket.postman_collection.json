@@ -1,0 +1,170 @@
+{
+	"info": {
+		"_postman_id": "ws-run-sync-001",
+		"name": "Run-Sync WebSocket API",
+		"description": "Collection khusus untuk testing WebSocket chat endpoints di Run-Sync.\n\n## Cara Pakai\n1. Buka Postman → klik **New** → pilih **WebSocket**\n2. Pilih protocol **Raw** (bukan Socket.IO)\n3. Copy URL dari request di bawah, ganti variabel `{{ws_url}}`, `{{group_id}}`, `{{match_id}}`, dan `{{token}}` dengan nilai sebenarnya\n4. Klik **Connect**\n5. Kirim pesan sesuai format di deskripsi\n\n## Variabel\n- `ws_url` = `ws://localhost:8080` (default)\n- `token` = JWT access token dari login\n- `group_id` = UUID grup yang sudah di-join\n- `match_id` = UUID match yang sudah accepted\n\n## Format Pesan (Client → Server)\n```json\n{\"type\": \"message\", \"message\": \"Halo!\"}\n{\"type\": \"typing\"}\n{\"type\": \"read\"}\n```\n\n## Format Pesan (Server → Client)\n```json\n{\n  \"type\": \"message\",\n  \"id\": \"uuid\",\n  \"room_id\": \"group_id atau match_id\",\n  \"sender_id\": \"uuid\",\n  \"sender\": { \"id\": \"\", \"name\": \"\", ... },\n  \"message\": \"Halo!\",\n  \"created_at\": \"2026-02-21T22:00:00Z\"\n}\n```",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "ws_url",
+			"value": "ws://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "YOUR_JWT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "YOUR_GROUP_ID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "match_id",
+			"value": "YOUR_MATCH_ID_HERE",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Group Chat",
+			"item": [
+				{
+					"name": "Connect Group Chat WebSocket",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ws_url}}/ws/group/{{group_id}}?token={{token}}",
+							"host": ["{{ws_url}}"],
+							"path": ["ws", "group", "{{group_id}}"],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"description": "JWT access token untuk autentikasi"
+								}
+							]
+						},
+						"description": "## WebSocket Group Chat\n\n**Protocol:** Raw WebSocket (bukan Socket.IO)\n\n**URL:** `ws://localhost:8080/ws/group/:groupId?token=JWT`\n\n**Syarat:** User harus sudah bergabung (join) ke grup tersebut.\n\n---\n\n### Cara Testing di Postman:\n1. Klik **New** → **WebSocket**\n2. Pilih **Raw**\n3. Paste URL: `ws://localhost:8080/ws/group/GROUP_ID?token=JWT_TOKEN`\n4. Klik **Connect**\n\n---\n\n### Kirim Pesan (Client → Server)\n\n**Kirim chat:**\n```json\n{\"type\": \"message\", \"message\": \"Halo grup!\"}\n```\n\n**Typing indicator:**\n```json\n{\"type\": \"typing\"}\n```\n\n---\n\n### Terima Pesan (Server → Client)\n\n**Pesan baru:**\n```json\n{\n  \"type\": \"message\",\n  \"id\": \"msg-uuid\",\n  \"room_id\": \"group-uuid\",\n  \"sender_id\": \"user-uuid\",\n  \"sender\": {\n    \"id\": \"user-uuid\",\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\"\n  },\n  \"message\": \"Halo grup!\",\n  \"created_at\": \"2026-02-21T22:00:00Z\"\n}\n```\n\n**Typing indicator:**\n```json\n{\n  \"type\": \"typing\",\n  \"sender_id\": \"user-uuid\",\n  \"room_id\": \"group-uuid\"\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized** — Token tidak valid\n- **403 Forbidden** — User bukan anggota grup"
+					}
+				},
+				{
+					"name": "Get Group Chat History (REST)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{ws_url}}/chats/group/{{group_id}}",
+							"host": ["{{ws_url}}"],
+							"path": ["chats", "group", "{{group_id}}"]
+						},
+						"description": "Ambil history chat grup via REST API.\n\nUser harus member grup. Response berupa array pesan terurut dari lama ke baru.\n\n**Response:**\n```json\n{\n  \"status\": true,\n  \"message\": \"Berhasil mengambil pesan grup\",\n  \"data\": [\n    {\n      \"id\": \"msg-uuid\",\n      \"group_id\": \"group-uuid\",\n      \"sender_id\": \"user-uuid\",\n      \"sender\": { \"id\": \"\", \"name\": \"\", ... },\n      \"message\": \"Halo!\",\n      \"created_at\": \"2026-02-21T22:00:00Z\"\n    }\n  ]\n}\n```"
+					}
+				},
+				{
+					"name": "Delete Group Message (REST)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{ws_url}}/chats/messages/{{message_id}}?type=group",
+							"host": ["{{ws_url}}"],
+							"path": ["chats", "messages", "{{message_id}}"],
+							"query": [
+								{
+									"key": "type",
+									"value": "group",
+									"description": "Tipe pesan: 'group' atau 'direct'"
+								}
+							]
+						},
+						"description": "Hapus pesan chat grup berdasarkan message ID.\n\nQuery param `type=group` wajib untuk menghapus pesan grup."
+					}
+				}
+			],
+			"description": "Endpoints untuk group chat. WebSocket untuk real-time, REST untuk history & delete."
+		},
+		{
+			"name": "Direct Chat",
+			"item": [
+				{
+					"name": "Connect Direct Chat WebSocket",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ws_url}}/ws/direct/{{match_id}}?token={{token}}",
+							"host": ["{{ws_url}}"],
+							"path": ["ws", "direct", "{{match_id}}"],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"description": "JWT access token untuk autentikasi"
+								}
+							]
+						},
+						"description": "## WebSocket Direct Chat\n\n**Protocol:** Raw WebSocket (bukan Socket.IO)\n\n**URL:** `ws://localhost:8080/ws/direct/:matchId?token=JWT`\n\n**Syarat:** Match harus sudah accepted oleh kedua pihak.\n\n---\n\n### Cara Testing di Postman:\n1. Klik **New** → **WebSocket**\n2. Pilih **Raw**\n3. Paste URL: `ws://localhost:8080/ws/direct/MATCH_ID?token=JWT_TOKEN`\n4. Klik **Connect**\n\n---\n\n### Kirim Pesan (Client → Server)\n\n**Kirim chat:**\n```json\n{\"type\": \"message\", \"message\": \"Hai, mau lari bareng?\"}\n```\n\n**Typing indicator:**\n```json\n{\"type\": \"typing\"}\n```\n\n**Read receipt:**\n```json\n{\"type\": \"read\"}\n```\n\n---\n\n### Terima Pesan (Server → Client)\n\n**Pesan baru:**\n```json\n{\n  \"type\": \"message\",\n  \"id\": \"msg-uuid\",\n  \"room_id\": \"match-uuid\",\n  \"sender_id\": \"user-uuid\",\n  \"sender\": {\n    \"id\": \"user-uuid\",\n    \"name\": \"Jane Doe\",\n    \"email\": \"jane@example.com\"\n  },\n  \"message\": \"Hai, mau lari bareng?\",\n  \"created_at\": \"2026-02-21T22:00:00Z\"\n}\n```\n\n**Typing indicator:**\n```json\n{\n  \"type\": \"typing\",\n  \"sender_id\": \"user-uuid\",\n  \"room_id\": \"match-uuid\"\n}\n```\n\n**Read receipt:**\n```json\n{\n  \"type\": \"read\",\n  \"sender_id\": \"user-uuid\",\n  \"room_id\": \"match-uuid\"\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized** — Token tidak valid\n- **403 Forbidden** — User bukan bagian dari match ini"
+					}
+				},
+				{
+					"name": "Get Direct Chat History (REST)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{ws_url}}/chats/direct/{{match_id}}",
+							"host": ["{{ws_url}}"],
+							"path": ["chats", "direct", "{{match_id}}"]
+						},
+						"description": "Ambil history chat direct via REST API.\n\nResponse berupa array pesan terurut dari lama ke baru.\n\n**Response:**\n```json\n{\n  \"status\": true,\n  \"message\": \"Berhasil mengambil pesan\",\n  \"data\": [\n    {\n      \"id\": \"msg-uuid\",\n      \"match_id\": \"match-uuid\",\n      \"sender_id\": \"user-uuid\",\n      \"sender\": { \"id\": \"\", \"name\": \"\", ... },\n      \"message\": \"Hai!\",\n      \"created_at\": \"2026-02-21T22:00:00Z\"\n    }\n  ]\n}\n```"
+					}
+				},
+				{
+					"name": "Delete Direct Message (REST)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{ws_url}}/chats/messages/{{message_id}}?type=direct",
+							"host": ["{{ws_url}}"],
+							"path": ["chats", "messages", "{{message_id}}"],
+							"query": [
+								{
+									"key": "type",
+									"value": "direct",
+									"description": "Tipe pesan: 'direct' atau 'group'"
+								}
+							]
+						},
+						"description": "Hapus pesan chat direct berdasarkan message ID.\n\nQuery param `type=direct` wajib untuk menghapus pesan direct."
+					}
+				}
+			],
+			"description": "Endpoints untuk direct/private chat antara 2 user yang sudah match. WebSocket untuk real-time, REST untuk history & delete."
+		}
+	]
+}

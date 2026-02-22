@@ -20,6 +20,7 @@ type ExploreGroupResponse struct {
 	MinPace           float64   `json:"min_pace"`
 	MaxPace           float64   `json:"max_pace"`
 	PreferredDistance int       `json:"preferred_distance"`
+	MeetingPoint      string    `json:"meeting_point"`
 	ScheduledAt       time.Time `json:"scheduled_at"`
 	MaxMember         int       `json:"max_member"`
 	CurrentMembers    int       `json:"current_members"`

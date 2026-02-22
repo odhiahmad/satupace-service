@@ -3,6 +3,7 @@ package mapper
 import (
 	"run-sync/data/response"
 	"run-sync/entity"
+	"run-sync/helper"
 )
 
 func MapDirectChatMessage(m *entity.DirectChatMessage) *response.DirectChatMessageResponse {
@@ -24,12 +25,18 @@ func MapDirectChatMessageDetail(m *entity.DirectChatMessage, sender *entity.User
 		return nil
 	}
 
+	senderName := ""
+	if sender != nil {
+		senderName = helper.DerefOrEmpty(sender.Name)
+	}
+
 	return &response.DirectChatMessageDetailResponse{
-		Id:        m.Id.String(),
-		MatchId:   m.MatchId.String(),
-		SenderId:  m.SenderId.String(),
-		Sender:    MapUser(sender),
-		Message:   m.Message,
-		CreatedAt: m.CreatedAt,
+		Id:         m.Id.String(),
+		MatchId:    m.MatchId.String(),
+		SenderId:   m.SenderId.String(),
+		SenderName: senderName,
+		Sender:     MapUser(sender),
+		Message:    m.Message,
+		CreatedAt:  m.CreatedAt,
 	}
 }

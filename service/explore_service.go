@@ -11,24 +11,27 @@ import (
 
 type ExploreService interface {
 	FindNearbyRunners(userId uuid.UUID, req request.ExploreRunnersRequest) ([]response.ExploreRunnerResponse, error)
-	FindNearbyGroups(req request.ExploreGroupsRequest) ([]response.ExploreGroupResponse, error)
+	FindNearbyGroups(userId uuid.UUID, req request.ExploreGroupsRequest) ([]response.ExploreGroupResponse, error)
 }
 
 type exploreService struct {
 	profileRepo     repository.RunnerProfileRepository
 	groupRepo       repository.RunGroupRepository
 	directMatchRepo repository.DirectMatchRepository
+	memberRepo      repository.RunGroupMemberRepository
 }
 
 func NewExploreService(
 	profileRepo repository.RunnerProfileRepository,
 	groupRepo repository.RunGroupRepository,
 	directMatchRepo repository.DirectMatchRepository,
+	memberRepo repository.RunGroupMemberRepository,
 ) ExploreService {
 	return &exploreService{
 		profileRepo:     profileRepo,
 		groupRepo:       groupRepo,
 		directMatchRepo: directMatchRepo,
+		memberRepo:      memberRepo,
 	}
 }
 
@@ -128,7 +131,7 @@ func (s *exploreService) FindNearbyRunners(userId uuid.UUID, req request.Explore
 	return results, nil
 }
 
-func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]response.ExploreGroupResponse, error) {
+func (s *exploreService) FindNearbyGroups(userId uuid.UUID, req request.ExploreGroupsRequest) ([]response.ExploreGroupResponse, error) {
 	if req.RadiusKm <= 0 {
 		req.RadiusKm = 10
 	}
@@ -139,6 +142,15 @@ func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]r
 		req.Status = "open"
 	}
 
+	// Get groups the user has already joined or created
+	memberships, _ := s.memberRepo.FindByUserId(userId)
+	joinedGroupIds := make(map[uuid.UUID]bool)
+	for _, m := range memberships {
+		if m.Status == "joined" {
+			joinedGroupIds[m.GroupId] = true
+		}
+	}
+
 	groups, err := s.groupRepo.FindByStatus(req.Status)
 	if err != nil {
 		return nil, err
@@ -146,6 +158,11 @@ func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]r
 
 	var results []response.ExploreGroupResponse
 	for _, g := range groups {
+		// Skip groups the user has already joined
+		if joinedGroupIds[g.Id] {
+			continue
+		}
+
 		dist := haversine(req.Latitude, req.Longitude, g.Latitude, g.Longitude)
 		if dist > req.RadiusKm {
 			continue
@@ -170,6 +187,7 @@ func (s *exploreService) FindNearbyGroups(req request.ExploreGroupsRequest) ([]r
 			MinPace:           g.MinPace,
 			MaxPace:           g.MaxPace,
 			PreferredDistance: g.PreferredDistance,
+			MeetingPoint:      g.MeetingPoint,
 			ScheduledAt:       g.ScheduledAt,
 			MaxMember:         g.MaxMember,
 			CurrentMembers:    int(memberCount),

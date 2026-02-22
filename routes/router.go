@@ -50,7 +50,7 @@ var (
 	runActivitySvc       service.RunActivityService    = service.NewRunActivityService(runActivityRepo, userRepository, runnerProfileRepo)
 	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db)
 	safetyLogSvc         service.SafetyLogService      = service.NewSafetyLogService(safetyLogRepo, userRepository, db)
-	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo)
+	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo, runGroupMemberRepo)
 	stravaSvc            service.StravaService         = service.NewStravaService(stravaRepo, runActivityRepo)
 	biometricSvc         service.BiometricService      = service.NewBiometricService(biometricRepo, userRepository, jwtService, redisHelper)
 
@@ -68,8 +68,8 @@ var (
 	exploreController        controller.ExploreController        = controller.NewExploreController(exploreSvc)
 	biometricController      controller.BiometricController      = controller.NewBiometricController(biometricSvc)
 
-	// WebSocket chat hub & controller
-	chatHub          *ws.Hub                     = ws.NewHub()
+	// WebSocket chat hub & controller (Redis Pub/Sub for cross-instance messaging)
+	chatHub          *ws.Hub                     = ws.NewHub(redisClient)
 	chatWSController controller.ChatWSController = controller.NewChatWSController(chatHub, directChatRepo, groupChatRepo, userRepository, runGroupMemberRepo, jwtService)
 
 	// WhatsApp controller

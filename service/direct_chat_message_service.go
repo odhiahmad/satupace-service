@@ -4,6 +4,7 @@ import (
 	"run-sync/data/request"
 	"run-sync/data/response"
 	"run-sync/entity"
+	"run-sync/helper"
 	"run-sync/repository"
 	"time"
 
@@ -43,7 +44,9 @@ func (s *directChatMessageService) Create(userId uuid.UUID, req request.SendDire
 
 	user, _ := s.userRepo.FindById(userId)
 	var userRes *response.UserResponse
+	senderName := ""
 	if user != nil {
+		senderName = helper.DerefOrEmpty(user.Name)
 		userRes = &response.UserResponse{
 			Id:          user.Id.String(),
 			Name:        user.Name,
@@ -59,12 +62,13 @@ func (s *directChatMessageService) Create(userId uuid.UUID, req request.SendDire
 	}
 
 	return response.DirectChatMessageDetailResponse{
-		Id:        message.Id.String(),
-		MatchId:   message.MatchId.String(),
-		SenderId:  message.SenderId.String(),
-		Sender:    userRes,
-		Message:   message.Message,
-		CreatedAt: message.CreatedAt,
+		Id:         message.Id.String(),
+		MatchId:    message.MatchId.String(),
+		SenderId:   message.SenderId.String(),
+		SenderName: senderName,
+		Sender:     userRes,
+		Message:    message.Message,
+		CreatedAt:  message.CreatedAt,
 	}, nil
 }
 
@@ -78,7 +82,9 @@ func (s *directChatMessageService) FindByMatchId(matchId uuid.UUID) ([]response.
 	for _, msg := range messages {
 		user, _ := s.userRepo.FindById(msg.SenderId)
 		var userRes *response.UserResponse
+		senderName := ""
 		if user != nil {
+			senderName = helper.DerefOrEmpty(user.Name)
 			userRes = &response.UserResponse{
 				Id:          user.Id.String(),
 				Name:        user.Name,
@@ -94,12 +100,13 @@ func (s *directChatMessageService) FindByMatchId(matchId uuid.UUID) ([]response.
 		}
 
 		responses = append(responses, response.DirectChatMessageDetailResponse{
-			Id:        msg.Id.String(),
-			MatchId:   msg.MatchId.String(),
-			SenderId:  msg.SenderId.String(),
-			Sender:    userRes,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Id:         msg.Id.String(),
+			MatchId:    msg.MatchId.String(),
+			SenderId:   msg.SenderId.String(),
+			SenderName: senderName,
+			Sender:     userRes,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		})
 	}
 
@@ -114,7 +121,9 @@ func (s *directChatMessageService) FindBySenderId(userId uuid.UUID) ([]response.
 
 	user, _ := s.userRepo.FindById(userId)
 	var userRes *response.UserResponse
+	senderName := ""
 	if user != nil {
+		senderName = helper.DerefOrEmpty(user.Name)
 		userRes = &response.UserResponse{
 			Id:          user.Id.String(),
 			Name:        user.Name,
@@ -132,12 +141,13 @@ func (s *directChatMessageService) FindBySenderId(userId uuid.UUID) ([]response.
 	var responses []response.DirectChatMessageDetailResponse
 	for _, msg := range messages {
 		responses = append(responses, response.DirectChatMessageDetailResponse{
-			Id:        msg.Id.String(),
-			MatchId:   msg.MatchId.String(),
-			SenderId:  msg.SenderId.String(),
-			Sender:    userRes,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Id:         msg.Id.String(),
+			MatchId:    msg.MatchId.String(),
+			SenderId:   msg.SenderId.String(),
+			SenderName: senderName,
+			Sender:     userRes,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		})
 	}
 

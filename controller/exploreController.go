@@ -45,6 +45,7 @@ func (c *exploreController) FindNearbyRunners(ctx *gin.Context) {
 }
 
 func (c *exploreController) FindNearbyGroups(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
 	var req request.ExploreGroupsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		res := helper.BuildErrorResponse("Parameter tidak valid", "INVALID_PARAMS", "query", err.Error(), nil)
@@ -52,7 +53,7 @@ func (c *exploreController) FindNearbyGroups(ctx *gin.Context) {
 		return
 	}
 
-	results, err := c.service.FindNearbyGroups(req)
+	results, err := c.service.FindNearbyGroups(userId, req)
 	if err != nil {
 		res := helper.BuildErrorResponse("Gagal mencari grup", "EXPLORE_FAILED", "query", err.Error(), nil)
 		ctx.JSON(http.StatusInternalServerError, res)

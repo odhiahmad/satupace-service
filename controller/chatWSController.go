@@ -41,13 +41,14 @@ type WSIncomingMessage struct {
 
 // WSOutgoingMessage is what the server broadcasts.
 type WSOutgoingMessage struct {
-	Type      string                 `json:"type"`      // "message", "typing", "system"
-	Id        string                 `json:"id"`        // message ID
-	RoomID    string                 `json:"room_id"`   // match_id or group_id
-	SenderId  string                 `json:"sender_id"` // who sent it
-	Sender    *response.UserResponse `json:"sender,omitempty"`
-	Message   string                 `json:"message"`
-	CreatedAt time.Time              `json:"created_at"`
+	Type       string                 `json:"type"`        // "message", "typing", "system"
+	Id         string                 `json:"id"`          // message ID
+	RoomID     string                 `json:"room_id"`     // match_id or group_id
+	SenderId   string                 `json:"sender_id"`   // who sent it
+	SenderName string                 `json:"sender_name"` // display name
+	Sender     *response.UserResponse `json:"sender,omitempty"`
+	Message    string                 `json:"message"`
+	CreatedAt  time.Time              `json:"created_at"`
 }
 
 // ────────────────────────────────────────────────
@@ -121,12 +122,16 @@ func (c *chatWSController) HandleDirectChat(ctx *gin.Context) {
 		return
 	}
 
+	// Look up sender name for system messages
+	senderName := c.getUserName(userID)
+
 	client := &ws.Client{
-		Hub:    c.hub,
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
-		UserID: userID,
-		RoomID: roomID,
+		Hub:      c.hub,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		UserID:   userID,
+		UserName: senderName,
+		RoomID:   roomID,
 	}
 
 	c.hub.Register(client)
@@ -180,12 +185,16 @@ func (c *chatWSController) HandleGroupChat(ctx *gin.Context) {
 		return
 	}
 
+	// Look up sender name for system messages
+	groupSenderName := c.getUserName(userID)
+
 	client := &ws.Client{
-		Hub:    c.hub,
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
-		UserID: userID,
-		RoomID: roomID,
+		Hub:      c.hub,
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		UserID:   userID,
+		UserName: groupSenderName,
+		RoomID:   roomID,
 	}
 
 	c.hub.Register(client)
@@ -221,13 +230,18 @@ func (c *chatWSController) GetDirectHistory(ctx *gin.Context) {
 	var result []response.DirectChatMessageDetailResponse
 	for _, msg := range messages {
 		sender := c.getUserResponse(msg.SenderId)
+		senderName := ""
+		if sender != nil && sender.Name != nil {
+			senderName = *sender.Name
+		}
 		result = append(result, response.DirectChatMessageDetailResponse{
-			Id:        msg.Id.String(),
-			MatchId:   msg.MatchId.String(),
-			SenderId:  msg.SenderId.String(),
-			Sender:    sender,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Id:         msg.Id.String(),
+			MatchId:    msg.MatchId.String(),
+			SenderId:   msg.SenderId.String(),
+			SenderName: senderName,
+			Sender:     sender,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		})
 	}
 
@@ -264,13 +278,18 @@ func (c *chatWSController) GetGroupHistory(ctx *gin.Context) {
 	var result []response.GroupChatMessageDetailResponse
 	for _, msg := range messages {
 		sender := c.getUserResponse(msg.SenderId)
+		senderName := ""
+		if sender != nil && sender.Name != nil {
+			senderName = *sender.Name
+		}
 		result = append(result, response.GroupChatMessageDetailResponse{
-			Id:        msg.Id.String(),
-			GroupId:   msg.GroupId.String(),
-			SenderId:  msg.SenderId.String(),
-			Sender:    sender,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Id:         msg.Id.String(),
+			GroupId:    msg.GroupId.String(),
+			SenderId:   msg.SenderId.String(),
+			SenderName: senderName,
+			Sender:     sender,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		})
 	}
 
@@ -375,13 +394,14 @@ func (c *chatWSController) handleDirectMessage(client *ws.Client, raw []byte, ma
 
 		sender := c.getUserResponse(senderUUID)
 		outgoing := WSOutgoingMessage{
-			Type:      "message",
-			Id:        msg.Id.String(),
-			RoomID:    matchID,
-			SenderId:  client.UserID,
-			Sender:    sender,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Type:       "message",
+			Id:         msg.Id.String(),
+			RoomID:     matchID,
+			SenderId:   client.UserID,
+			SenderName: client.UserName,
+			Sender:     sender,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		}
 
 		data, _ := json.Marshal(outgoing)
@@ -389,17 +409,19 @@ func (c *chatWSController) handleDirectMessage(client *ws.Client, raw []byte, ma
 
 	case "typing":
 		out, _ := json.Marshal(map[string]string{
-			"type":      "typing",
-			"sender_id": client.UserID,
-			"room_id":   matchID,
+			"type":        "typing",
+			"sender_id":   client.UserID,
+			"sender_name": client.UserName,
+			"room_id":     matchID,
 		})
 		c.hub.BroadcastToRoom(client.RoomID, out)
 
 	case "read":
 		out, _ := json.Marshal(map[string]string{
-			"type":      "read",
-			"sender_id": client.UserID,
-			"room_id":   matchID,
+			"type":        "read",
+			"sender_id":   client.UserID,
+			"sender_name": client.UserName,
+			"room_id":     matchID,
 		})
 		c.hub.BroadcastToRoom(client.RoomID, out)
 	}
@@ -438,13 +460,14 @@ func (c *chatWSController) handleGroupMessage(client *ws.Client, raw []byte, gro
 
 		sender := c.getUserResponse(senderUUID)
 		outgoing := WSOutgoingMessage{
-			Type:      "message",
-			Id:        msg.Id.String(),
-			RoomID:    groupID,
-			SenderId:  client.UserID,
-			Sender:    sender,
-			Message:   msg.Message,
-			CreatedAt: msg.CreatedAt,
+			Type:       "message",
+			Id:         msg.Id.String(),
+			RoomID:     groupID,
+			SenderId:   client.UserID,
+			SenderName: client.UserName,
+			Sender:     sender,
+			Message:    msg.Message,
+			CreatedAt:  msg.CreatedAt,
 		}
 
 		data, _ := json.Marshal(outgoing)
@@ -452,9 +475,10 @@ func (c *chatWSController) handleGroupMessage(client *ws.Client, raw []byte, gro
 
 	case "typing":
 		out, _ := json.Marshal(map[string]string{
-			"type":      "typing",
-			"sender_id": client.UserID,
-			"room_id":   groupID,
+			"type":        "typing",
+			"sender_id":   client.UserID,
+			"sender_name": client.UserName,
+			"room_id":     groupID,
 		})
 		c.hub.BroadcastToRoom(client.RoomID, out)
 	}
@@ -477,4 +501,17 @@ func (c *chatWSController) getUserResponse(userID uuid.UUID) *response.UserRespo
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}
+}
+
+// getUserName looks up a user's display name by their ID string.
+func (c *chatWSController) getUserName(userIDStr string) string {
+	uid, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return ""
+	}
+	user, err := c.userRepo.FindById(uid)
+	if err != nil {
+		return ""
+	}
+	return helper.DerefOrEmpty(user.Name)
 }

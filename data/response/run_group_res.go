@@ -11,8 +11,10 @@ type RunGroupResponse struct {
 	DistanceKm        *float64  `json:"distance_km,omitempty"`
 	Latitude          float64   `json:"latitude"`
 	Longitude         float64   `json:"longitude"`
+	MeetingPoint      string    `json:"meeting_point"`
 	ScheduledAt       time.Time `json:"scheduled_at"`
 	MaxMember         int       `json:"max_member"`
+	MemberCount       int       `json:"member_count"`
 	IsWomenOnly       bool      `json:"is_women_only"`
 	Status            string    `json:"status"`
 	CreatedBy         string    `json:"created_by"`
@@ -28,6 +30,7 @@ type RunGroupDetailResponse struct {
 	PreferredDistance int           `json:"preferred_distance"`
 	Latitude          float64       `json:"latitude"`
 	Longitude         float64       `json:"longitude"`
+	MeetingPoint      string        `json:"meeting_point"`
 	ScheduledAt       time.Time     `json:"scheduled_at"`
 	MaxMember         int           `json:"max_member"`
 	IsWomenOnly       bool          `json:"is_women_only"`

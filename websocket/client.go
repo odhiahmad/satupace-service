@@ -23,11 +23,12 @@ const (
 
 // Client represents a single WebSocket connection.
 type Client struct {
-	Hub    *Hub
-	Conn   *websocket.Conn
-	Send   chan []byte
-	UserID string
-	RoomID string // matchId for direct chat, groupId for group chat
+	Hub      *Hub
+	Conn     *websocket.Conn
+	Send     chan []byte
+	UserID   string
+	UserName string // display name for system messages
+	RoomID   string // matchId for direct chat, groupId for group chat
 }
 
 // ReadPump pumps messages from the WebSocket connection to the hub.

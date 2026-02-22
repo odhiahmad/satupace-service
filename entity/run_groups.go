@@ -15,6 +15,7 @@ type RunGroup struct {
 	PreferredDistance int
 	Latitude          float64
 	Longitude         float64
+	MeetingPoint      string `gorm:"type:varchar(255)"`
 
 	ScheduledAt time.Time
 	MaxMember   int

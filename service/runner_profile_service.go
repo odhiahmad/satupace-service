@@ -47,6 +47,20 @@ func (s *runnerProfileService) CreateOrUpdate(userId uuid.UUID, req request.Crea
 	// Check if profile already exists for this user
 	existing, _ := s.repo.FindByUserId(userId)
 	if existing != nil {
+		// Update user name and gender if provided
+		userUpdated := false
+		if req.Name != nil {
+			user.Name = req.Name
+			userUpdated = true
+		}
+		if req.Gender != nil {
+			user.Gender = req.Gender
+			userUpdated = true
+		}
+		if userUpdated {
+			_ = s.userRepo.Update(user)
+		}
+
 		// Update existing profile
 		existing.AvgPace = req.AvgPace
 		existing.PreferredDistance = req.PreferredDistance
@@ -101,8 +115,14 @@ func (s *runnerProfileService) CreateOrUpdate(userId uuid.UUID, req request.Crea
 		return response.RunnerProfileDetailResponse{}, err
 	}
 
-	// Mark user as having a profile
+	// Mark user as having a profile and update name/gender if provided
 	user.HasProfile = true
+	if req.Name != nil {
+		user.Name = req.Name
+	}
+	if req.Gender != nil {
+		user.Gender = req.Gender
+	}
 	_ = s.userRepo.Update(user)
 
 	return s.buildDetailResponse(&profile, user), nil
@@ -149,7 +169,21 @@ func (s *runnerProfileService) Update(id uuid.UUID, req request.UpdateRunnerProf
 		return response.RunnerProfileDetailResponse{}, err
 	}
 
+	// Update user name and gender if provided
 	user, _ := s.userRepo.FindById(profile.UserId)
+	userUpdated := false
+	if req.Name != nil {
+		user.Name = req.Name
+		userUpdated = true
+	}
+	if req.Gender != nil {
+		user.Gender = req.Gender
+		userUpdated = true
+	}
+	if userUpdated {
+		_ = s.userRepo.Update(user)
+	}
+
 	return s.buildDetailResponse(profile, user), nil
 }
 

@@ -50,6 +50,7 @@ func (s *runGroupService) Create(createdBy uuid.UUID, req request.CreateRunGroup
 		PreferredDistance: req.PreferredDistance,
 		Latitude:          req.Latitude,
 		Longitude:         req.Longitude,
+		MeetingPoint:      req.MeetingPoint,
 		ScheduledAt:       scheduledAt,
 		MaxMember:         req.MaxMember,
 		IsWomenOnly:       req.IsWomenOnly,
@@ -94,13 +95,14 @@ func (s *runGroupService) Create(createdBy uuid.UUID, req request.CreateRunGroup
 		PreferredDistance: group.PreferredDistance,
 		Latitude:          group.Latitude,
 		Longitude:         group.Longitude,
+		MeetingPoint:      group.MeetingPoint,
 		ScheduledAt:       group.ScheduledAt,
 		MaxMember:         group.MaxMember,
 		IsWomenOnly:       group.IsWomenOnly,
 		Status:            group.Status,
 		CreatedBy:         group.CreatedBy.String(),
 		Creator:           creatorRes,
-		MemberCount:       0,
+		MemberCount:       1, // owner just joined
 		CreatedAt:         group.CreatedAt,
 	}, nil
 }
@@ -128,6 +130,9 @@ func (s *runGroupService) Update(id uuid.UUID, req request.UpdateRunGroupRequest
 	}
 	if req.Longitude != nil {
 		group.Longitude = *req.Longitude
+	}
+	if req.MeetingPoint != nil {
+		group.MeetingPoint = *req.MeetingPoint
 	}
 	if req.ScheduledAt != nil {
 		scheduledAt, _ := time.Parse(time.RFC3339, *req.ScheduledAt)
@@ -174,6 +179,7 @@ func (s *runGroupService) Update(id uuid.UUID, req request.UpdateRunGroupRequest
 		PreferredDistance: group.PreferredDistance,
 		Latitude:          group.Latitude,
 		Longitude:         group.Longitude,
+		MeetingPoint:      group.MeetingPoint,
 		ScheduledAt:       group.ScheduledAt,
 		MaxMember:         group.MaxMember,
 		IsWomenOnly:       group.IsWomenOnly,
@@ -218,6 +224,7 @@ func (s *runGroupService) FindById(id uuid.UUID) (response.RunGroupDetailRespons
 		PreferredDistance: group.PreferredDistance,
 		Latitude:          group.Latitude,
 		Longitude:         group.Longitude,
+		MeetingPoint:      group.MeetingPoint,
 		ScheduledAt:       group.ScheduledAt,
 		MaxMember:         group.MaxMember,
 		IsWomenOnly:       group.IsWomenOnly,
@@ -249,6 +256,7 @@ func (s *runGroupService) FindAll(filter request.RunGroupFilterRequest) ([]respo
 
 	var responses []response.RunGroupResponse
 	for _, group := range groups {
+		memberCount, _ := s.repo.GetMemberCount(group.Id)
 		res := response.RunGroupResponse{
 			Id:                group.Id.String(),
 			Name:              group.Name,
@@ -257,8 +265,10 @@ func (s *runGroupService) FindAll(filter request.RunGroupFilterRequest) ([]respo
 			PreferredDistance: group.PreferredDistance,
 			Latitude:          group.Latitude,
 			Longitude:         group.Longitude,
+			MeetingPoint:      group.MeetingPoint,
 			ScheduledAt:       group.ScheduledAt,
 			MaxMember:         group.MaxMember,
+			MemberCount:       int(memberCount),
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
@@ -285,6 +295,7 @@ func (s *runGroupService) FindByStatus(status string) ([]response.RunGroupRespon
 
 	var responses []response.RunGroupResponse
 	for _, group := range groups {
+		memberCount, _ := s.repo.GetMemberCount(group.Id)
 		responses = append(responses, response.RunGroupResponse{
 			Id:                group.Id.String(),
 			Name:              group.Name,
@@ -293,8 +304,10 @@ func (s *runGroupService) FindByStatus(status string) ([]response.RunGroupRespon
 			PreferredDistance: group.PreferredDistance,
 			Latitude:          group.Latitude,
 			Longitude:         group.Longitude,
+			MeetingPoint:      group.MeetingPoint,
 			ScheduledAt:       group.ScheduledAt,
 			MaxMember:         group.MaxMember,
+			MemberCount:       int(memberCount),
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
@@ -317,6 +330,7 @@ func (s *runGroupService) FindByCreatedBy(userId uuid.UUID) ([]response.RunGroup
 
 	var responses []response.RunGroupResponse
 	for _, group := range groups {
+		memberCount, _ := s.repo.GetMemberCount(group.Id)
 		responses = append(responses, response.RunGroupResponse{
 			Id:                group.Id.String(),
 			Name:              group.Name,
@@ -325,8 +339,10 @@ func (s *runGroupService) FindByCreatedBy(userId uuid.UUID) ([]response.RunGroup
 			PreferredDistance: group.PreferredDistance,
 			Latitude:          group.Latitude,
 			Longitude:         group.Longitude,
+			MeetingPoint:      group.MeetingPoint,
 			ScheduledAt:       group.ScheduledAt,
 			MaxMember:         group.MaxMember,
+			MemberCount:       int(memberCount),
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
@@ -345,6 +361,7 @@ func (s *runGroupService) FindMyGroups(userId uuid.UUID) ([]response.RunGroupRes
 
 	var responses []response.RunGroupResponse
 	for i, group := range groups {
+		memberCount, _ := s.repo.GetMemberCount(group.Id)
 		responses = append(responses, response.RunGroupResponse{
 			Id:                group.Id.String(),
 			Name:              group.Name,
@@ -353,8 +370,10 @@ func (s *runGroupService) FindMyGroups(userId uuid.UUID) ([]response.RunGroupRes
 			PreferredDistance: group.PreferredDistance,
 			Latitude:          group.Latitude,
 			Longitude:         group.Longitude,
+			MeetingPoint:      group.MeetingPoint,
 			ScheduledAt:       group.ScheduledAt,
 			MaxMember:         group.MaxMember,
+			MemberCount:       int(memberCount),
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
