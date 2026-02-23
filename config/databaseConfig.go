@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"run-sync/entity"
-	seeders "run-sync/seeder"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -54,8 +53,6 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.GroupChatMessage{},
 			&entity.UserPhoto{},
 			&entity.SafetyLog{},
-			&entity.StravaConnection{},
-			&entity.StravaActivity{},
 			&entity.UserBiometric{},
 			&entity.Notification{},
 			&entity.UserDeviceToken{},
@@ -63,7 +60,6 @@ func SetupDatabaseConnection() *gorm.DB {
 			log.Fatalf("❌ AutoMigrate gagal: %v", err)
 		}
 
-		seeders.RunAll(db)
 	} else {
 		log.Println("ℹ️ Production mode terdeteksi, AutoMigrate dilewati.")
 	}

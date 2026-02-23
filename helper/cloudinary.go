@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -13,6 +14,12 @@ import (
 func UploadBase64ToCloudinary(base64Str string, folder string) (string, error) {
 	if base64Str == "" {
 		return "", nil
+	}
+
+	// Cloudinary SDK requires data URI format: "data:image/jpeg;base64,<data>"
+	// Flutter sends raw base64 without this prefix, so we add it here.
+	if !strings.HasPrefix(base64Str, "data:") {
+		base64Str = "data:image/jpeg;base64," + base64Str
 	}
 
 	cld, err := cloudinary.NewFromParams(

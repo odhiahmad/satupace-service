@@ -36,7 +36,6 @@ var (
 	groupChatRepo      repository.GroupChatMessageRepository  = repository.NewGroupChatMessageRepository(db)
 	userPhotoRepo      repository.UserPhotoRepository         = repository.NewUserPhotoRepository(db)
 	safetyLogRepo      repository.SafetyLogRepository         = repository.NewSafetyLogRepository(db)
-	stravaRepo         repository.StravaRepository            = repository.NewStravaRepository(db)
 	biometricRepo      repository.BiometricRepository         = repository.NewBiometricRepository(db)
 	notifRepo          repository.NotificationRepository      = repository.NewNotificationRepository(db)
 	deviceTokenRepo    repository.UserDeviceTokenRepository   = repository.NewUserDeviceTokenRepository(db)
@@ -53,7 +52,6 @@ var (
 	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db)
 	safetyLogSvc         service.SafetyLogService      = service.NewSafetyLogService(safetyLogRepo, userRepository, db)
 	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo, runGroupMemberRepo)
-	stravaSvc            service.StravaService         = service.NewStravaService(stravaRepo, runActivityRepo)
 	biometricSvc         service.BiometricService      = service.NewBiometricService(biometricRepo, userRepository, jwtService, redisHelper)
 	notifSvc             service.NotificationService   = service.NewNotificationService(notifRepo, deviceTokenRepo)
 
@@ -67,7 +65,6 @@ var (
 	directMatchController    controller.DirectMatchController    = controller.NewDirectMatchController(directMatchSvc)
 	userPhotoController      controller.UserPhotoController      = controller.NewUserPhotoController(service.NewUserPhotoService(userPhotoRepo))
 	safetyLogController      controller.SafetyLogController      = controller.NewSafetyLogController(safetyLogSvc)
-	stravaController         controller.StravaController         = controller.NewStravaController(stravaSvc)
 	exploreController        controller.ExploreController        = controller.NewExploreController(exploreSvc)
 	biometricController      controller.BiometricController      = controller.NewBiometricController(biometricSvc)
 
@@ -211,17 +208,6 @@ func SetupRouter() *gin.Engine {
 		media.GET("/safety/:id", safetyLogController.FindById)
 	}
 
-	// Strava integration (requires auth + profile)
-	strava := r.Group("strava", jwt, profileReq)
-	{
-		strava.GET("/auth-url", stravaController.GetAuthURL)
-		strava.POST("/callback", stravaController.Callback)
-		strava.DELETE("/disconnect", stravaController.Disconnect)
-		strava.GET("/connection", stravaController.GetConnection)
-		strava.POST("/sync", stravaController.SyncActivities)
-		strava.GET("/activities", stravaController.GetSyncHistory)
-		strava.GET("/stats", stravaController.GetStats)
-	}
 
 	// WhatsApp
 	wa := r.Group("whatsapp", middleware.RateLimit(redisHelper, 10, time.Minute))

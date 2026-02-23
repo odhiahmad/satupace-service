@@ -31,11 +31,7 @@ const (
 	NotifGroupScheduleStart = "group_schedule_start" // grup run mau dimulai (reminder H-1 jam)
 
 	// --- Activity ---
-	NotifActivityLogged      = "activity_logged"       // aktivitas lari berhasil dicatat
-	NotifStravaSynced        = "strava_synced"         // aktivitas berhasil disinkronkan dari Strava
-	NotifStravaSyncFailed    = "strava_sync_failed"    // gagal sinkronisasi Strava
-	NotifStravaConnected     = "strava_connected"      // akun Strava berhasil dihubungkan
-	NotifStravaDisconnected  = "strava_disconnected"   // akun Strava diputus
+	NotifActivityLogged = "activity_logged" // aktivitas lari berhasil dicatat
 
 	// --- Safety ---
 	NotifUserReported   = "user_reported"   // akun kamu dilaporkan oleh pengguna lain
