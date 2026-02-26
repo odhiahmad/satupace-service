@@ -10,3 +10,9 @@ type UserPhotoResponse struct {
 	IsPrimary bool      `json:"is_primary"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type FaceVerifyResponse struct {
+	Matched    bool               `json:"matched"`
+	Similarity float32            `json:"similarity"`
+	Photo      *UserPhotoResponse `json:"photo,omitempty"` // diisi jika wajah cocok
+}

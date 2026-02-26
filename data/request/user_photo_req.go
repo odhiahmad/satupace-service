@@ -10,3 +10,7 @@ type UpdateUserPhotoRequest struct {
 	Type      *string `json:"type"`
 	IsPrimary *bool   `json:"is_primary"`
 }
+
+type FaceVerifyRequest struct {
+	Image string `json:"image" binding:"required"` // base64 dari kamera
+}

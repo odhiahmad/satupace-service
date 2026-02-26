@@ -12,6 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
+func toUserPhotoResponse(photo *entity.UserPhoto) response.UserPhotoResponse {
+	return response.UserPhotoResponse{
+		Id:        photo.Id.String(),
+		UserId:    photo.UserId.String(),
+		Url:       photo.Url,
+		Type:      photo.Type,
+		IsPrimary: photo.IsPrimary,
+		CreatedAt: photo.CreatedAt,
+	}
+}
+
 type UserPhotoService interface {
 	Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error)
 	Update(id uuid.UUID, req request.UpdateUserPhotoRequest) (response.UserPhotoResponse, error)
@@ -19,6 +30,7 @@ type UserPhotoService interface {
 	FindByUserId(userId uuid.UUID) ([]response.UserPhotoResponse, error)
 	FindPrimaryPhoto(userId uuid.UUID) (response.UserPhotoResponse, error)
 	Delete(id uuid.UUID) error
+	VerifyFace(userId uuid.UUID, req request.FaceVerifyRequest) (response.FaceVerifyResponse, error)
 }
 
 type userPhotoService struct {
@@ -30,6 +42,13 @@ func NewUserPhotoService(repo repository.UserPhotoRepository) UserPhotoService {
 }
 
 func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error) {
+	// Jika tipe verification, validasi wajah tampak depan sebelum upload
+	if req.Type == "verification" {
+		if err := helper.DetectFrontFace(req.Image); err != nil {
+			return response.UserPhotoResponse{}, errors.New("foto verifikasi ditolak: " + err.Error())
+		}
+	}
+
 	// Upload image to Cloudinary
 	imageUrl, err := helper.UploadBase64ToCloudinary(req.Image, "run-sync/photos")
 	if err != nil {
@@ -61,14 +80,7 @@ func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoR
 		return response.UserPhotoResponse{}, err
 	}
 
-	return response.UserPhotoResponse{
-		Id:        photo.Id.String(),
-		UserId:    photo.UserId.String(),
-		Url:       photo.Url,
-		Type:      photo.Type,
-		IsPrimary: photo.IsPrimary,
-		CreatedAt: photo.CreatedAt,
-	}, nil
+	return toUserPhotoResponse(&photo), nil
 }
 
 func (s *userPhotoService) Update(id uuid.UUID, req request.UpdateUserPhotoRequest) (response.UserPhotoResponse, error) {
@@ -96,14 +108,7 @@ func (s *userPhotoService) Update(id uuid.UUID, req request.UpdateUserPhotoReque
 		return response.UserPhotoResponse{}, err
 	}
 
-	return response.UserPhotoResponse{
-		Id:        photo.Id.String(),
-		UserId:    photo.UserId.String(),
-		Url:       photo.Url,
-		Type:      photo.Type,
-		IsPrimary: photo.IsPrimary,
-		CreatedAt: photo.CreatedAt,
-	}, nil
+	return toUserPhotoResponse(photo), nil
 }
 
 func (s *userPhotoService) FindById(id uuid.UUID) (response.UserPhotoResponse, error) {
@@ -112,14 +117,7 @@ func (s *userPhotoService) FindById(id uuid.UUID) (response.UserPhotoResponse, e
 		return response.UserPhotoResponse{}, err
 	}
 
-	return response.UserPhotoResponse{
-		Id:        photo.Id.String(),
-		UserId:    photo.UserId.String(),
-		Url:       photo.Url,
-		Type:      photo.Type,
-		IsPrimary: photo.IsPrimary,
-		CreatedAt: photo.CreatedAt,
-	}, nil
+	return toUserPhotoResponse(photo), nil
 }
 
 func (s *userPhotoService) FindByUserId(userId uuid.UUID) ([]response.UserPhotoResponse, error) {
@@ -130,14 +128,8 @@ func (s *userPhotoService) FindByUserId(userId uuid.UUID) ([]response.UserPhotoR
 
 	var responses []response.UserPhotoResponse
 	for _, photo := range photos {
-		responses = append(responses, response.UserPhotoResponse{
-			Id:        photo.Id.String(),
-			UserId:    photo.UserId.String(),
-			Url:       photo.Url,
-			Type:      photo.Type,
-			IsPrimary: photo.IsPrimary,
-			CreatedAt: photo.CreatedAt,
-		})
+		p := photo
+		responses = append(responses, toUserPhotoResponse(&p))
 	}
 
 	return responses, nil
@@ -149,16 +141,40 @@ func (s *userPhotoService) FindPrimaryPhoto(userId uuid.UUID) (response.UserPhot
 		return response.UserPhotoResponse{}, err
 	}
 
-	return response.UserPhotoResponse{
-		Id:        photo.Id.String(),
-		UserId:    photo.UserId.String(),
-		Url:       photo.Url,
-		Type:      photo.Type,
-		IsPrimary: photo.IsPrimary,
-		CreatedAt: photo.CreatedAt,
-	}, nil
+	return toUserPhotoResponse(photo), nil
 }
 
 func (s *userPhotoService) Delete(id uuid.UUID) error {
+	photo, err := s.repo.FindById(id)
+	if err != nil {
+		return err
+	}
+	if photo.Type == "verification" {
+		return errors.New("foto verifikasi tidak dapat dihapus")
+	}
 	return s.repo.Delete(id)
+}
+
+func (s *userPhotoService) VerifyFace(userId uuid.UUID, req request.FaceVerifyRequest) (response.FaceVerifyResponse, error) {
+	// Ambil foto verifikasi milik user
+	photo, err := s.repo.FindVerificationPhoto(userId)
+	if err != nil {
+		return response.FaceVerifyResponse{}, errors.New("foto verifikasi belum diunggah, silakan upload foto verifikasi terlebih dahulu")
+	}
+
+	// Bandingkan wajah kamera dengan foto verifikasi
+	similarity, matched, err := helper.VerifyFaces(req.Image, photo.Url)
+	if err != nil {
+		return response.FaceVerifyResponse{}, errors.New("gagal melakukan verifikasi wajah: " + err.Error())
+	}
+
+	result := response.FaceVerifyResponse{
+		Matched:    matched,
+		Similarity: similarity,
+	}
+	if matched {
+		p := toUserPhotoResponse(photo)
+		result.Photo = &p
+	}
+	return result, nil
 }

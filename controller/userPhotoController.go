@@ -16,8 +16,10 @@ type UserPhotoController interface {
 	Update(ctx *gin.Context)
 	FindById(ctx *gin.Context)
 	FindByUserId(ctx *gin.Context)
+	FindMyPhotos(ctx *gin.Context)
 	FindPrimaryPhoto(ctx *gin.Context)
 	Delete(ctx *gin.Context)
+	VerifyFace(ctx *gin.Context)
 }
 
 type userPhotoController struct {
@@ -92,6 +94,18 @@ func (c *userPhotoController) FindByUserId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+func (c *userPhotoController) FindMyPhotos(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	photos, err := c.service.FindByUserId(userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := helper.BuildResponse(true, "Berhasil mengambil foto saya", photos)
+	ctx.JSON(http.StatusOK, response)
+}
+
 func (c *userPhotoController) FindPrimaryPhoto(ctx *gin.Context) {
 	userId, _ := uuid.Parse(ctx.Param("userId"))
 	photo, err := c.service.FindPrimaryPhoto(userId)
@@ -114,5 +128,25 @@ func (c *userPhotoController) Delete(ctx *gin.Context) {
 	}
 
 	response := helper.BuildResponse(true, "Foto berhasil dihapus", nil)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userPhotoController) VerifyFace(ctx *gin.Context) {
+	userId := ctx.MustGet("user_id").(uuid.UUID)
+	var req request.FaceVerifyRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := helper.BuildErrorResponse("Permintaan tidak valid", "INVALID_REQUEST", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	result, err := c.service.VerifyFace(userId, req)
+	if err != nil {
+		res := helper.BuildErrorResponse("Gagal verifikasi wajah", "VERIFY_FAILED", "body", err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	response := helper.BuildResponse(true, "Verifikasi wajah selesai", result)
 	ctx.JSON(http.StatusOK, response)
 }

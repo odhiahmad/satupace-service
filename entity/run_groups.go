@@ -23,6 +23,8 @@ type RunGroup struct {
 
 	Status string `gorm:"type:varchar(50)"` // open, full, completed
 
+	Schedules []*RunGroupSchedule `gorm:"foreignKey:GroupId"`
+
 	CreatedBy uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time

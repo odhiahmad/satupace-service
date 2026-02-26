@@ -40,7 +40,7 @@ func (r *runGroupRepository) Update(group *entity.RunGroup) error {
 
 func (r *runGroupRepository) FindById(id uuid.UUID) (*entity.RunGroup, error) {
 	var group entity.RunGroup
-	err := r.db.First(&group, "id = ?", id).Error
+	err := r.db.Preload("Schedules").First(&group, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}

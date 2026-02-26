@@ -32,12 +32,13 @@ type DirectMatchService interface {
 }
 
 type directMatchService struct {
-	repo        repository.DirectMatchRepository
-	userRepo    repository.UserRepository
-	chatRepo    repository.DirectChatMessageRepository
-	profileRepo repository.RunnerProfileRepository
-	engine      MatchingEngine
-	db          *gorm.DB
+	repo          repository.DirectMatchRepository
+	userRepo      repository.UserRepository
+	chatRepo      repository.DirectChatMessageRepository
+	profileRepo   repository.RunnerProfileRepository
+	userPhotoRepo repository.UserPhotoRepository
+	engine        MatchingEngine
+	db            *gorm.DB
 }
 
 func NewDirectMatchService(
@@ -47,14 +48,16 @@ func NewDirectMatchService(
 	profileRepo repository.RunnerProfileRepository,
 	engine MatchingEngine,
 	db *gorm.DB,
+	userPhotoRepo repository.UserPhotoRepository,
 ) DirectMatchService {
 	return &directMatchService{
-		repo:        repo,
-		userRepo:    userRepo,
-		chatRepo:    chatRepo,
-		profileRepo: profileRepo,
-		engine:      engine,
-		db:          db,
+		repo:          repo,
+		userRepo:      userRepo,
+		chatRepo:      chatRepo,
+		profileRepo:   profileRepo,
+		userPhotoRepo: userPhotoRepo,
+		engine:        engine,
+		db:            db,
 	}
 }
 
@@ -84,6 +87,14 @@ func (s *directMatchService) SendMatchRequest(senderId uuid.UUID, req request.Cr
 	receiver, err := s.userRepo.FindById(receiverId)
 	if err != nil {
 		return response.DirectMatchDetailResponse{}, errors.New("penerima tidak ditemukan")
+	}
+
+	// Kedua user harus memiliki foto verifikasi agar bisa match
+	if _, err := s.userPhotoRepo.FindVerificationPhoto(senderId); err != nil {
+		return response.DirectMatchDetailResponse{}, errors.New("kamu harus upload foto verifikasi terlebih dahulu sebelum bisa match")
+	}
+	if _, err := s.userPhotoRepo.FindVerificationPhoto(receiverId); err != nil {
+		return response.DirectMatchDetailResponse{}, errors.New("pengguna ini belum memiliki foto verifikasi, tidak bisa match")
 	}
 
 	// Check if match already exists in either direction
@@ -289,14 +300,27 @@ func (s *directMatchService) buildMatchResponse(match *entity.DirectMatch, user1
 		}
 	}
 
+	// Sertakan foto verifikasi masing-masing user jika match sudah accepted
+	var u1Photo, u2Photo *string
+	if match.Status == "accepted" {
+		if photo, err := s.userPhotoRepo.FindVerificationPhoto(match.User1Id); err == nil {
+			u1Photo = &photo.Url
+		}
+		if photo, err := s.userPhotoRepo.FindVerificationPhoto(match.User2Id); err == nil {
+			u2Photo = &photo.Url
+		}
+	}
+
 	return response.DirectMatchDetailResponse{
-		Id:        match.Id.String(),
-		User1Id:   match.User1Id.String(),
-		User1:     u1Res,
-		User2Id:   match.User2Id.String(),
-		User2:     u2Res,
-		Status:    match.Status,
-		CreatedAt: match.CreatedAt,
-		MatchedAt: match.MatchedAt,
+		Id:                     match.Id.String(),
+		User1Id:                match.User1Id.String(),
+		User1:                  u1Res,
+		User1VerificationPhoto: u1Photo,
+		User2Id:                match.User2Id.String(),
+		User2:                  u2Res,
+		User2VerificationPhoto: u2Photo,
+		Status:                 match.Status,
+		CreatedAt:              match.CreatedAt,
+		MatchedAt:              match.MatchedAt,
 	}
 }

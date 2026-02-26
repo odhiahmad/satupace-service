@@ -34,8 +34,9 @@ var (
 	directMatchRepo    repository.DirectMatchRepository       = repository.NewDirectMatchRepository(db)
 	directChatRepo     repository.DirectChatMessageRepository = repository.NewDirectChatMessageRepository(db)
 	groupChatRepo      repository.GroupChatMessageRepository  = repository.NewGroupChatMessageRepository(db)
-	userPhotoRepo      repository.UserPhotoRepository         = repository.NewUserPhotoRepository(db)
-	safetyLogRepo      repository.SafetyLogRepository         = repository.NewSafetyLogRepository(db)
+	userPhotoRepo         repository.UserPhotoRepository         = repository.NewUserPhotoRepository(db)
+	runGroupScheduleRepo  repository.RunGroupScheduleRepository  = repository.NewRunGroupScheduleRepository(db)
+	safetyLogRepo         repository.SafetyLogRepository         = repository.NewSafetyLogRepository(db)
 	biometricRepo      repository.BiometricRepository         = repository.NewBiometricRepository(db)
 	notifRepo          repository.NotificationRepository      = repository.NewNotificationRepository(db)
 	deviceTokenRepo    repository.UserDeviceTokenRepository   = repository.NewUserDeviceTokenRepository(db)
@@ -49,11 +50,12 @@ var (
 	runGroupService      service.RunGroupService       = service.NewRunGroupService(runGroupRepo, userRepository, runGroupMemberRepo)
 	runGroupMemberSvc    service.RunGroupMemberService = service.NewRunGroupMemberService(runGroupMemberRepo, userRepository, runGroupRepo, db)
 	runActivitySvc       service.RunActivityService    = service.NewRunActivityService(runActivityRepo, userRepository, runnerProfileRepo)
-	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db)
+	directMatchSvc       service.DirectMatchService    = service.NewDirectMatchService(directMatchRepo, userRepository, directChatRepo, runnerProfileRepo, matchingEngine, db, userPhotoRepo)
 	safetyLogSvc         service.SafetyLogService      = service.NewSafetyLogService(safetyLogRepo, userRepository, db)
 	exploreSvc           service.ExploreService        = service.NewExploreService(runnerProfileRepo, runGroupRepo, directMatchRepo, runGroupMemberRepo)
 	biometricSvc         service.BiometricService      = service.NewBiometricService(biometricRepo, userRepository, jwtService, redisHelper)
-	notifSvc             service.NotificationService   = service.NewNotificationService(notifRepo, deviceTokenRepo)
+	notifSvc             service.NotificationService        = service.NewNotificationService(notifRepo, deviceTokenRepo)
+	runGroupScheduleSvc  service.RunGroupScheduleService    = service.NewRunGroupScheduleService(runGroupScheduleRepo, runGroupRepo)
 
 	// Controllers
 	authController           controller.AuthController           = controller.NewAuthController(userService, jwtService, redisHelper, emailHelper)
@@ -65,8 +67,9 @@ var (
 	directMatchController    controller.DirectMatchController    = controller.NewDirectMatchController(directMatchSvc)
 	userPhotoController      controller.UserPhotoController      = controller.NewUserPhotoController(service.NewUserPhotoService(userPhotoRepo))
 	safetyLogController      controller.SafetyLogController      = controller.NewSafetyLogController(safetyLogSvc)
-	exploreController        controller.ExploreController        = controller.NewExploreController(exploreSvc)
-	biometricController      controller.BiometricController      = controller.NewBiometricController(biometricSvc)
+	exploreController             controller.ExploreController             = controller.NewExploreController(exploreSvc)
+	biometricController           controller.BiometricController           = controller.NewBiometricController(biometricSvc)
+	runGroupScheduleController    controller.RunGroupScheduleController    = controller.NewRunGroupScheduleController(runGroupScheduleSvc)
 
 	// WebSocket chat hub & controller (Redis Pub/Sub for cross-instance messaging)
 	chatHub          *ws.Hub                     = ws.NewHub(redisClient)
@@ -158,6 +161,12 @@ func SetupRouter() *gin.Engine {
 		runs.DELETE("/members/:id/kick", jwt, runGroupMemberController.KickMember)
 		runs.DELETE("/groups/:id/leave", jwt, runGroupMemberController.LeaveGroup)
 
+		// Group schedules
+		runs.POST("/groups/:id/schedules", jwt, runGroupScheduleController.Create)
+		runs.GET("/groups/:id/schedules", runGroupScheduleController.FindByGroupId)
+		runs.PUT("/groups/schedules/:scheduleId", jwt, runGroupScheduleController.Update)
+		runs.DELETE("/groups/schedules/:scheduleId", jwt, runGroupScheduleController.Delete)
+
 		// Activities
 		runs.POST("/activities", jwt, profileReq, runActivityController.Create)
 		runs.GET("/activities/:id", runActivityController.FindById)
@@ -201,8 +210,13 @@ func SetupRouter() *gin.Engine {
 	media := r.Group("media")
 	{
 		media.POST("/photos", jwt, userPhotoController.Create)
+		media.POST("/photos/verify-face", jwt, userPhotoController.VerifyFace)
 		media.GET("/photos/:id", userPhotoController.FindById)
+		media.PUT("/photos/:id", jwt, userPhotoController.Update)
+		media.DELETE("/photos/:id", jwt, userPhotoController.Delete)
+		media.GET("/me/photos", jwt, userPhotoController.FindMyPhotos)
 		media.GET("/users/:userId/photos", userPhotoController.FindByUserId)
+		media.GET("/users/:userId/photos/primary", userPhotoController.FindPrimaryPhoto)
 
 		media.POST("/safety", jwt, safetyLogController.ReportUser)
 		media.GET("/safety/:id", safetyLogController.FindById)

@@ -47,6 +47,7 @@ func SetupDatabaseConnection() *gorm.DB {
 			&entity.RunnerProfile{},
 			&entity.RunGroup{},
 			&entity.RunGroupMember{},
+			&entity.RunGroupSchedule{},
 			&entity.RunActivity{},
 			&entity.DirectMatch{},
 			&entity.DirectChatMessage{},

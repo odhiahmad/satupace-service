@@ -103,6 +103,7 @@ func (s *runGroupService) Create(createdBy uuid.UUID, req request.CreateRunGroup
 		CreatedBy:         group.CreatedBy.String(),
 		Creator:           creatorRes,
 		MemberCount:       1, // owner just joined
+		Schedules:         []response.RunGroupScheduleResponse{},
 		CreatedAt:         group.CreatedAt,
 	}, nil
 }
@@ -187,6 +188,7 @@ func (s *runGroupService) Update(id uuid.UUID, req request.UpdateRunGroupRequest
 		CreatedBy:         group.CreatedBy.String(),
 		Creator:           creatorRes,
 		MemberCount:       int(memberCount),
+		Schedules:         mapGroupSchedules(group.Schedules),
 		CreatedAt:         group.CreatedAt,
 	}, nil
 }
@@ -232,6 +234,7 @@ func (s *runGroupService) FindById(id uuid.UUID) (response.RunGroupDetailRespons
 		CreatedBy:         group.CreatedBy.String(),
 		Creator:           creatorRes,
 		MemberCount:       int(memberCount),
+		Schedules:         mapGroupSchedules(group.Schedules),
 		CreatedAt:         group.CreatedAt,
 	}, nil
 }
@@ -395,4 +398,28 @@ func haversineDistance(lat1, lng1, lat2, lng2 float64) float64 {
 			math.Sin(dLng/2)*math.Sin(dLng/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 	return R * c
+}
+
+var groupDayNames = [7]string{"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"}
+
+// mapGroupSchedules converts a slice of RunGroupSchedule entities to response DTOs.
+func mapGroupSchedules(schedules []*entity.RunGroupSchedule) []response.RunGroupScheduleResponse {
+	result := make([]response.RunGroupScheduleResponse, 0, len(schedules))
+	for _, s := range schedules {
+		dayName := ""
+		if s.DayOfWeek >= 0 && s.DayOfWeek <= 6 {
+			dayName = groupDayNames[s.DayOfWeek]
+		}
+		result = append(result, response.RunGroupScheduleResponse{
+			Id:        s.Id.String(),
+			GroupId:   s.GroupId.String(),
+			DayOfWeek: s.DayOfWeek,
+			DayName:   dayName,
+			StartTime: s.StartTime,
+			IsActive:  s.IsActive,
+			CreatedAt: s.CreatedAt,
+			UpdatedAt: s.UpdatedAt,
+		})
+	}
+	return result
 }
