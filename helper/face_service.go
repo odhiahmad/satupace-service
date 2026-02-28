@@ -6,14 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
 )
 
-// compreFaceDetectResponse adalah response dari CompreFace Detection API
-type compreFaceDetectResponse struct {
+// faceServiceDetectResponse adalah response dari Face Service Detection API
+type faceServiceDetectResponse struct {
 	Result []struct {
 		Pose *struct {
 			Pitch float32 `json:"pitch"`
@@ -26,8 +27,8 @@ type compreFaceDetectResponse struct {
 	} `json:"result"`
 }
 
-// compreFaceVerifyResponse adalah response dari CompreFace Verification API
-type compreFaceVerifyResponse struct {
+// faceServiceVerifyResponse adalah response dari Face Service Verification API
+type faceServiceVerifyResponse struct {
 	Result []struct {
 		FaceMatches []struct {
 			Similarity float32 `json:"similarity"`
@@ -35,8 +36,8 @@ type compreFaceVerifyResponse struct {
 	} `json:"result"`
 }
 
-func compreFaceBaseURL() string {
-	return strings.TrimRight(os.Getenv("COMPREFACE_URL"), "/")
+func faceServiceBaseURL() string {
+	return strings.TrimRight(os.Getenv("FACE_SERVICE_URL"), "/")
 }
 
 func decodeBase64ToBytes(b64 string) ([]byte, error) {
@@ -57,11 +58,12 @@ func downloadImageBytes(url string) ([]byte, error) {
 }
 
 // DetectFrontFace memvalidasi bahwa gambar base64 mengandung wajah tampak depan.
-// Memanggil CompreFace Detection API.
+// Memanggil Face Service Detection API.
 func DetectFrontFace(base64Str string) error {
-	apiKey := os.Getenv("COMPREFACE_DETECTION_API_KEY")
+	apiKey := os.Getenv("FACE_SERVICE_API_KEY")
 	if apiKey == "" {
-		return fmt.Errorf("COMPREFACE_DETECTION_API_KEY belum dikonfigurasi")
+		// Face Service not configured — skip face validation
+		return nil
 	}
 
 	imageBytes, err := decodeBase64ToBytes(base64Str)
@@ -81,7 +83,7 @@ func DetectFrontFace(base64Str string) error {
 	}
 	writer.Close()
 
-	url := compreFaceBaseURL() + "/api/v1/detection/detect"
+	url := faceServiceBaseURL() + "/api/v1/detection/detect"
 	req, err := http.NewRequest(http.MethodPost, url, &body)
 	if err != nil {
 		return fmt.Errorf("gagal membuat request: %w", err)
@@ -92,18 +94,18 @@ func DetectFrontFace(base64Str string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("gagal menghubungi CompreFace: %w", err)
+		return fmt.Errorf("gagal menghubungi Face Service: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		raw, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("CompreFace detection error (%d): %s", resp.StatusCode, string(raw))
+		return fmt.Errorf("face service detection error (%d): %s", resp.StatusCode, string(raw))
 	}
 
-	var result compreFaceDetectResponse
+	var result faceServiceDetectResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("gagal parse response CompreFace: %w", err)
+		return fmt.Errorf("gagal parse response Face Service: %w", err)
 	}
 
 	if len(result.Result) == 0 {
@@ -115,6 +117,7 @@ func DetectFrontFace(base64Str string) error {
 	if face.Pose != nil {
 		yaw := face.Pose.Yaw
 		pitch := face.Pose.Pitch
+		log.Printf("[FaceService] pose — yaw=%.2f pitch=%.2f", yaw, pitch)
 		if yaw < -25 || yaw > 25 || pitch < -25 || pitch > 25 {
 			return fmt.Errorf("wajah harus menghadap lurus ke depan (tampak depan), hindari sudut miring")
 		}
@@ -126,9 +129,10 @@ func DetectFrontFace(base64Str string) error {
 // VerifyFaces membandingkan gambar kamera (base64) dengan foto tersimpan (URL Cloudinary).
 // Mengembalikan similarity (0.0–1.0) dan apakah wajah cocok (threshold 0.80).
 func VerifyFaces(cameraBase64 string, storedPhotoURL string) (similarity float32, matched bool, err error) {
-	apiKey := os.Getenv("COMPREFACE_VERIFICATION_API_KEY")
+	apiKey := os.Getenv("FACE_SERVICE_API_KEY")
 	if apiKey == "" {
-		return 0, false, fmt.Errorf("COMPREFACE_VERIFICATION_API_KEY belum dikonfigurasi")
+		// Face Service not configured — skip face verification
+		return 0, false, nil
 	}
 
 	sourceBytes, err := decodeBase64ToBytes(cameraBase64)
@@ -162,7 +166,7 @@ func VerifyFaces(cameraBase64 string, storedPhotoURL string) (similarity float32
 	}
 	writer.Close()
 
-	url := compreFaceBaseURL() + "/api/v1/verification/verify"
+	url := faceServiceBaseURL() + "/api/v1/verification/verify"
 	req, err := http.NewRequest(http.MethodPost, url, &body)
 	if err != nil {
 		return 0, false, fmt.Errorf("gagal membuat request: %w", err)
@@ -173,18 +177,18 @@ func VerifyFaces(cameraBase64 string, storedPhotoURL string) (similarity float32
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, false, fmt.Errorf("gagal menghubungi CompreFace: %w", err)
+		return 0, false, fmt.Errorf("gagal menghubungi Face Service: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		raw, _ := io.ReadAll(resp.Body)
-		return 0, false, fmt.Errorf("CompreFace verification error (%d): %s", resp.StatusCode, string(raw))
+		return 0, false, fmt.Errorf("face service verification error (%d): %s", resp.StatusCode, string(raw))
 	}
 
-	var result compreFaceVerifyResponse
+	var result faceServiceVerifyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return 0, false, fmt.Errorf("gagal parse response CompreFace: %w", err)
+		return 0, false, fmt.Errorf("gagal parse response Face Service: %w", err)
 	}
 
 	if len(result.Result) == 0 || len(result.Result[0].FaceMatches) == 0 {

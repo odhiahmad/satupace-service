@@ -134,7 +134,7 @@ func (s *directMatchService) SendMatchRequest(senderId uuid.UUID, req request.Cr
 			return response.DirectMatchDetailResponse{}, txErr
 		}
 
-		result = s.buildMatchResponse(reverseMatch, sender, receiver)
+		result = s.buildMatchResponse(reverseMatch, receiver, sender)
 		return result, nil
 	}
 

@@ -275,6 +275,7 @@ func (s *runGroupService) FindAll(filter request.RunGroupFilterRequest) ([]respo
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
+			Schedules:         mapGroupSchedules(group.Schedules),
 			CreatedAt:         group.CreatedAt,
 		}
 
@@ -314,6 +315,7 @@ func (s *runGroupService) FindByStatus(status string) ([]response.RunGroupRespon
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
+			Schedules:         mapGroupSchedules(group.Schedules),
 			CreatedAt:         group.CreatedAt,
 		})
 	}
@@ -349,6 +351,7 @@ func (s *runGroupService) FindByCreatedBy(userId uuid.UUID) ([]response.RunGroup
 			IsWomenOnly:       group.IsWomenOnly,
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
+			Schedules:         mapGroupSchedules(group.Schedules),
 			CreatedAt:         group.CreatedAt,
 		})
 	}
@@ -381,6 +384,7 @@ func (s *runGroupService) FindMyGroups(userId uuid.UUID) ([]response.RunGroupRes
 			Status:            group.Status,
 			CreatedBy:         group.CreatedBy.String(),
 			MyRole:            roles[i],
+			Schedules:         mapGroupSchedules(group.Schedules),
 			CreatedAt:         group.CreatedAt,
 		})
 	}

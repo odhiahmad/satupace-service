@@ -101,7 +101,7 @@ func (r *runGroupRepository) FindAll(filter request.RunGroupFilterRequest) ([]en
 		}
 	}
 
-	err := query.Order("created_at DESC").Find(&groups).Error
+	err := query.Preload("Schedules").Order("created_at DESC").Find(&groups).Error
 	return groups, err
 }
 
@@ -117,7 +117,7 @@ func (r *runGroupRepository) Delete(id uuid.UUID) error {
 
 func (r *runGroupRepository) FindByCreatedBy(userId uuid.UUID) ([]entity.RunGroup, error) {
 	var groups []entity.RunGroup
-	err := r.db.Where("created_by = ?", userId).Find(&groups).Error
+	err := r.db.Preload("Schedules").Where("created_by = ?", userId).Find(&groups).Error
 	return groups, err
 }
 
@@ -130,6 +130,7 @@ func (r *runGroupRepository) FindByMembership(userId uuid.UUID) ([]entity.RunGro
 	err := r.db.Table("run_groups").
 		Select("run_groups.*, run_group_members.role as member_role").
 		Joins("INNER JOIN run_group_members ON run_group_members.group_id::uuid = run_groups.id").
+		Preload("Schedules").
 		Where("run_group_members.user_id = ? AND run_group_members.status = ?", userId, "joined").
 		Order("run_groups.created_at DESC").
 		Find(&results).Error
