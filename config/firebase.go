@@ -13,14 +13,24 @@ import (
 var FCMClient *messaging.Client
 
 func SetupFirebase() {
-	credPath := os.Getenv("FIREBASE_CREDENTIALS_PATH")
-	if credPath == "" {
-		// default: cari di root project
-		credPath = "./run-sync-a470f-firebase-adminsdk-fbsvc-6dedfbd10f.json"
+	projectID := os.Getenv("FIREBASE_PROJECT_ID")
+	conf := &firebase.Config{ProjectID: projectID}
+
+	var opt option.ClientOption
+
+	// Prioritas 1: JSON langsung dari env (untuk production/server)
+	if credJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON"); credJSON != "" {
+		opt = option.WithCredentialsJSON([]byte(credJSON))
+	} else {
+		// Prioritas 2: path ke file (untuk local development)
+		credPath := os.Getenv("FIREBASE_CREDENTIALS_PATH")
+		if credPath == "" {
+			credPath = "./run-sync-firebase.json"
+		}
+		opt = option.WithCredentialsFile(credPath)
 	}
 
-	opt := option.WithCredentialsFile(credPath)
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	app, err := firebase.NewApp(context.Background(), conf, opt)
 	if err != nil {
 		log.Fatalf("❌ Gagal inisialisasi Firebase: %v", err)
 	}

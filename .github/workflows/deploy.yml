@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy Loka Kasir Service to VPS
+    name: Deploy SatuPace Service to VPS
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +22,11 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "===> 🚀 Deploying Loka Kasir Service"
+            echo "===> 🚀 Deploying SatuPace Service"
 
             export PATH=$PATH:/usr/local/go/bin
 
-            cd /home/ubuntu/loka-kasir-service || exit 1
+            cd /home/ubuntu/satupace-service || exit 1
 
             echo "===> 🔄 Pulling latest code..."
             git fetch --all
@@ -37,23 +37,23 @@ jobs:
             /usr/local/go/bin/go mod tidy
 
             echo "===> ⚙️ Building binary..."
-            /usr/local/go/bin/go build -o loka-kasir main.go
+            /usr/local/go/bin/go build -o satupace main.go
 
             echo "===> 🔐 Updating sudoers rule for GitHub Actions..."
-            echo 'ubuntu ALL=(ALL) NOPASSWD: /bin/systemctl restart loka-kasir' | sudo tee /etc/sudoers.d/github-actions > /dev/null
+            echo 'ubuntu ALL=(ALL) NOPASSWD: /bin/systemctl restart satupace' | sudo tee /etc/sudoers.d/github-actions > /dev/null
 
-            echo "===> 🔁 Restarting Loka Kasir service..."
+            echo "===> 🔁 Restarting SatuPace service..."
             sudo /bin/systemctl daemon-reload
-            sudo /bin/systemctl restart loka-kasir
+            sudo /bin/systemctl restart satupace
 
             echo "===> ⏳ Checking service status..."
             sleep 3
-            STATUS=$(sudo systemctl is-active loka-kasir)
+            STATUS=$(sudo systemctl is-active satupace)
             if [ "$STATUS" != "active" ]; then
               echo "❌ Service failed to start."
-              sudo systemctl status loka-kasir --no-pager
+              sudo systemctl status satupace --no-pager
               exit 1
             fi
 
             echo "✅ Service is running successfully!"
-            sudo systemctl status loka-kasir --no-pager
+            sudo systemctl status satupace --no-pager
