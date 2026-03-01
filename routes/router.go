@@ -65,7 +65,7 @@ var (
 	runGroupMemberController controller.RunGroupMemberController = controller.NewRunGroupMemberController(runGroupMemberSvc)
 	runActivityController    controller.RunActivityController    = controller.NewRunActivityController(runActivitySvc)
 	directMatchController    controller.DirectMatchController    = controller.NewDirectMatchController(directMatchSvc)
-	userPhotoController      controller.UserPhotoController      = controller.NewUserPhotoController(service.NewUserPhotoService(userPhotoRepo))
+	userPhotoController      controller.UserPhotoController      = controller.NewUserPhotoController(service.NewUserPhotoService(userPhotoRepo, userRepository))
 	safetyLogController      controller.SafetyLogController      = controller.NewSafetyLogController(safetyLogSvc)
 	exploreController             controller.ExploreController             = controller.NewExploreController(exploreSvc)
 	biometricController           controller.BiometricController           = controller.NewBiometricController(biometricSvc)

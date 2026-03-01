@@ -9,6 +9,7 @@ type UserPhotoResponse struct {
 	Type      string    `json:"type"`
 	IsPrimary bool      `json:"is_primary"`
 	CreatedAt time.Time `json:"created_at"`
+	Warning   string    `json:"warning,omitempty"`
 }
 
 type FaceVerifyResponse struct {

@@ -255,8 +255,7 @@ func (s *userService) VerifyAndActivate(phoneNumber string) (response.UserRespon
 		return response.UserResponse{}, errors.New("user tidak ditemukan")
 	}
 
-	// Update verification status
-	user.IsVerified = true
+	// Aktifkan akun setelah OTP berhasil (IsVerified akan di-set setelah verifikasi foto wajah)
 	user.IsActive = true
 	user.UpdatedAt = time.Now()
 

@@ -160,16 +160,9 @@ func (c *authController) Login(ctx *gin.Context) {
 		return
 	}
 
-	// Check if user is verified
-	if !user.IsVerified {
-		res := helper.BuildErrorResponse("Akun belum diverifikasi", "NOT_VERIFIED", "body", "Silakan verifikasi akun Anda terlebih dahulu", nil)
-		ctx.JSON(http.StatusForbidden, res)
-		return
-	}
-
-	// Check if user is active
+	// Check if user is active (OTP verified)
 	if !user.IsActive {
-		res := helper.BuildErrorResponse("Akun tidak aktif", "ACCOUNT_INACTIVE", "body", "Akun Anda telah dinonaktifkan", nil)
+		res := helper.BuildErrorResponse("Akun belum diaktifkan", "NOT_ACTIVE", "body", "Silakan verifikasi OTP terlebih dahulu", nil)
 		ctx.JSON(http.StatusForbidden, res)
 		return
 	}
@@ -205,8 +198,8 @@ func (c *authController) ResendOTP(ctx *gin.Context) {
 		return
 	}
 
-	if user.IsVerified {
-		res := helper.BuildErrorResponse("Akun sudah diverifikasi", "ALREADY_VERIFIED", "body", "Akun Anda sudah diverifikasi", nil)
+	if user.IsActive {
+		res := helper.BuildErrorResponse("Akun sudah aktif", "ALREADY_ACTIVE", "body", "Akun Anda sudah diaktifkan", nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -298,13 +291,8 @@ func (c *authController) RefreshToken(ctx *gin.Context) {
 	}
 
 	// Check user status
-	if !user.IsVerified {
-		res := helper.BuildErrorResponse("Akun belum diverifikasi", "NOT_VERIFIED", "body", "Silakan verifikasi akun Anda terlebih dahulu", nil)
-		ctx.JSON(http.StatusForbidden, res)
-		return
-	}
 	if !user.IsActive {
-		res := helper.BuildErrorResponse("Akun tidak aktif", "ACCOUNT_INACTIVE", "body", "Akun Anda telah dinonaktifkan", nil)
+		res := helper.BuildErrorResponse("Akun belum diaktifkan", "NOT_ACTIVE", "body", "Silakan verifikasi OTP terlebih dahulu", nil)
 		ctx.JSON(http.StatusForbidden, res)
 		return
 	}

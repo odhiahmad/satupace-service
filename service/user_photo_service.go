@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 	"run-sync/data/request"
 	"run-sync/data/response"
 	"run-sync/entity"
@@ -34,24 +35,30 @@ type UserPhotoService interface {
 }
 
 type userPhotoService struct {
-	repo repository.UserPhotoRepository
+	repo     repository.UserPhotoRepository
+	userRepo repository.UserRepository
 }
 
-func NewUserPhotoService(repo repository.UserPhotoRepository) UserPhotoService {
-	return &userPhotoService{repo: repo}
+func NewUserPhotoService(repo repository.UserPhotoRepository, userRepo repository.UserRepository) UserPhotoService {
+	return &userPhotoService{repo: repo, userRepo: userRepo}
 }
 
 func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoRequest) (response.UserPhotoResponse, error) {
-	// Jika tipe verification, validasi wajah tampak depan sebelum upload
+	log.Printf("[UserPhoto] Create — type=%s isPrimary=%v imageLen=%d", req.Type, req.IsPrimary, len(req.Image))
+
+	var faceWarning string
+	// Jika tipe verification, coba validasi wajah — tapi jangan gagal jika tidak terdeteksi
 	if req.Type == "verification" {
 		if err := helper.DetectFrontFace(req.Image); err != nil {
-			return response.UserPhotoResponse{}, errors.New("foto verifikasi ditolak: " + err.Error())
+			log.Printf("[UserPhoto] DetectFrontFace warning: %v", err)
+			faceWarning = "Foto kurang jelas, pastikan wajah tampak jelas dan pencahayaan cukup. Foto tetap tersimpan namun verifikasi mungkin tidak akurat."
 		}
 	}
 
 	// Upload image to Cloudinary
 	imageUrl, err := helper.UploadBase64ToCloudinary(req.Image, "run-sync/photos")
 	if err != nil {
+		log.Printf("[UserPhoto] Cloudinary error: %v", err)
 		return response.UserPhotoResponse{}, errors.New("gagal upload gambar ke Cloudinary: " + err.Error())
 	}
 	if imageUrl == "" {
@@ -80,7 +87,9 @@ func (s *userPhotoService) Create(userId uuid.UUID, req request.UploadUserPhotoR
 		return response.UserPhotoResponse{}, err
 	}
 
-	return toUserPhotoResponse(&photo), nil
+	result := toUserPhotoResponse(&photo)
+	result.Warning = faceWarning
+	return result, nil
 }
 
 func (s *userPhotoService) Update(id uuid.UUID, req request.UpdateUserPhotoRequest) (response.UserPhotoResponse, error) {
@@ -175,6 +184,13 @@ func (s *userPhotoService) VerifyFace(userId uuid.UUID, req request.FaceVerifyRe
 	if matched {
 		p := toUserPhotoResponse(photo)
 		result.Photo = &p
+
+		// Set akun sebagai terverifikasi setelah wajah cocok
+		user, err := s.userRepo.FindById(userId)
+		if err == nil {
+			user.IsVerified = true
+			s.userRepo.Update(user)
+		}
 	}
 	return result, nil
 }
