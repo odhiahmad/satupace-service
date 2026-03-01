@@ -15,5 +15,6 @@ type UserPhotoResponse struct {
 type FaceVerifyResponse struct {
 	Matched    bool               `json:"matched"`
 	Similarity float32            `json:"similarity"`
+	IsVerified bool               `json:"is_verified"`
 	Photo      *UserPhotoResponse `json:"photo,omitempty"` // diisi jika wajah cocok
 }

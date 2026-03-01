@@ -187,10 +187,14 @@ func (s *userPhotoService) VerifyFace(userId uuid.UUID, req request.FaceVerifyRe
 
 		// Set akun sebagai terverifikasi setelah wajah cocok
 		user, err := s.userRepo.FindById(userId)
-		if err == nil {
-			user.IsVerified = true
-			s.userRepo.Update(user)
+		if err != nil {
+			return response.FaceVerifyResponse{}, errors.New("gagal mengambil data user: " + err.Error())
 		}
+		user.IsVerified = true
+		if err := s.userRepo.Update(user); err != nil {
+			return response.FaceVerifyResponse{}, errors.New("gagal memperbarui status verifikasi: " + err.Error())
+		}
+		result.IsVerified = true
 	}
 	return result, nil
 }
